@@ -1,0 +1,437 @@
+=== [id01] tag=probe-id mode=nf exit=0 ms=57 verdict=INFO
+--- stdin:
+    | let a1 : Nat = zero; a1
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [id02] tag=probe-id mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let a_b : Nat = zero; a_b
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let a_b : Nat = zero; a_b
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id03] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let _a : Nat = zero; _a
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let _a : Nat = zero; _a
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id04] tag=probe-id mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let aB : Nat = zero; aB
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [id05] tag=probe-id mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let abc123 : Nat = zero; abc123
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [id06] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let a' : Nat = zero; a'
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let a' : Nat = zero; a'
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id07] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let A' : Nat = zero; zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let A' : Nat = zero; zero
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id08] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let a-b : Nat = zero; a-b
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let a-b : Nat = zero; a-b
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id09] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let a.b : Nat = zero; a.b
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | let a.b : Nat = zero; a.b
+    !   |      ^
+    ! expected ':'
+    ! 
+--- expect(any): 
+
+=== [id10] tag=probe-id mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let A1 : Nat = zero; A1
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [wc01] tag=probe-id mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let _ : Nat = zero; _
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:21:
+    !   |
+    ! 1 | let _ : Nat = zero; _
+    !   |                     ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [wc02] tag=probe-id mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let _ : Nat = zero; let y : Nat = zero; y
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [wc03] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x _ . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:26:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x _ . x; f
+    !   |                          ^
+    ! expected '.'
+    ! 
+--- expect(any): 
+
+=== [wc04] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x _ . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:33:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Nat = λ x _ . x; f
+    !   |                                 ^
+    ! expected '.'
+    ! 
+--- expect(any): 
+
+=== [wc05] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ _ y . y; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:31:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Nat = λ _ y . y; f
+    !   |                               ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [wc06] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x _ . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:52:
+    !   |
+    ! 1 | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x _ . x; f
+    !   |                                                    ^
+    ! expected '.'
+    ! 
+--- expect(any): 
+
+=== [wc07] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x y (!) . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:58:
+    !   |
+    ! 1 | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x y (!) . x; f
+    !   |                                                          ^
+    ! expected ';'
+    ! 
+--- expect(any): 
+
+=== [wc08] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Id Nat (suc zero) zero -> Nat = λ x y (!) . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:65:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Id Nat (suc zero) zero -> Nat = λ x y (!) . x; f
+    !   |                                                                 ^
+    ! expected ';'
+    ! 
+--- expect(any): 
+
+=== [wc09] tag=probe-id mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Id Nat (suc zero) zero -> Nat = λ x (!) y . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:63:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Id Nat (suc zero) zero -> Nat = λ x (!) y . x; f
+    !   |                                                               ^
+    ! expected ';'
+    ! 
+--- expect(any): 
+
+=== [wc10] tag=probe-id mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ (!) . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ (!) . zero; f
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [wc11] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ _ . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ _ . zero; f
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [wc12] tag=probe-id mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Id Nat (suc zero) zero -> Nat = λ (!) (!) . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:69:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Id Nat (suc zero) zero -> Nat = λ (!) (!) . zero; f
+    !   |                                                                     ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [wc13] tag=probe-id mode=nf exit=1 ms=11 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x (!) . x; f zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:56:
+    !   |
+    ! 1 | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x (!) . x; f zero
+    !   |                                                        ^
+    ! expected ';'
+    ! 
+--- expect(any): 
+
+=== [cl01] tag=probe-id mode= exit=0 ms=12 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl02] tag=probe-id mode=--help exit=0 ms=12 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl03] tag=probe-id mode=-h exit=0 ms=14 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl04] tag=probe-id mode=NF exit=0 ms=10 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl05] tag=probe-id mode=nf extra exit=0 ms=10 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl06] tag=probe-id mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl07] tag=probe-id mode=type exit=0 ms=9 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl08] tag=probe-id mode=--version exit=0 ms=9 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl09] tag=probe-id mode=help exit=0 ms=10 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > usage: dpm-nbe [--help|nf|type]
+    >   --help : display this message
+    >   nf     : read & typecheck a program from stdin, print its normal form and type
+    >   type   : read & typecheck a program from stdin, print its type
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [cl10] tag=probe-id mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

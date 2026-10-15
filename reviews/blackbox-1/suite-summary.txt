@@ -1,0 +1,125 @@
+﻿phase A-D: 145 cases, 145 invocations
+
+================ SUMMARY ================
+invocations: 230   records: 230
+PASS: 214   FAIL: 10   INFO(no verdict): 6
+
+--- FAILURES ---
+[B13] B-readme mode=nf exit=101
+   stdin : let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+   stdout: 
+   stderr:  | thread 'dpm-nbe' panicked at src\eval.rs:282:20: | eval: impossible (Bot) | note: run with `RUST_BACKTRAC
+E=1` environment variable to display a backtrace | error: internal panic while elaborating the program | 
+   why   : expected exit 0 (no crash), got exit=101 stderr=\nthread 'dpm-nbe' panicked at src\eval.rs:282:20:\neval: im
+possible (Bot)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nerror: internal panic wh
+ile elaborating the program\n
+
+[B29] B-gen mode=nf exit=0
+   stdin : let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H 
+zero zero refl
+   stdout: λ m n refl refl . refl |   : | Id Nat zero zero → Id Nat zero zero | 
+   stderr: 
+   why   : exit=0 stdout=λ m n refl refl . refl\n  :\nId Nat zero zero → Id Nat zero zero\n
+
+[B30] B-gen mode=nf exit=0
+   stdin : let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H 
+zero
+   stdout: λ m n refl refl . refl |   : | (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero | 
+   stderr: 
+   why   : exit=0 stdout=λ m n refl refl . refl\n  :\n(n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero\n
+
+[D30] D-err mode=nf exit=101
+   stdin : let f : (n : Nat) -> Id Nat (suc n) zero -> Nat = λ n (!); f
+   stdout: 
+   stderr:  | thread 'dpm-nbe' panicked at src\eval.rs:282:20: | eval: impossible (Bot) | note: run with `RUST_BACKTRAC
+E=1` environment variable to display a backtrace | error: internal panic while elaborating the program | 
+   why   : expected exit 0 (no crash), got exit=101 stderr=\nthread 'dpm-nbe' panicked at src\eval.rs:282:20:\neval: im
+possible (Bot)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nerror: internal panic wh
+ile elaborating the program\n
+
+[E01a] E-law-roundtrip mode=nf exit=1
+   stdin : let z : Nat = succ (succ zero); z
+   stdout: 
+   stderr: <stdin>:1:15: |   | | 1 | let z : Nat = succ (succ zero); z |   |               ^ | unbound variable: succ |
+ 
+   why   : re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:15: | 
+  | | 1 | let z : Nat = succ (succ zero); z |   |               ^ | unbound variable: succ |  out=
+
+[E04a] E-law-roundtrip mode=nf exit=1
+   stdin : let z : Nat → Nat = λ x . succ x; z
+   stdout: 
+   stderr: <stdin>:1:27: |   | | 1 | let z : Nat → Nat = λ x . succ x; z |   |                           ^ | unbound va
+riable: succ | 
+   why   : re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:27: | 
+  | | 1 | let z : Nat → Nat = λ x . succ x; z |   |                           ^ | unbound variable: succ |  out=
+
+[E06a] E-law-roundtrip mode=nf exit=1
+   stdin : let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+   stdout: 
+   stderr: <stdin>:1:72: |   | | 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl 
+refl . refl; z |   |                                                                        ^ | Too many patterns. | 
+   why   : re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:72: | 
+  | | 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z |   |       
+                                                                 ^ | Too many patterns. |  out=
+
+[E06b] E-law-roundtrip mode=nf exit=1
+   stdin : let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+   stdout: 
+   stderr: <stdin>:1:72: |   | | 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl 
+refl . refl; z |   |                                                                        ^ | Too many patterns. | 
+   why   : still fails after succ->suc mapping: exit=1 stderr=<stdin>:1:72: |   | | 1 | let z : (n : Nat) → Id Nat n ze
+ro → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z |   |                                                
+                        ^ | Too many patterns. |  out=
+
+[E07a] E-law-roundtrip mode=nf exit=1
+   stdin : let z : U = (A : U)(A' : U) → A'; z
+   stdout: 
+   stderr: <stdin>:1:22: |   | | 1 | let z : U = (A : U)(A' : U) → A'; z |   |                      ^ | expected ':' | 
+   why   : re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:22: | 
+  | | 1 | let z : U = (A : U)(A' : U) → A'; z |   |                      ^ | expected ':' |  out=
+
+[E07b] E-law-roundtrip mode=nf exit=1
+   stdin : let z : U = (A : U)(A' : U) → A'; z
+   stdout: 
+   stderr: <stdin>:1:22: |   | | 1 | let z : U = (A : U)(A' : U) → A'; z |   |                      ^ | expected ':' | 
+   why   : still fails after succ->suc mapping: exit=1 stderr=<stdin>:1:22: |   | | 1 | let z : U = (A : U)(A' : U) → A
+'; z |   |                      ^ | expected ':' |  out=
+
+--- INFO (no expectation asserted) ---
+[A37] exit=1 stdin=<{- a {- b -} -} zero> out=<> err=<<stdin>:1:14: |   | | 1 | {- a {- b -} -} zero |   |             
+ ^ | expected an atom | >
+[C21] exit=1 stdin=<let g : Nat -> Nat = λ x . x; let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . r
+efl; eta> out=<> err=<<stdin>:1:99: |   | | 1 | let g : Nat -> Nat = λ x . x; let eta : (g : Nat -> Nat) -> Id (Nat -> 
+Nat) (λ x . g x) g = λ g . refl; eta |   |                                                                             
+                      ^ | expecting λ x . g x equals to g, but it is not | >
+[D31] exit=1 stdin=<let f : Id Nat (suc zero) zero -> Nat = λ (!); f> out=<> err=<<stdin>:1:43: |   | | 1 | let f : Id 
+Nat (suc zero) zero -> Nat = λ (!); f |   |                                           ^ | expected at least one pattern
+ | >
+[G01] exit=1 stdin=<let f : Id Nat (suc zero) zero -> Nat = λ (!); f> out=<> err=<<stdin>:1:43: |   | | 1 | let f : Id 
+Nat (suc zero) zero -> Nat = λ (!); f |   |                                           ^ | expected at least one pattern
+ | >
+[G02] exit=1 stdin=<let f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f> out=<> err=<<stdin>:1:50: |   | | 1 | le
+t f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f |   |                                                  ^ | expe
+cted at least one pattern | >
+[G03] exit=1 stdin=<let f : Nat -> Nat = λ _ . zero; f> out=<> err=<<stdin>:1:24: |   | | 1 | let f : Nat -> Nat = λ _ 
+. zero; f |   |                        ^ | expected at least one pattern | >
+
+--- per tag ---
+A-basic                n=37   pass=36   fail=0    info=1
+B-gen                  n=16   pass=14   fail=2    info=0
+B-readme               n=14   pass=13   fail=1    info=0
+C-defeq                n=25   pass=24   fail=0    info=1
+D-err                  n=35   pass=33   fail=1    info=1
+E-law-agree            n=8    pass=8    fail=0    info=0
+E-law-det              n=3    pass=3    fail=0    info=0
+E-law-inline           n=6    pass=6    fail=0    info=0
+E-law-plus             n=49   pass=49   fail=0    info=0
+E-law-roundtrip        n=16   pass=10   fail=6    info=0
+E-law-type-rt          n=3    pass=3    fail=0    info=0
+F-sound                n=13   pass=13   fail=0    info=0
+G-grammar              n=5    pass=2    fail=0    info=3
+
+EXIT CODES SEEN:
+  exit=0 : 159
+  exit=1 : 69
+  exit=101 : 2

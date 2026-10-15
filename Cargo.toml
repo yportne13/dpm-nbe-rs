@@ -1,0 +1,21 @@
+[package]
+name = "dpm-nbe"
+version = "0.1.0"
+edition = "2021"
+description = "Dependent pattern matching under normalization by evaluation (Rust port)"
+license = "BSD-3-Clause"
+publish = false
+
+[lib]
+name = "dpm_nbe"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dpm-nbe"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[dependencies]

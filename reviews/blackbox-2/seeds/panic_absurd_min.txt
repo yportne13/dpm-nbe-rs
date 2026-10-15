@@ -1,0 +1,1 @@
+let C : Nat -> Id Nat (suc zero) zero -> Nat = \n (!); C

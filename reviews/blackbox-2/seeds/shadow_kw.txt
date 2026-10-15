@@ -1,0 +1,1 @@
+let suc : Nat = zero; let zero : Nat = suc; zero

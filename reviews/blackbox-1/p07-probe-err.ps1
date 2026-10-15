@@ -1,0 +1,60 @@
+. (Join-Path $PSScriptRoot 'lib.ps1')
+$L = [char]0x03BB
+$nl = "`n"
+$cases = @(
+  # --- positions: second line, mid-line, third line ---
+  @{i='er01'; m='nf'; t='zero' + $nl + 'foo'},
+  @{i='er02'; m='nf'; t='zero' + $nl + 'plus zero foo'},
+  @{i='er03'; m='nf'; t='let a : Nat = zero;' + $nl + 'let b : Nat = U;' + $nl + 'b'},
+  @{i='er04'; m='nf'; t='-- c1' + $nl + '-- c2' + $nl + 'bar'},
+  @{i='er05'; m='nf'; t='zero' + $nl + $nl + $nl + 'baz'},
+  @{i='er06'; m='nf'; t='let a : Nat = zero; a a'},
+  @{i='er07'; m='nf'; t='  zero +  '},
+  @{i='er08'; m='nf'; t='   foo'},
+  @{i='er09'; m='nf'; t="`tzero`tfoo"},
+  @{i='er10'; m='nf'; t='zero' + [char]13 + 'foo'},
+  @{i='er11'; m='nf'; t='let x : Nat = suc U; x'},
+  @{i='er12'; m='nf'; t='plus zero U'},
+  @{i='er13'; m='nf'; t='Id zero zero zero'},
+  @{i='er14'; m='nf'; t='Id Nat zero zero zero'},
+  @{i='er15'; m='nf'; t='(A : U) -> A -> '},
+  @{i='er16'; m='nf'; t='let x : Nat = zero;'},
+  @{i='er17'; m='nf'; t='let x : Nat = zero'},
+  @{i='er18'; m='nf'; t='let = zero; zero'},
+  @{i='er19'; m='nf'; t='let x = zero; zero'},
+  @{i='er20'; m='nf'; t=';zero'},
+  @{i='er21'; m='nf'; t=')'},
+  @{i='er22'; m='nf'; t='('},
+  @{i='er23'; m='nf'; t=''},
+  @{i='er24'; m='nf'; t='   '},
+  @{i='er25'; m='nf'; t='-- only comment'},
+  @{i='er26'; m='nf'; t='{- unterminated'},
+  @{i='er27'; m='nf'; t='\ x . x'},
+  @{i='er28'; m='nf'; t='let x : Nat = zero; x x'},
+  @{i='er29'; m='nf'; t='suc U'},
+  @{i='er30'; m='nf'; t='plus U zero'},
+  @{i='er31'; m='nf'; t='Nat Nat'},
+  @{i='er32'; m='nf'; t='let x : U = Nat; x zero'},
+  @{i='er33'; m='nf'; t='let x : (A : U) -> A = ' + $L + ' A . A; x'},
+  @{i='er34'; m='nf'; t='let x : (A : U) -> A = ' + $L + ' A . U; x Nat'},
+  @{i='er35'; m='nf'; t='let x : (A : U) -> A = ' + $L + ' A . A; x Nat'},
+  @{i='er36'; m='nf'; t='U : U'},
+  @{i='er37'; m='nf'; t='let p : Id Nat (suc zero) zero = refl; p'},
+  @{i='er38'; m='nf'; t='let f : Nat -> Nat = ' + $L + ' x . x; f zero zero'},
+  @{i='er39'; m='nf'; t='Id Nat zero zero -> Id Nat zero'},
+  @{i='er40'; m='nf'; t='refl refl'},
+  @{i='er41'; m='nf'; t='(Id)'},
+  @{i='er42'; m='nf'; t='let Nat : U = Nat; Nat'},
+  @{i='er43'; m='nf'; t='let zero : Nat = suc zero; zero'},
+  @{i='er44'; m='nf'; t='let refl : Nat = zero; refl'},
+  @{i='er45'; m='nf'; t='plus plus zero zero'},
+  @{i='er46'; m='nf'; t='suc suc zero'},
+  @{i='er47'; m='nf'; t='Id Id Nat Nat Nat'},
+  @{i='er48'; m='nf'; t='(A : U) -> (A : U) -> A'},
+  @{i='er49'; m='nf'; t='let x : Nat = zero; let y : Nat = U; y'},
+  @{i='er50'; m='nf'; t='Nat' + $nl + 'Nat'}
+)
+$res = @(); foreach ($c in $cases) { $res += (Assert-Case -R (Run-Case -Id $c.i -Mode $c.m -Text $c.t -TimeoutSec 10 -Tag 'probe-err') -Kind 'any') }
+$raw = ($res | ForEach-Object { Render-Record $_ }) -join ''
+Write-Text (Join-Path $script:WORK 'p07.raw.txt') $raw
+$raw

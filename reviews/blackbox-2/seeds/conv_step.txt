@@ -1,0 +1,1 @@
+let f : (n m : Nat) -> Id Nat (plus (suc n) m) (suc (plus n m)) = \n m . refl; f

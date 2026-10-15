@@ -1,0 +1,2 @@
+let C : (A : U) -> Id Nat (suc zero) zero -> A = \A (!);
+let x : Id ((A : U) -> Id Nat (suc zero) zero -> A) C C = refl; x

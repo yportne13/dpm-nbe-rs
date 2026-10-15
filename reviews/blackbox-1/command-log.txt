@@ -1,0 +1,3193 @@
+=== [A01] tag=A-basic mode=nf exit=0 ms=39 verdict=PASS
+--- stdin:
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+  :
+U
+
+
+=== [A02] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | Nat
+--- stdout:
+    > Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Nat
+  :
+U
+
+
+=== [A03] tag=A-basic mode=type exit=0 ms=9 verdict=PASS
+--- stdin:
+    | Nat
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [A04] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A05] tag=A-basic mode=type exit=0 ms=6 verdict=PASS
+--- stdin:
+    | zero
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Nat
+
+
+=== [A06] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | suc zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A07] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | suc (suc (suc zero))
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ (succ (succ zero))
+  :
+Nat
+
+
+=== [A08] tag=A-basic mode=nf exit=0 ms=54 verdict=PASS
+--- stdin:
+    | plus zero zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A09] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | plus zero (suc zero)
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A10] tag=A-basic mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | plus (suc zero) zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A11] tag=A-basic mode=nf exit=0 ms=14 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ (succ (succ (succ (succ zero))))
+  :
+Nat
+
+
+=== [A12] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > Id Nat zero zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Id Nat zero zero
+  :
+U
+
+
+=== [A13] tag=A-basic mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [A14] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | (A : U) -> A -> A
+--- stdout:
+    > (A : U) → A → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (A : U) → A → A
+  :
+U
+
+
+=== [A15] tag=A-basic mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | (A : U) -> A -> A
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [A16] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | Nat -> Nat
+--- stdout:
+    > Nat → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Nat → Nat
+  :
+U
+
+
+=== [A17] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | (A : U) → A → A
+--- stdout:
+    > (A : U) → A → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (A : U) → A → A
+  :
+U
+
+
+=== [A18] tag=A-basic mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | -- comment
+    |  zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A19] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | {- comment -} zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A20] tag=A-basic mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | {- a -} {- b -} zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A21] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | zero -- trailing
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A22] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = zero; x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A23] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = zero; let y : Nat = suc x; y
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A24] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = zero; let x : Nat = suc x; x
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A25] tag=A-basic mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A26] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; f Nat zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A27] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let f : (A B : U)(g : A -> B)(x : A) -> B = λ A B g x . g x; f Nat Nat (λ n . suc n) zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ zero
+  :
+Nat
+
+
+=== [A28] tag=A-basic mode=type exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f
+--- stdout:
+    > Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Nat → Nat
+
+
+=== [A29] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | Id U Nat Nat
+--- stdout:
+    > Id U Nat Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Id U Nat Nat
+  :
+U
+
+
+=== [A30] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | (x : Nat) -> Id Nat x x
+--- stdout:
+    > (x : Nat) → Id Nat x x
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (x : Nat) → Id Nat x x
+  :
+U
+
+
+=== [A31] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | (Nat -> Nat) -> Nat
+--- stdout:
+    > (Nat → Nat) → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (Nat → Nat) → Nat
+  :
+U
+
+
+=== [A32] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | (A : U) -> (A : U) -> A
+--- stdout:
+    > (A : U)(A' : U) → A'
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (A : U)(A' : U) → A'
+  :
+U
+
+
+=== [A33] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x x . x; f (suc zero) (suc (suc zero))
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ (succ zero)
+  :
+Nat
+
+
+=== [A34] tag=A-basic mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . x; g zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A35] tag=A-basic mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let _ : Nat = zero; zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [A36] tag=A-basic mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let _ : Nat = zero; _
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:21:
+    !   |
+    ! 1 | let _ : Nat = zero; _
+    !   |                     ^
+    ! expected an atom
+    ! 
+--- expect(err): expected an atom
+
+=== [A37] tag=A-basic mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | {- a {- b -} -} zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:14:
+    !   |
+    ! 1 | {- a {- b -} -} zero
+    !   |              ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [B01] tag=B-readme mode=type exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+    |   λ A a b c refl refl . refl;
+    | 
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+    |   λ m n refl refl . refl;
+    | 
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A =
+    |   λ A (!);   -- absurd pattern
+    | 
+    | U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B02] tag=B-readme mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+    |   λ A a b c refl refl . refl;
+    | 
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+    |   λ m n refl refl . refl;
+    | 
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A =
+    |   λ A (!);   -- absurd pattern
+    | 
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+  :
+U
+
+
+=== [B03] tag=B-readme mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+    |   λ A a b c refl refl . refl; 
+    | 
+    | let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
+    |   λ A B f a b refl . refl;
+    | 
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+    |   λ m n refl refl . refl;
+    | 
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = 
+    |   λ A (!); -- Absurd pattern
+    | 
+    | U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B04] tag=B-readme mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+    |   λ A a b c refl refl . refl; 
+    | 
+    | let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
+    |   λ A B f a b refl . refl;
+    | 
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+    |   λ m n refl refl . refl;
+    | 
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = 
+    |   λ A (!); -- Absurd pattern
+    | 
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+  :
+U
+
+
+=== [B05] tag=B-readme mode=type exit=0 ms=23 verdict=PASS
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B06] tag=B-readme mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans Nat zero zero zero refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B07] tag=B-readme mode=type exit=0 ms=20 verdict=PASS
+--- stdin:
+    | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B08] tag=B-readme mode=nf exit=0 ms=20 verdict=PASS
+--- stdin:
+    | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; cong Nat Nat (λ n . suc n) zero zero refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ zero) (succ zero)
+
+
+=== [B09] tag=B-readme mode=type exit=0 ms=19 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B10] tag=B-readme mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B11] tag=B-readme mode=type exit=0 ms=10 verdict=PASS
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B12] tag=B-readme mode=nf exit=1 ms=12 verdict=PASS
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:65:
+    !   |
+    ! 1 | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+    !   |                                                                 ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): expecting succ zero equals to zero
+
+=== [B13] tag=B-readme mode=nf exit=101 ms=12 verdict=FAIL
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(ok): 
+--- WHY: expected exit 0 (no crash), got exit=101 stderr=\nthread 'dpm-nbe' panicked at src\eval.rs:282:20:\neval: impossible (Bot)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nerror: internal panic while elaborating the program\n
+
+=== [B14] tag=B-readme mode=type exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+--- stdout:
+    > Id Nat (succ zero) zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): Id Nat (succ zero) zero → Nat
+
+
+=== [B15] tag=B-gen mode=type exit=0 ms=9 verdict=PASS
+--- stdin:
+    | let trans3 : (A : U)(a b c d : A) -> Id A a b -> Id A b c -> Id A c d -> Id A a d = λ A a b c d refl refl refl . refl;U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B16] tag=B-gen mode=nf exit=0 ms=11 verdict=PASS
+--- stdin:
+    | let trans3 : (A : U)(a b c d : A) -> Id A a b -> Id A b c -> Id A c d -> Id A a d = λ A a b c d refl refl refl . refl;trans3 Nat zero zero zero zero refl refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B17] tag=B-gen mode=type exit=0 ms=20 verdict=PASS
+--- stdin:
+    | let trans4 : (A : U)(a b c d e : A) -> Id A a b -> Id A b c -> Id A c d -> Id A d e -> Id A a e = λ A a b c d e refl refl refl refl . refl;U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B18] tag=B-gen mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let trans4 : (A : U)(a b c d e : A) -> Id A a b -> Id A b c -> Id A c d -> Id A d e -> Id A a e = λ A a b c d e refl refl refl refl . refl;trans4 Nat zero zero zero zero zero refl refl refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B19] tag=B-gen mode=type exit=0 ms=27 verdict=PASS
+--- stdin:
+    | let trans5 : (A : U)(a b c d e f : A) -> Id A a b -> Id A b c -> Id A c d -> Id A d e -> Id A e f -> Id A a f = λ A a b c d e f refl refl refl refl refl . refl;U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(exact): U
+
+
+=== [B20] tag=B-gen mode=nf exit=0 ms=11 verdict=PASS
+--- stdin:
+    | let trans5 : (A : U)(a b c d e f : A) -> Id A a b -> Id A b c -> Id A c d -> Id A d e -> Id A e f -> Id A a f = λ A a b c d e f refl refl refl refl refl . refl;trans5 Nat zero zero zero zero zero zero refl refl refl refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B21] tag=B-gen mode=nf exit=0 ms=23 verdict=PASS
+--- stdin:
+    | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;trans2 U Nat Nat Nat refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id U Nat Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id U Nat Nat
+
+
+=== [B22] tag=B-gen mode=nf exit=0 ms=24 verdict=PASS
+--- stdin:
+    | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;let f : Nat -> Nat = λ x . x; trans2 (Nat -> Nat) f f f refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Nat → Nat) (λ x . x) (λ x . x)
+
+
+=== [B23] tag=B-gen mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;trans2 (Id Nat zero zero) refl refl refl refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id (Id Nat zero zero) refl refl
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Id Nat zero zero) refl refl
+
+
+=== [B24] tag=B-gen mode=nf exit=0 ms=10 verdict=PASS
+--- stdin:
+    | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;trans2 Nat zero zero zero (trans2 Nat zero zero zero refl refl) refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [B25] tag=B-gen mode=nf exit=1 ms=11 verdict=PASS
+--- stdin:
+    | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;trans2 Nat zero zero (suc zero) refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:135:
+    !   |
+    ! 1 | let trans2 : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;trans2 Nat zero zero (suc zero) refl refl
+    !   |                                                                                                                                       ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(err): expecting
+
+=== [B26] tag=B-gen mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero (suc zero) refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:125:
+    !   |
+    ! 1 | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero (suc zero) refl refl
+    !   |                                                                                                                             ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): expecting
+
+=== [B27] tag=B-gen mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H (suc zero) (suc zero) refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:136:
+    !   |
+    ! 1 | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H (suc zero) (suc zero) refl refl
+    !   |                                                                                                                                        ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): expecting
+
+=== [B28] tag=B-gen mode=nf exit=1 ms=9 verdict=PASS
+--- stdin:
+    | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; cong Nat Nat (λ n . suc n) zero (suc zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:145:
+    !   |
+    ! 1 | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; cong Nat Nat (λ n . suc n) zero (suc zero) refl
+    !   |                                                                                                                                                 ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(err): expecting
+
+=== [B29] tag=B-gen mode=nf exit=0 ms=9 verdict=FAIL
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl
+--- stdout:
+    > λ m n refl refl . refl
+    >   :
+    > Id Nat zero zero → Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (λ refl refl . refl)
+  :
+Id Nat zero zero 
+
+--- WHY: exit=0 stdout=λ m n refl refl . refl\n  :\nId Nat zero zero → Id Nat zero zero\n
+
+=== [B30] tag=B-gen mode=nf exit=0 ms=7 verdict=FAIL
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero
+--- stdout:
+    > λ m n refl refl . refl
+    >   :
+    > (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): (λ n refl refl . refl)
+  :
+(n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+
+--- WHY: exit=0 stdout=λ m n refl refl . refl\n  :\n(n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero\n
+
+=== [C01] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus zero zero) (zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C02] tag=C-defeq mode=nf exit=0 ms=11 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (suc zero) zero) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ zero) (succ zero)
+
+
+=== [C03] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus zero (suc zero)) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ zero) (succ zero)
+
+
+=== [C04] tag=C-defeq mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (suc (suc (zero))) (suc (suc (zero)))) (suc (suc (suc (suc (zero))))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ zero)))) (succ (succ (succ (succ zero))))
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ (succ (succ (succ zero)))) (succ (succ (succ (succ zero))))
+
+
+=== [C05] tag=C-defeq mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id Nat (zero) (plus zero zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C06] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (plus zero zero) zero) (zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C07] tag=C-defeq mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = plus zero zero; let p : Id Nat x zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C08] tag=C-defeq mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let p : Id Nat (f zero) zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C09] tag=C-defeq mode=nf exit=0 ms=10 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let p : Id Nat (f (f zero)) zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat zero zero
+
+
+=== [C10] tag=C-defeq mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | let p : Id Nat (zero) (suc zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:36:
+    !   |
+    ! 1 | let p : Id Nat (zero) (suc zero) = refl; p
+    !   |                                    ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(err): expecting zero equals to succ zero
+
+=== [C11] tag=C-defeq mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (suc zero) zero) (zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:48:
+    !   |
+    ! 1 | let p : Id Nat (plus (suc zero) zero) (zero) = refl; p
+    !   |                                                ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): expecting succ zero equals to zero
+
+=== [C12] tag=C-defeq mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus zero (suc zero)) (zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:48:
+    !   |
+    ! 1 | let p : Id Nat (plus zero (suc zero)) (zero) = refl; p
+    !   |                                                ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): expecting succ zero equals to zero
+
+=== [C13] tag=C-defeq mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:101:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . plus x zero; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+    !   |                                                                                                     ^
+    ! expecting λ x . plus x zero equals to λ x . x, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [C14] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus zero x; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Nat → Nat) (λ x . x) (λ x . x)
+
+
+=== [C15] tag=C-defeq mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus (suc zero) x; let g : Nat -> Nat = λ x . suc x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . succ x) (λ x . succ x)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Nat → Nat) (λ x . succ x) (λ x . succ x)
+
+
+=== [C16] tag=C-defeq mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; let g : (A : U) -> A -> A = λ B y . y; let p : Id ((A : U) -> A -> A) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id ((A : U) → A → A) (λ A x . x) (λ B y . y)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id ((A : U) → A → A) (λ A x . x) (λ B y . y)
+
+
+=== [C17] tag=C-defeq mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . x; let g : Nat -> Nat -> Nat = λ y x . x; let p : Id (Nat -> Nat -> Nat) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:116:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Nat = λ x y . x; let g : Nat -> Nat -> Nat = λ y x . x; let p : Id (Nat -> Nat -> Nat) f g = refl; p
+    !   |                                                                                                                    ^
+    ! expecting λ x y . x equals to λ y x . x, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [C18] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id (Id Nat zero zero) refl refl = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Id Nat zero zero) refl refl
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Id Nat zero zero) refl refl
+
+
+=== [C19] tag=C-defeq mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id U Nat (Nat -> Nat) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:33:
+    !   |
+    ! 1 | let p : Id U Nat (Nat -> Nat) = refl; p
+    !   |                                 ^
+    ! expecting Nat equals to Nat → Nat, but it is not
+    ! 
+--- expect(err): expecting Nat equals to Nat → Nat
+
+=== [C20] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id U Nat Nat = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id U Nat Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id U Nat Nat
+
+
+=== [C21] tag=C-defeq mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let g : Nat -> Nat = λ x . x; let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:99:
+    !   |
+    ! 1 | let g : Nat -> Nat = λ x . x; let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+    !   |                                                                                                   ^
+    ! expecting λ x . g x equals to g, but it is not
+    ! 
+--- expect(any): 
+
+=== [C22] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let g : Nat -> Nat = λ x . x; let f : Nat -> Nat = λ x . g x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id (Nat → Nat) (λ x . x) (λ x . x)
+
+
+=== [C23] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (suc (suc (suc (suc (suc (suc (zero))))))) zero) (suc (suc (suc (suc (suc (suc (zero))))))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+
+
+=== [C24] tag=C-defeq mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus zero (suc (suc (suc (suc (suc (suc (zero)))))))) (suc (suc (suc (suc (suc (suc (zero))))))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+
+
+=== [C25] tag=C-defeq mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let p : Id Nat (plus (suc (suc (suc (zero)))) (suc (suc (suc (zero))))) (suc (suc (suc (suc (suc (suc (zero))))))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+    > 
+--- stderr:
+    ! 
+--- expect(exact): refl
+  :
+Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+
+
+=== [D01] tag=D-err mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | foo
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | foo
+    !   | ^
+    ! unbound variable: foo
+    ! 
+--- expect(err): ^<stdin>:1:1:
+
+=== [D02] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    |    foo
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:4:
+    !   |
+    ! 1 |    foo
+    !   |    ^
+    ! unbound variable: foo
+    ! 
+--- expect(err): <stdin>:1:4:
+
+=== [D03] tag=D-err mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | -- c1
+    | -- c2
+    | bar
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:3:1:
+    !   |
+    ! 3 | bar
+    !   | ^
+    ! unbound variable: bar
+    ! 
+--- expect(err): <stdin>:3:1:
+
+=== [D04] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let bad : Nat = U; U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:17:
+    !   |
+    ! 1 | let bad : Nat = U; U
+    !   |                 ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   U
+    ! 
+    ! 
+--- expect(err): <stdin>:1:17:
+
+=== [D05] tag=D-err mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let a : Nat = zero;
+    | let b : Nat = U;
+    | b
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:2:15:
+    !   |
+    ! 2 | let b : Nat = U;
+    !   |               ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   U
+    ! 
+    ! 
+--- expect(err): <stdin>:2:15:
+
+=== [D06] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let p : Id Nat (suc zero) zero = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:34:
+    !   |
+    ! 1 | let p : Id Nat (suc zero) zero = refl; p
+    !   |                                  ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): <stdin>:1:34:
+
+=== [D07] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let a : Nat = zero; a a
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:21:
+    !   |
+    ! 1 | let a : Nat = zero; a a
+    !   |                     ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   Nat
+    ! 
+--- expect(err): <stdin>:1:21:
+
+=== [D08] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ zero . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:29:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ zero . zero; f
+    !   |                             ^
+    ! 'zero' is a keyword
+    ! 
+--- expect(err): 'zero' is a keyword
+
+=== [D09] tag=D-err mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ suc . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:28:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ suc . zero; f
+    !   |                            ^
+    ! 'suc' is a keyword
+    ! 
+--- expect(err): 'suc' is a keyword
+
+=== [D10] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let Nat : U = Nat; Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:9:
+    !   |
+    ! 1 | let Nat : U = Nat; Nat
+    !   |         ^
+    ! 'Nat' is a keyword
+    ! 
+--- expect(err): 'Nat' is a keyword
+
+=== [D11] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let refl : Nat = zero; refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:10:
+    !   |
+    ! 1 | let refl : Nat = zero; refl
+    !   |          ^
+    ! 'refl' is a keyword
+    ! 
+--- expect(err): 'refl' is a keyword
+
+=== [D12] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | Id
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | Id
+    !   |   ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:3:
+
+=== [D13] tag=D-err mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | suc
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:4:
+    !   |
+    ! 1 | suc
+    !   |    ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:4:
+
+=== [D14] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | plus zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:10:
+    !   |
+    ! 1 | plus zero
+    !   |          ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:10:
+
+=== [D15] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | suc U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:5:
+    !   |
+    ! 1 | suc U
+    !   |     ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   U
+    ! 
+    ! 
+--- expect(err): <stdin>:1:5:
+
+=== [D16] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | plus U zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | plus U zero
+    !   |      ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   U
+    ! 
+    ! 
+--- expect(err): <stdin>:1:6:
+
+=== [D17] tag=D-err mode=nf exit=1 ms=9 verdict=PASS
+--- stdin:
+    | Id zero zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:4:
+    !   |
+    ! 1 | Id zero zero zero
+    !   |    ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   U
+    ! 
+    ! inferred type:
+    ! 
+    !   Nat
+    ! 
+    ! 
+--- expect(err): <stdin>:1:4:
+
+=== [D18] tag=D-err mode=nf exit=1 ms=9 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; f zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:31:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . x; f zero zero
+    !   |                               ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   Nat
+    ! 
+--- expect(err): Expected a function type
+
+=== [D19] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | λ x . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | λ x . x
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(err): Can't infer type for lambda expression
+
+=== [D20] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | refl
+    !   | ^
+    ! Can't infer type for refl
+    ! 
+--- expect(err): Can't infer type for refl
+
+=== [D21] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ x (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:41:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ x (!); f
+    !   |                                         ^
+    ! Too many patterns.
+    ! 
+--- expect(err): Too many patterns
+
+=== [D22] tag=D-err mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let x : Nat = zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:19:
+    !   |
+    ! 1 | let x : Nat = zero
+    !   |                   ^
+    ! expected ';'
+    ! 
+--- expect(err): expected ';'
+
+=== [D23] tag=D-err mode=nf exit=1 ms=8 verdict=PASS
+--- stdin:
+    | let x = zero; zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:7:
+    !   |
+    ! 1 | let x = zero; zero
+    !   |       ^
+    ! expected ':'
+    ! 
+--- expect(err): expected ':'
+
+=== [D24] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | U : U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | U : U
+    !   |   ^
+    ! expected end of input
+    ! 
+--- expect(err): expected end of input
+
+=== [D25] tag=D-err mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | (Id)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:4:
+    !   |
+    ! 1 | (Id)
+    !   |    ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:4:
+
+=== [D26] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | {- unterminated
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:16:
+    !   |
+    ! 1 | {- unterminated
+    !   |                ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:16:
+
+=== [D27] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | 
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | 
+    !   | ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:1:
+
+=== [D28] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:44:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+    !   |                                            ^
+    ! It should not be '(!)' for equation between zero and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(err): It should not be '\(\!\)'
+
+=== [D29] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ refl . zero; f
+    !   |                      ^
+    ! Expected an identity type for pattern 'refl', but got:
+    ! 
+    !   Nat
+    ! 
+--- expect(err): Expected an identity type for pattern
+
+=== [D30] tag=D-err mode=nf exit=101 ms=5 verdict=FAIL
+--- stdin:
+    | let f : (n : Nat) -> Id Nat (suc n) zero -> Nat = λ n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(ok): 
+--- WHY: expected exit 0 (no crash), got exit=101 stderr=\nthread 'dpm-nbe' panicked at src\eval.rs:282:20:\neval: impossible (Bot)\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nerror: internal panic while elaborating the program\n
+
+=== [D31] tag=D-err mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [D32] tag=D-err mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | plus zero zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | plus zero zero zero
+    !   | ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   Nat
+    ! 
+--- expect(err): Expected a function type
+
+=== [D33] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | Nat Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | Nat Nat
+    !   | ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   U
+    ! 
+--- expect(err): <stdin>:1:1:
+
+=== [D34] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x x . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x x . x; f
+    !   |                      ^
+    ! Too many patterns.
+    ! 
+--- expect(err): Too many patterns
+
+=== [D35] tag=D-err mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | Id Nat zero zero -> Id Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:32:
+    !   |
+    ! 1 | Id Nat zero zero -> Id Nat zero
+    !   |                                ^
+    ! expected an atom
+    ! 
+--- expect(err): <stdin>:1:32:
+
+=== [F01] tag=F-sound mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (plus m zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:87:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (plus m zero) zero = λ m refl . refl; f
+    !   |                                                                                       ^
+    ! expecting plus (plus m zero) zero equals to zero, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F02] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat m zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:75:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat m zero = λ m refl . refl; f
+    !   |                                                                           ^
+    ! expecting plus m zero equals to zero, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F03] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (suc zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:84:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (suc zero) zero = λ m refl . refl; f
+    !   |                                                                                    ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F04] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat zero (suc zero) = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat zero (suc zero) = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F05] tag=F-sound mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat (suc zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat (suc zero) zero = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F06] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat m (suc (suc m)) = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat m (suc (suc m)) = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting succ m equals to succ (succ (succ m)), but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F07] tag=F-sound mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f zero refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:72:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f zero refl
+    !   |                                                                        ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(err): expecting zero equals to succ zero
+
+=== [F08] tag=F-sound mode=nf exit=1 ms=7 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f (suc zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f (suc zero) refl
+    !   |                                                                              ^
+    ! expecting succ zero equals to succ (succ zero), but it is not
+    ! 
+--- expect(err): but it is not
+
+=== [F09] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Nat = C Nat; bad
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:75:
+    !   |
+    ! 1 | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Nat = C Nat; bad
+    !   |                                                                           ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   Id Nat (succ zero) zero → Nat
+    ! 
+    ! 
+--- expect(err): type mismatch
+
+=== [F10] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = C (Id Nat zero (suc zero)); bad
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:94:
+    !   |
+    ! 1 | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = C (Id Nat zero (suc zero)); bad
+    !   |                                                                                              ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Id Nat zero (succ zero)
+    ! 
+    ! inferred type:
+    ! 
+    !   Id Nat (succ zero) zero → Id Nat zero (succ zero)
+    ! 
+    ! 
+--- expect(err): type mismatch
+
+=== [F11] tag=F-sound mode=nf exit=1 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (suc m) zero -> Nat = λ m refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:51:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (suc m) zero -> Nat = λ m refl . zero; f
+    !   |                                                   ^
+    ! It should not be 'refl' for equation between succ m and zero, in fact you should try pattern '(!)'.
+    ! 
+--- expect(err): 'refl' for equation between succ m and zero
+
+=== [F12] tag=F-sound mode=nf exit=1 ms=5 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (suc m) (suc (suc m)) -> Nat = λ m (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:60:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (suc m) (suc (suc m)) -> Nat = λ m (!); f
+    !   |                                                            ^
+    ! It should not be '(!)' for equation between succ m and succ (succ m), in fact you should try pattern 'refl'.
+    ! 
+--- expect(err): '\(\!\)' for equation between succ m and succ \(succ m\)
+
+=== [F13] tag=F-sound mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Nat = λ m refl . zero; f
+--- stdout:
+    > λ m refl . zero
+    >   :
+    > (m : Nat) → Id Nat (plus m zero) m → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(ok): 
+
+=== [G01] tag=G-grammar mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [G02] tag=G-grammar mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:50:
+    !   |
+    ! 1 | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f
+    !   |                                                  ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [G03] tag=G-grammar mode=nf exit=1 ms=5 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ _ . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:24:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ _ . zero; f
+    !   |                        ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [G04] tag=G-grammar mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x x . x; f (suc zero) (suc (suc zero))
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): succ (succ zero)
+  :
+Nat
+
+
+=== [G05] tag=G-grammar mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let _ : Nat = zero; zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(exact): zero
+  :
+Nat
+
+
+=== [E01a] tag=E-law-roundtrip mode=nf exit=1 ms=7 verdict=FAIL
+--- stdin:
+    | let z : Nat = succ (succ zero); z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:15:
+    !   |
+    ! 1 | let z : Nat = succ (succ zero); z
+    !   |               ^
+    ! unbound variable: succ
+    ! 
+--- expect(law): 
+--- WHY: re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:15: |   | | 1 | let z : Nat = succ (succ zero); z |   |               ^ | unbound variable: succ |  out=
+
+=== [E01b] tag=E-law-roundtrip mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let z : Nat = suc (suc zero); z
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E01c] tag=E-law-agree mode=type exit=0 ms=9 verdict=PASS
+--- stdin:
+    | plus (suc zero) (suc zero)
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E02a] tag=E-law-roundtrip mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let z : U = Id Nat zero zero → Nat; z
+--- stdout:
+    > Id Nat zero zero → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E02b] tag=E-law-roundtrip mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let z : U = Id Nat zero zero → Nat; z
+--- stdout:
+    > Id Nat zero zero → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E02c] tag=E-law-agree mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | Id Nat zero zero -> Nat
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E03a] tag=E-law-roundtrip mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let z : U = U; z
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E03b] tag=E-law-roundtrip mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let z : U = U; z
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E03c] tag=E-law-agree mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E04a] tag=E-law-roundtrip mode=nf exit=1 ms=6 verdict=FAIL
+--- stdin:
+    | let z : Nat → Nat = λ x . succ x; z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:27:
+    !   |
+    ! 1 | let z : Nat → Nat = λ x . succ x; z
+    !   |                           ^
+    ! unbound variable: succ
+    ! 
+--- expect(law): 
+--- WHY: re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:27: |   | | 1 | let z : Nat → Nat = λ x . succ x; z |   |                           ^ | unbound variable: succ |  out=
+
+=== [E04b] tag=E-law-roundtrip mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let z : Nat → Nat = λ x . suc x; z
+--- stdout:
+    > λ x . succ x
+    >   :
+    > Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E04c] tag=E-law-agree mode=type exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f
+--- stdout:
+    > Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E05a] tag=E-law-roundtrip mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let z : (A : U) → A → A = λ A x . x; z
+--- stdout:
+    > λ A x . x
+    >   :
+    > (A : U) → A → A
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E05b] tag=E-law-roundtrip mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let z : (A : U) → A → A = λ A x . x; z
+--- stdout:
+    > λ A x . x
+    >   :
+    > (A : U) → A → A
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E05c] tag=E-law-agree mode=type exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; f
+--- stdout:
+    > (A : U) → A → A
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E06a] tag=E-law-roundtrip mode=nf exit=1 ms=8 verdict=FAIL
+--- stdin:
+    | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:72:
+    !   |
+    ! 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+    !   |                                                                        ^
+    ! Too many patterns.
+    ! 
+--- expect(law): 
+--- WHY: re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:72: |   | | 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z |   |                                                                        ^ | Too many patterns. |  out=
+
+=== [E06b] tag=E-law-roundtrip mode=nf exit=1 ms=8 verdict=FAIL
+--- stdin:
+    | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:72:
+    !   |
+    ! 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z
+    !   |                                                                        ^
+    ! Too many patterns.
+    ! 
+--- expect(law): 
+--- WHY: still fails after succ->suc mapping: exit=1 stderr=<stdin>:1:72: |   | | 1 | let z : (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero = λ m n refl refl . refl; z |   |                                                                        ^ | Too many patterns. |  out=
+
+=== [E06c] tag=E-law-agree mode=type exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero
+--- stdout:
+    > (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E07a] tag=E-law-roundtrip mode=nf exit=1 ms=13 verdict=FAIL
+--- stdin:
+    | let z : U = (A : U)(A' : U) → A'; z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let z : U = (A : U)(A' : U) → A'; z
+    !   |                      ^
+    ! expected ':'
+    ! 
+--- expect(law): 
+--- WHY: re-checking the printed normal form at its printed type failed or changed it: exit=1 stderr=<stdin>:1:22: |   | | 1 | let z : U = (A : U)(A' : U) → A'; z |   |                      ^ | expected ':' |  out=
+
+=== [E07b] tag=E-law-roundtrip mode=nf exit=1 ms=8 verdict=FAIL
+--- stdin:
+    | let z : U = (A : U)(A' : U) → A'; z
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let z : U = (A : U)(A' : U) → A'; z
+    !   |                      ^
+    ! expected ':'
+    ! 
+--- expect(law): 
+--- WHY: still fails after succ->suc mapping: exit=1 stderr=<stdin>:1:22: |   | | 1 | let z : U = (A : U)(A' : U) → A'; z |   |                      ^ | expected ':' |  out=
+
+=== [E07c] tag=E-law-agree mode=type exit=0 ms=7 verdict=PASS
+--- stdin:
+    | (A : U) -> (A : U) -> A
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E08a] tag=E-law-roundtrip mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let z : Id Nat zero zero = refl; z
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E08b] tag=E-law-roundtrip mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let z : Id Nat zero zero = refl; z
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E08c] tag=E-law-agree mode=type exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans Nat zero zero zero refl refl
+--- stdout:
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-0] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (zero) (zero)
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-1] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (zero))
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-2] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (suc (zero)))
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-3] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-4] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ zero)))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-5] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-0-6] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (zero) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-0] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (zero)
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-1] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (zero))
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-2] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-3] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ zero)))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-4] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-5] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-1-6] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (zero)) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-0] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (zero)
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-1] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (zero))
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-2] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ (succ zero)))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-3] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-4] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-5] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-2-6] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (zero))) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ zero)))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-0] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (zero)
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-1] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (zero))
+--- stdout:
+    > succ (succ (succ (succ zero)))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-2] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-3] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-4] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-5] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ zero)))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-3-6] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (zero)))) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-0] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (zero)
+--- stdout:
+    > succ (succ (succ (succ zero)))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-1] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (zero))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-2] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-3] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-4] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ zero)))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-5] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-4-6] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (zero))))) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero)))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-0] tag=E-law-plus mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (zero)
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-1] tag=E-law-plus mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (zero))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-2] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-3] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ zero)))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-4] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-5] tag=E-law-plus mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero)))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-5-6] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (zero)))))) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-0] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (zero)
+--- stdout:
+    > succ (succ (succ (succ (succ (succ zero)))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-1] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (zero))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ zero))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-2] tag=E-law-plus mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (suc (zero)))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ zero)))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-3] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (suc (suc (zero))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-4] tag=E-law-plus mode=nf exit=0 ms=5 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (suc (suc (suc (zero)))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero)))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-5] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (suc (suc (suc (suc (zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero))))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E5-6-6] tag=E-law-plus mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc (zero))))))) (suc (suc (suc (suc (suc (suc (zero)))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero)))))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E06L] tag=E-law-inline mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let x : Nat = plus zero zero; suc x
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E07L] tag=E-law-inline mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = zero; plus x (suc zero)
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E08L] tag=E-law-inline mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Nat = suc zero; let y : Nat = plus x x; y
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E09L] tag=E-law-inline mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let A : U = Nat; A
+--- stdout:
+    > Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E10L] tag=E-law-inline mode=nf exit=0 ms=8 verdict=PASS
+--- stdin:
+    | let x : Id Nat zero zero = refl; x
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E11L] tag=E-law-inline mode=nf exit=0 ms=7 verdict=PASS
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f (suc zero)
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E12] tag=E-law-det mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | plus (suc zero) (suc zero)
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E12] tag=E-law-det mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E12] tag=E-law-det mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | Id Nat zero zero -> Nat
+--- stdout:
+    > Id Nat zero zero → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E13] tag=E-law-type-rt mode=nf exit=0 ms=9 verdict=PASS
+--- stdin:
+    | (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+--- stdout:
+    > (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E13] tag=E-law-type-rt mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > Id Nat zero zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+
+=== [E13] tag=E-law-type-rt mode=nf exit=0 ms=6 verdict=PASS
+--- stdin:
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(law): 
+

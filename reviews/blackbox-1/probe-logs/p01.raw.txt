@@ -1,0 +1,646 @@
+=== [ex01] tag=explore-basic mode=nf exit= ms=33 verdict=INFO
+--- stdin:
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex02] tag=explore-basic mode=nf exit= ms=23 verdict=INFO
+--- stdin:
+    | Nat
+--- stdout:
+    > Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex03] tag=explore-basic mode=type exit= ms=18 verdict=INFO
+--- stdin:
+    | Nat
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex04] tag=explore-basic mode=nf exit= ms=21 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex05] tag=explore-basic mode=type exit= ms=16 verdict=INFO
+--- stdin:
+    | zero
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex06] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | suc zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex07] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | suc (suc (suc zero))
+--- stdout:
+    > succ (succ (succ zero))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex08] tag=explore-basic mode=nf exit= ms=21 verdict=INFO
+--- stdin:
+    | plus zero zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex09] tag=explore-basic mode=nf exit= ms=20 verdict=INFO
+--- stdin:
+    | plus zero (suc zero)
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex10] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | plus (suc zero) zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex11] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | plus (suc (suc zero)) (suc (suc (suc zero)))
+--- stdout:
+    > succ (succ (succ (succ (succ zero))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex12] tag=explore-basic mode=type exit= ms=16 verdict=INFO
+--- stdin:
+    | plus zero zero
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex13] tag=explore-basic mode=nf exit= ms=24 verdict=INFO
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > Id Nat zero zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex14] tag=explore-basic mode=type exit= ms=17 verdict=INFO
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex15] tag=explore-basic mode=nf exit= ms=22 verdict=INFO
+--- stdin:
+    | refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | refl
+    !   | ^
+    ! Can't infer type for refl
+    ! 
+--- expect(any): 
+
+=== [ex16] tag=explore-basic mode=nf exit= ms=27 verdict=INFO
+--- stdin:
+    | Id Nat zero zero -> Nat
+--- stdout:
+    > Id Nat zero zero → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex17] tag=explore-basic mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | (A : U) -> A -> A
+--- stdout:
+    > (A : U) → A → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex18] tag=explore-basic mode=type exit= ms=21 verdict=INFO
+--- stdin:
+    | (A : U) -> A -> A
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex19] tag=explore-basic mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | \ (A : U) (x : A) . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (A : U) (x : A) . x
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex20] tag=explore-basic mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | \(A : U) (x : A) . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | \(A : U) (x : A) . x
+    !   |  ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex21] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | λ (A : U) (x : A) . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | λ (A : U) (x : A) . x
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex22] tag=explore-basic mode=nf exit= ms=22 verdict=INFO
+--- stdin:
+    | (A : U) → A → A
+--- stdout:
+    > (A : U) → A → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex23] tag=explore-basic mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex24] tag=explore-basic mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; let y : Nat = suc x; y
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex25] tag=explore-basic mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; let x : Nat = suc x; x
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex26] tag=explore-basic mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; -- comment
+    |  x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex27] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | {- block {- nested -} comment -} zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:31:
+    !   |
+    ! 1 | {- block {- nested -} comment -} zero
+    !   |                               ^
+    ! expected end of input
+    ! 
+--- expect(any): 
+
+=== [ex28] tag=explore-basic mode=nf exit= ms=22 verdict=INFO
+--- stdin:
+    | zero -- trailing
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex29] tag=explore-basic mode=nf exit= ms=21 verdict=INFO
+--- stdin:
+    | -- only a comment
+    | zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex30] tag=explore-basic mode=type exit= ms=27 verdict=INFO
+--- stdin:
+    | \ (A : U) (x : A) . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (A : U) (x : A) . x
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex31] tag=explore-basic mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | (\(A : U) (x : A) . x) Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | (\(A : U) (x : A) . x) Nat zero
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex32] tag=explore-basic mode=nf exit= ms=30 verdict=INFO
+--- stdin:
+    | \ (n : Nat) . plus n zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (n : Nat) . plus n zero
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex33] tag=explore-basic mode=type exit= ms=19 verdict=INFO
+--- stdin:
+    | \ (n : Nat) . plus n zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (n : Nat) . plus n zero
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex34] tag=explore-basic mode=nf exit= ms=29 verdict=INFO
+--- stdin:
+    | \ (n : Nat) . plus zero n
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (n : Nat) . plus zero n
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex35] tag=explore-basic mode=nf exit= ms=28 verdict=INFO
+--- stdin:
+    | \ (A : U) (a : A) . refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (A : U) (a : A) . refl
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex36] tag=explore-basic mode=type exit= ms=21 verdict=INFO
+--- stdin:
+    | \ (A : U) (a : A) . refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (A : U) (a : A) . refl
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex37] tag=explore-basic mode=nf exit= ms=36 verdict=INFO
+--- stdin:
+    | Id
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | Id
+    !   |   ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [ex38] tag=explore-basic mode=nf exit= ms=32 verdict=INFO
+--- stdin:
+    | Id Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:7:
+    !   |
+    ! 1 | Id Nat
+    !   |       ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [ex39] tag=explore-basic mode=nf exit= ms=30 verdict=INFO
+--- stdin:
+    | Id Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:12:
+    !   |
+    ! 1 | Id Nat zero
+    !   |            ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [ex40] tag=explore-basic mode=nf exit= ms=21 verdict=INFO
+--- stdin:
+    | plus
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:5:
+    !   |
+    ! 1 | plus
+    !   |     ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [ex41] tag=explore-basic mode=nf exit= ms=28 verdict=INFO
+--- stdin:
+    | plus zero zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | plus zero zero zero
+    !   | ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   Nat
+    ! 
+--- expect(any): 
+
+=== [ex42] tag=explore-basic mode=nf exit= ms=27 verdict=INFO
+--- stdin:
+    | suc zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | suc zero zero
+    !   | ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   Nat
+    ! 
+--- expect(any): 
+
+=== [ex43] tag=explore-basic mode=nf exit= ms=29 verdict=INFO
+--- stdin:
+    | refl zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | refl zero
+    !   | ^
+    ! Can't infer type for refl
+    ! 
+--- expect(any): 
+
+=== [ex44] tag=explore-basic mode=nf exit= ms=33 verdict=INFO
+--- stdin:
+    | U U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | U U
+    !   | ^
+    ! Expected a function type, instead inferred:
+    ! 
+    !   U
+    ! 
+--- expect(any): 
+
+=== [ex45] tag=explore-basic mode=nf exit= ms=33 verdict=INFO
+--- stdin:
+    | let id : (A : U) -> A -> A = \ (A : U) (x : A) . x; id Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:32:
+    !   |
+    ! 1 | let id : (A : U) -> A -> A = \ (A : U) (x : A) . x; id Nat zero
+    !   |                                ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex46] tag=explore-basic mode=nf exit= ms=33 verdict=INFO
+--- stdin:
+    | let id : (A : U) -> A -> A = \(A : U)(x : A). x; id (Id Nat zero zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:31:
+    !   |
+    ! 1 | let id : (A : U) -> A -> A = \(A : U)(x : A). x; id (Id Nat zero zero) refl
+    !   |                               ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex47] tag=explore-basic mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | (\(A : U)(x : A). x) (Id Nat zero zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | (\(A : U)(x : A). x) (Id Nat zero zero) refl
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ex48] tag=explore-basic mode=nf exit= ms=21 verdict=INFO
+--- stdin:
+    | plus (plus zero zero) (plus zero (suc zero))
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex49] tag=explore-basic mode=nf exit= ms=23 verdict=INFO
+--- stdin:
+    | (A : U) -> (B : U) -> A -> B -> A
+--- stdout:
+    > (A : U)(B : U) → A → B → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ex50] tag=explore-basic mode=nf exit= ms=23 verdict=INFO
+--- stdin:
+    | \ (A B : U) (a : A) (b : B) . a
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ (A B : U) (a : A) (b : B) . a
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+

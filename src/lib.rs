@@ -1,0 +1,583 @@
+//! # dpm-nbe — dependent pattern matching under normalization by evaluation
+//!
+//! A Rust port of the Haskell project of the same name.  The pipeline is the
+//! classic elaboration zoo pipeline:
+//!
+//! ```text
+//! parse (Raw) --elaborate--> core term + semantic type --evaluate--> value --quote--> normal form
+//! ```
+//!
+//! The interesting part is [`elab::check_pm`]: checking a lambda whose
+//! patterns may be `refl` or absurd `(!)` requires *unifying* the indices of
+//! the identity type, which produces an explicit substitution.  Because
+//! explicit substitutions are part of values ([`syntax::Val::Sub`]) and values
+//! are forced on demand ([`eval::frc`]), a substitution that is produced later
+//! can still invalidate a value that was already computed earlier — the
+//! difficulty the original project is about.
+
+pub mod context;
+pub mod elab;
+pub mod eval;
+pub mod parse;
+pub mod pretty;
+pub mod subst;
+pub mod syntax;
+
+pub use crate::context::{Ctx, Error};
+pub use crate::syntax::{Env, Ix, Lvl, Name, Pn, Pos, Raw, Tm, Ty, Val};
+
+impl From<parse::ParseError> for Error {
+    fn from(e: parse::ParseError) -> Error {
+        Error {
+            msg: e.msg,
+            pos: e.pos,
+        }
+    }
+}
+
+/// What the command line should print.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Mode {
+    /// Normal form and type of the program.
+    Nf,
+    /// Type of the program.
+    Type,
+}
+
+/// Stack size used by the CLI for the elaborator thread.
+///
+/// Parsing, elaboration, evaluation and quotation all recurse over the
+/// structure of the program (and `parse::MAX_DEPTH` bounds how deep that can
+/// get), so library users processing untrusted input should run the pipeline
+/// on a thread with a comparable stack, as `main.rs` does.
+pub const STACK_SIZE: usize = 64 * 1024 * 1024;
+
+/// Elaborate a program from `src`, reporting positions as `file`.
+pub fn typecheck_named(src: &str, file: &str) -> Result<(Tm, Val), Error> {
+    let raw = parse::parse_named(src, file).map_err(Error::from)?;
+    let ctx = Ctx::empty(Pos::initial(file));
+    elab::infer(&ctx, &raw)
+}
+
+/// Elaborate a program, reporting positions as `<stdin>`.
+pub fn typecheck(src: &str) -> Result<(Tm, Val), Error> {
+    typecheck_named(src, "<stdin>")
+}
+
+/// Normalize a program (used by tests): the normal form of its value.
+pub fn normalize(src: &str) -> Result<Tm, Error> {
+    let (t, _) = typecheck(src)?;
+    Ok(eval::nf(&Env::empty(), &t))
+}
+
+/// Normalize a program and also return its type, read back from a semantic
+/// value (so the returned type is already a normal form).
+pub fn normalize_and_type(src: &str) -> Result<(Tm, Tm), Error> {
+    let (t, a) = typecheck(src)?;
+    Ok((eval::nf(&Env::empty(), &t), eval::quote_val(Lvl::ZERO, &a)))
+}
+
+/// Run the elaborator in the given output mode, producing the text the CLI
+/// prints on success.
+pub fn run_named(src: &str, file: &str, mode: Mode) -> Result<String, Error> {
+    match mode {
+        Mode::Nf => {
+            let (t, a) = typecheck_named(src, file)?;
+            let nf = eval::nf(&Env::empty(), &t);
+            let ty = eval::quote_val(Lvl::ZERO, &a);
+            Ok(format!(
+                "{}\n  :\n{}",
+                pretty::show_tm(&nf),
+                pretty::show_tm(&ty)
+            ))
+        }
+        Mode::Type => {
+            let (_, a) = typecheck_named(src, file)?;
+            Ok(pretty::show_tm(&eval::quote_val(Lvl::ZERO, &a)))
+        }
+    }
+}
+
+/// Run the elaborator with the default source name.
+pub fn run(src: &str, mode: Mode) -> Result<String, Error> {
+    run_named(src, "<stdin>", mode)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -- helpers -----------------------------------------------------------
+
+    fn normal_form(src: &str) -> String {
+        pretty::show_tm(&normalize(src).unwrap_or_else(|e| panic!("{src}\n=> {}", e.msg)))
+    }
+
+    fn type_of(src: &str) -> String {
+        let (_, a) = normalize_and_type(src).unwrap_or_else(|e| panic!("{src}\n=> {}", e.msg));
+        pretty::show_tm(&a)
+    }
+
+    fn error(src: &str) -> String {
+        match typecheck(src) {
+            Ok(_) => panic!("{src}\n=> expected an error, but it typechecked"),
+            Err(e) => e.msg,
+        }
+    }
+
+    fn error_pos(src: &str) -> (usize, usize) {
+        match typecheck(src) {
+            Ok(_) => panic!("{src}\n=> expected an error"),
+            Err(e) => (e.pos.line, e.pos.col),
+        }
+    }
+
+    /// `n` in the source syntax.
+    fn numeral(n: usize) -> String {
+        if n == 0 {
+            "zero".to_string()
+        } else {
+            format!("suc ({})", numeral(n - 1))
+        }
+    }
+
+    /// `n` as the pretty printer renders it.
+    fn printed_nat(n: usize) -> String {
+        match n {
+            0 => "zero".to_string(),
+            1 => "succ zero".to_string(),
+            _ => format!("succ ({})", printed_nat(n - 1)),
+        }
+    }
+
+    /// `transN` as generated by `genTransN` in the original `Main.hs`.
+    fn gen_trans(n: usize) -> String {
+        let binders: String = (1..=n).map(|i| format!("(a{i} : A) ")).collect();
+        let args: String = (1..n)
+            .map(|i| format!("-> Id A a{i} a{} ", i + 1))
+            .collect();
+        let ret = format!("-> Id A a1 a{n}");
+        let vars: String = (1..=n).map(|i| format!("a{i} ")).collect();
+        let refls: String = (1..n).map(|_| "refl ".to_string()).collect();
+        format!("let trans{n} : (A : U) {binders}{args}{ret} =  λ A {vars}{refls}. refl; U")
+    }
+
+    // -- the README examples -----------------------------------------------
+
+    #[test]
+    fn readme_sym_checks() {
+        let src = "\
+let sym : (A : U) (a b : A) -> Id A a b -> Id A b a =
+  λ A a b refl . refl; U";
+        assert_eq!(normal_form(src), "U");
+        assert_eq!(type_of(src), "U");
+    }
+
+    #[test]
+    fn readme_trans_checks() {
+        let src = "\
+let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+  λ A a b c refl refl . refl; U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    #[test]
+    fn readme_cong_checks() {
+        let src = "\
+let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
+  λ A B f a b refl . refl; U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    #[test]
+    fn readme_h_is_the_dependent_pattern_matching_example() {
+        // Forcing makes `plus m zero [zero/m]` reduce again after the second
+        // `refl` refines `m`; this is the case the whole project is about.
+        let src = "\
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+  λ m n refl refl . refl; U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    #[test]
+    fn readme_absurd_pattern_checks() {
+        let src = "\
+let C : (A : U) -> Id Nat (suc zero) zero -> A =
+  λ A (!); U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    #[test]
+    fn the_full_readme_program_checks() {
+        let src = "\
+let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+  λ A a b c refl refl . refl;
+let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
+  λ A B f a b refl . refl;
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+  λ m n refl refl . refl;
+let C : (A : U) -> Id Nat (suc zero) zero -> A =
+  λ A (!);
+U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    // -- normalization -----------------------------------------------------
+
+    #[test]
+    fn normalization_of_closed_terms() {
+        assert_eq!(normal_form("U"), "U");
+        assert_eq!(normal_form("Nat"), "Nat");
+        assert_eq!(normal_form("zero"), "zero");
+        assert_eq!(normal_form("suc zero"), "succ zero");
+        assert_eq!(normal_form("plus zero zero"), "zero");
+        assert_eq!(
+            normal_form("plus (suc zero) (suc zero)"),
+            "succ (succ zero)"
+        );
+        assert_eq!(
+            normal_form("plus (suc (suc zero)) (suc zero)"),
+            "succ (succ (succ zero))"
+        );
+        assert_eq!(normal_form("Id Nat zero zero"), "Id Nat zero zero");
+    }
+
+    #[test]
+    fn plus_is_addition_on_numerals() {
+        for a in 0..5 {
+            for b in 0..5 {
+                let src = format!("plus ({}) ({})", numeral(a), numeral(b));
+                assert_eq!(
+                    normal_form(&src),
+                    printed_nat(a + b),
+                    "wrong result for {a} + {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn beta_reduction_substitutes_the_argument() {
+        let src = "let f : Nat -> Nat = \\ x . plus x (suc zero); f (suc zero)";
+        assert_eq!(normal_form(src), "succ (succ zero)");
+    }
+
+    #[test]
+    fn let_bindings_are_transparent() {
+        assert_eq!(normal_form("let x : Nat = zero; plus x x"), "zero");
+        assert_eq!(
+            normal_form("let x : Nat = zero; let y : Nat = suc x; plus y y"),
+            "succ (succ zero)"
+        );
+    }
+
+    #[test]
+    fn lets_shadow_correctly() {
+        let src = "let x : Nat = zero; let x : Nat = suc x; plus x x";
+        assert_eq!(normal_form(src), "succ (succ zero)");
+    }
+
+    #[test]
+    fn lambda_values_print_with_their_binders() {
+        assert_eq!(
+            normal_form("let f : Nat -> Nat = \\ n . plus n zero; f"),
+            "λ n . plus n zero"
+        );
+        assert_eq!(
+            normal_form("let f : Nat -> Nat = \\ n . plus n zero; f zero"),
+            "zero"
+        );
+    }
+
+    #[test]
+    fn partially_applied_lambdas_eta_expand() {
+        let src = "let f : Nat -> Nat -> Nat = \\ x y . plus x y; f zero";
+        assert_eq!(normal_form(src), "λ y . y");
+        assert_eq!(type_of(src), "Nat → Nat");
+    }
+
+    #[test]
+    fn comments_and_unicode_arrows_are_supported() {
+        assert_eq!(normal_form("{- hello -} plus zero zero -- done"), "zero");
+        assert_eq!(type_of("Nat → Nat → Nat"), "U");
+    }
+
+    // -- types -------------------------------------------------------------
+
+    #[test]
+    fn types_of_closed_terms() {
+        assert_eq!(type_of("U"), "U");
+        assert_eq!(type_of("Nat"), "U");
+        assert_eq!(type_of("zero"), "Nat");
+        assert_eq!(type_of("suc zero"), "Nat");
+        assert_eq!(type_of("Id Nat zero zero"), "U");
+        assert_eq!(type_of("(A : U) -> A -> A"), "U");
+    }
+
+    #[test]
+    fn type_checking_is_directional() {
+        // A lambda can be checked against a type but not inferred.
+        assert!(typecheck("\\ x . x").is_err());
+        let src = "let f : Nat -> Nat = \\ x . x; f";
+        assert_eq!(type_of(src), "Nat → Nat");
+    }
+
+    #[test]
+    fn refl_checks_definitional_equality() {
+        // `plus zero zero` is convertible with `zero`
+        assert!(typecheck("let f : Id Nat zero (plus zero zero) = refl; U").is_ok());
+        // but not with `suc zero`
+        assert!(error("let f : Id Nat (suc zero) zero = refl; U")
+            .contains("expecting succ zero equals to zero"));
+    }
+
+    // -- generated transitivity proofs -------------------------------------
+
+    #[test]
+    fn generated_transitivity_proofs_check() {
+        for n in 1..=12 {
+            let src = gen_trans(n);
+            assert_eq!(normal_form(&src), "U", "trans{n} failed: {}", gen_trans(n));
+        }
+    }
+
+    #[test]
+    fn generated_transitivity_proofs_scale_polynomially() {
+        // Composing substitutions naively made this exponential (2^n calls);
+        // the layered representation keeps it quadratic.  A generous bound
+        // catches a regression without being flaky.
+        let start = std::time::Instant::now();
+        for n in 1..=30 {
+            assert!(typecheck(&gen_trans(n)).is_ok());
+        }
+        assert!(
+            start.elapsed().as_secs() < 10,
+            "transitivity proofs became too slow: {:?}",
+            start.elapsed()
+        );
+    }
+
+    #[test]
+    fn generated_transitivity_proofs_can_be_used() {
+        // Bind the generated proof, then refer to it: the definition must be
+        // applicable at its declared type.
+        for n in 1..=4 {
+            let ty: String = (1..=n).map(|i| format!("(a{i} : A) ")).collect();
+            let args: String = (1..n)
+                .map(|i| format!("-> Id A a{i} a{} ", i + 1))
+                .collect();
+            let ret = format!("-> Id A a1 a{n}");
+            let vars: String = (1..=n).map(|i| format!("a{i} ")).collect();
+            let refls: String = (1..n).map(|_| "refl ".to_string()).collect();
+            let src = format!(
+                "let go : (A : U) {ty}{args}{ret} = λ A {vars}{refls}. refl; \
+                 let use : (A : U) {ty}{args}{ret} = λ A {vars}{refls}. go A {vars}{refls}; \
+                 U"
+            );
+            assert_eq!(normal_form(&src), "U", "trans{n} could not be used");
+            // The definition itself normalizes to a lambda of the right arity.
+            let def = format!("let go : (A : U) {ty}{args}{ret} = λ A {vars}{refls}. refl; go");
+            assert!(
+                normal_form(&def).starts_with('λ'),
+                "trans{n} did not normalize to a lambda"
+            );
+        }
+    }
+
+    // -- dependent pattern matching errors ---------------------------------
+
+    #[test]
+    fn unbound_variables_are_reported() {
+        assert_eq!(error("x"), "unbound variable: x");
+        assert_eq!(error_pos("x"), (1, 1));
+    }
+
+    #[test]
+    fn type_mismatches_are_reported() {
+        let msg = error("let bad : Nat = U; U");
+        assert!(msg.contains("type mismatch"), "{msg}");
+        assert!(msg.contains("expected type:\n\n  Nat"), "{msg}");
+        assert!(msg.contains("inferred type:\n\n  U"), "{msg}");
+    }
+
+    #[test]
+    fn cannot_infer_lambdas_or_refl() {
+        assert_eq!(error("\\ x . x"), "Can't infer type for lambda expression");
+        assert_eq!(error("refl"), "Can't infer type for refl");
+    }
+
+    #[test]
+    fn function_expected_in_application_position() {
+        let msg = error("zero zero");
+        assert!(msg.contains("Expected a function type"), "{msg}");
+    }
+
+    #[test]
+    fn refl_pattern_on_a_non_identity_type() {
+        let msg = error("let f : Nat -> Nat = \\ refl . zero; U");
+        assert!(
+            msg.contains("Expected an identity type for pattern 'refl'"),
+            "{msg}"
+        );
+    }
+
+    #[test]
+    fn absurd_pattern_on_a_provable_equation() {
+        let msg = error("let C : (A : U) -> Id Nat zero zero -> A = \\ A (!); U");
+        assert!(msg.contains("It should not be '(!)'"), "{msg}");
+        assert!(msg.contains("you should try pattern 'refl'"), "{msg}");
+    }
+
+    #[test]
+    fn refl_pattern_on_a_contradictory_equation() {
+        let msg = error("let f : Id Nat zero (suc zero) -> Nat = \\ refl . zero; U");
+        assert!(msg.contains("It should not be 'refl'"), "{msg}");
+        assert!(msg.contains("you should try pattern '(!)'"), "{msg}");
+    }
+
+    #[test]
+    fn undecidable_equations_are_reported_as_not_sure() {
+        let src = "let U2 : (m n : Nat) -> Id Nat (plus m zero) (plus n zero) -> Nat = \
+                   \\ m n refl . zero; U";
+        let msg = error(src);
+        assert!(
+            msg.starts_with("I am not sure if there should be a pattern 'refl'"),
+            "{msg}"
+        );
+        assert!(msg.contains("plus m zero and plus n zero"), "{msg}");
+    }
+
+    #[test]
+    fn too_many_patterns_are_reported() {
+        assert_eq!(
+            error("let f : Nat -> Nat = \\ x y . x; U"),
+            "Too many patterns."
+        );
+    }
+
+    #[test]
+    fn errors_point_at_the_offending_token() {
+        assert_eq!(error_pos("let bad : Nat = U; U"), (1, 17));
+        assert_eq!(error_pos("x"), (1, 1));
+        // second line
+        assert_eq!(error_pos("let bad : Nat =\n  U; U"), (2, 3));
+    }
+
+    #[test]
+    fn definitions_can_be_applied_after_a_pattern_substitution() {
+        // The original cannot do this (`Elab.hs` matches on the inferred type
+        // without forcing it first); the port forces.  See NOTES.md.
+        let src = "let go : (A : U) (a : A) -> Nat = \\ A a . zero; \
+                   let use : (A : U) (a : A) -> Id A a a -> Nat = \\ A a refl . go A a; U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    // -- parser errors -----------------------------------------------------
+
+    #[test]
+    fn a_forced_domain_is_matched_after_a_refinement() {
+        // Regression: `check_pm` used to match the Pi domain without forcing
+        // it, so a domain that became a delayed substitution after an earlier
+        // `refl` pattern was rejected as "not an identity type".
+        let src = "let A : U = Id Nat zero zero; \
+                   let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U";
+        assert_eq!(normal_form(src), "U");
+    }
+
+    #[test]
+    fn printed_numerals_can_be_read_back() {
+        // The printer writes `succ`; the parser accepts it as a synonym for
+        // `suc`, so normal forms round-trip.
+        let printed = normal_form("plus (suc zero) (suc zero)");
+        assert_eq!(printed, "succ (succ zero)");
+        assert!(typecheck(&format!("let z : Nat = {printed}; z")).is_ok());
+    }
+
+    #[test]
+    fn freshened_names_can_be_read_back() {
+        // Freshened names contain an apostrophe, so identifiers accept one.
+        assert!(typecheck("let z : U = (A : U) -> (A' : U) -> A'; z").is_ok());
+        assert!(typecheck("let z : U = (A' : U) -> A'; z").is_ok());
+        assert!(typecheck("let z : U = (A : U) -> (A' : U) -> A; z").is_ok());
+        assert_eq!(type_of("(A : U) -> (A : U) -> A"), "U");
+    }
+
+    #[test]
+    fn unterminated_block_comments_are_rejected() {
+        assert!(typecheck("U {- oops").is_err());
+        assert!(typecheck("U {- oops -}").is_ok());
+    }
+
+    #[test]
+    fn keywords_may_appear_inside_identifiers() {
+        // Backtracking means `letx` is an identifier; the original commits on
+        // the `let` prefix and rejects it (see NOTES.md).
+        assert_eq!(normal_form("let letx : Nat = zero; letx"), "zero");
+        assert_eq!(error("sucx"), "unbound variable: sucx");
+    }
+
+    #[test]
+    fn parse_errors_are_reported_with_positions() {
+        let e = typecheck("plus zero").unwrap_err();
+        assert_eq!(e.pos.line, 1);
+        assert!(e.pos.col > 1);
+        let e = typecheck("(").unwrap_err();
+        assert_eq!(e.pos.file.to_string(), "<stdin>");
+        assert_eq!(e.msg, "expected an atom");
+    }
+
+    // -- modes -------------------------------------------------------------
+
+    #[test]
+    fn run_prints_normal_form_and_type() {
+        assert_eq!(run("U", Mode::Nf).unwrap(), "U\n  :\nU");
+        assert_eq!(
+            run("plus (suc zero) (suc zero)", Mode::Nf).unwrap(),
+            "succ (succ zero)\n  :\nNat"
+        );
+        assert_eq!(run("plus zero zero", Mode::Type).unwrap(), "Nat");
+    }
+
+    #[test]
+    fn run_reports_errors() {
+        let e = run("refl", Mode::Nf).unwrap_err();
+        assert_eq!(e.msg, "Can't infer type for refl");
+        assert!(e.render("refl").contains("<stdin>:1:1:"));
+    }
+
+    #[test]
+    fn deep_terms_run_on_a_large_stack() {
+        // The pipeline recurses over the program structure, so library users
+        // should use a thread with a generous stack -- exactly what the CLI
+        // does.  `parse::MAX_DEPTH` bounds how deep a program can be; this
+        // stays just below the bound.
+        let mut src = "zero".to_string();
+        for _ in 0..150 {
+            src = format!("suc ({src})");
+        }
+        src = format!("let x : Nat = {src}; x");
+        let expected = printed_nat(150);
+
+        let printed = std::thread::Builder::new()
+            .stack_size(STACK_SIZE)
+            .spawn(move || {
+                normalize(&src)
+                    .map(|t| pretty::show_tm(&t))
+                    .map_err(|e| e.render(&src))
+            })
+            .expect("thread spawns")
+            .join()
+            .expect("the worker thread must not panic")
+            .expect("the program typechecks");
+        assert_eq!(printed, expected);
+    }
+
+    #[test]
+    fn absurd_pattern_lambdas_have_a_value() {
+        // DEVIATION 7: the original panics (`eval: impossible (Bot)`) as soon
+        // as an absurd-pattern lambda is evaluated.
+        let src = "let C : (A : U) -> Id Nat (suc zero) zero -> A = \\ A (!); C";
+        assert_eq!(normal_form(src), "λ A (!) . ⊥");
+        assert_eq!(type_of(src), "(A : U) → Id Nat (succ zero) zero → A");
+    }
+}

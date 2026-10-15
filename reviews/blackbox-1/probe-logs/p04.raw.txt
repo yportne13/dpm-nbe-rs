@@ -1,0 +1,424 @@
+=== [eq01] tag=probe-eq mode=nf exit=0 ms=52 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero zero) (zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq02] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc zero) zero) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq03] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero (suc zero)) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq04] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc zero) (suc zero)) (suc (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq05] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (zero) (plus zero zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq06] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (plus zero zero) zero) (zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq07] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; let y : Nat = x; let p : Id Nat y x = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq08] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let x : Nat = plus zero zero; let p : Id Nat x zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq09] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let p : Id Nat (f zero) zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq10] tag=probe-eq mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let p : Id Nat (f (f zero)) zero = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq11] tag=probe-eq mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc zero) (suc zero)) (suc (plus (suc zero) zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq12] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero (plus zero zero)) (plus (plus zero zero) zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq13] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (suc zero) (plus zero (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq14] tag=probe-eq mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (zero) (suc zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:36:
+    !   |
+    ! 1 | let p : Id Nat (zero) (suc zero) = refl; p
+    !   |                                    ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [eq15] tag=probe-eq mode=nf exit=1 ms=12 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero (suc zero)) (zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:48:
+    !   |
+    ! 1 | let p : Id Nat (plus zero (suc zero)) (zero) = refl; p
+    !   |                                                ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [eq16] tag=probe-eq mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc zero) zero) (zero) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:48:
+    !   |
+    ! 1 | let p : Id Nat (plus (suc zero) zero) (zero) = refl; p
+    !   |                                                ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [eq17] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ y . y; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ y . y)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq18] tag=probe-eq mode=nf exit=0 ms=11 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus zero x; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq19] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id (Id Nat zero zero) refl refl = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Id Nat zero zero) refl refl
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq20] tag=probe-eq mode=nf exit=0 ms=22 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc (suc zero)) (suc (suc zero))) (suc (suc (suc (suc zero)))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ zero)))) (succ (succ (succ (succ zero))))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq21] tag=probe-eq mode=nf exit=0 ms=49 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (plus (suc zero) (suc zero)) zero) (suc (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq22] tag=probe-eq mode=nf exit=0 ms=20 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; let p : Id Nat (plus x (suc zero)) (suc x) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq23] tag=probe-eq mode=nf exit=0 ms=49 verdict=INFO
+--- stdin:
+    | let x : Nat = zero; let p : Id Nat (plus (suc zero) x) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq24] tag=probe-eq mode=nf exit=0 ms=32 verdict=INFO
+--- stdin:
+    | let p : Id U Nat (Nat) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id U Nat Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq25] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero zero) (plus zero (plus zero zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq26] tag=probe-eq mode=type exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero zero) (zero) = refl; p
+--- stdout:
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq27] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (suc (plus zero zero)) (plus (suc zero) zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq28] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero zero) (plus zero zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq29] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (suc (suc zero)) (plus (suc zero) (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq30] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . plus x y; let p : Id Nat (f zero (suc zero)) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq31] tag=probe-eq mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . plus x y; let p : Id Nat (f (suc zero) zero) (suc zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq32] tag=probe-eq mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let p : Id Nat zero (plus zero (plus zero zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq33] tag=probe-eq mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus zero (suc (suc zero))) (suc (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq34] tag=probe-eq mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc (suc zero)) zero) (suc (suc zero)) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ zero)) (succ (succ zero))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [eq35] tag=probe-eq mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat zero (plus zero zero) = refl; let q : Id Nat (plus zero zero) zero = refl; q
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

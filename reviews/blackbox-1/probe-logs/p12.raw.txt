@@ -1,0 +1,231 @@
+=== [s01] tag=probe-sound2 mode=nf exit=1 ms=38 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (plus m zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:87:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (plus m zero) zero = λ m refl . refl; f
+    !   |                                                                                       ^
+    ! expecting plus (plus m zero) zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s02] tag=probe-sound2 mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat m zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:75:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat m zero = λ m refl . refl; f
+    !   |                                                                           ^
+    ! expecting plus m zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s03] tag=probe-sound2 mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (suc zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:84:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (plus m zero) m -> Id Nat (suc zero) zero = λ m refl . refl; f
+    !   |                                                                                    ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s04] tag=probe-sound2 mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f
+--- stdout:
+    > λ m refl . zero
+    >   :
+    > (m : Nat) → Id Nat m (succ m) → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [s05] tag=probe-sound2 mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat zero (suc zero) = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat zero (suc zero) = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s06] tag=probe-sound2 mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat (suc zero) zero = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat (suc zero) zero = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s07] tag=probe-sound2 mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat m (suc (suc m)) = λ m refl . refl; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Id Nat m (suc (suc m)) = λ m refl . refl; f
+    !   |                                                                              ^
+    ! expecting succ m equals to succ (succ (succ m)), but it is not
+    ! 
+--- expect(any): 
+
+=== [s08] tag=probe-sound2 mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let p : Id Nat (suc zero) zero = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:34:
+    !   |
+    ! 1 | let p : Id Nat (suc zero) zero = refl; p
+    !   |                                  ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s09] tag=probe-sound2 mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Nat = f Nat; bad
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:75:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Nat = f Nat; bad
+    !   |                                                                           ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Nat
+    ! 
+    ! inferred type:
+    ! 
+    !   Id Nat (succ zero) zero → Nat
+    ! 
+    ! 
+--- expect(any): 
+
+=== [s10] tag=probe-sound2 mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = f (Id Nat zero (suc zero)); bad
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:94:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = f (Id Nat zero (suc zero)); bad
+    !   |                                                                                              ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Id Nat zero (succ zero)
+    ! 
+    ! inferred type:
+    ! 
+    !   Id Nat (succ zero) zero → Id Nat zero (succ zero)
+    ! 
+    ! 
+--- expect(any): 
+
+=== [s11] tag=probe-sound2 mode=type exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = f (Id Nat zero (suc zero)); bad
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:94:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let bad : Id Nat zero (suc zero) = f (Id Nat zero (suc zero)); bad
+    !   |                                                                                              ^
+    ! type mismatch
+    ! 
+    ! expected type:
+    ! 
+    !   Id Nat zero (succ zero)
+    ! 
+    ! inferred type:
+    ! 
+    !   Id Nat (succ zero) zero → Id Nat zero (succ zero)
+    ! 
+    ! 
+--- expect(any): 
+
+=== [s12] tag=probe-sound2 mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f zero refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:72:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f zero refl
+    !   |                                                                        ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [s13] tag=probe-sound2 mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f (suc zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:78:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat m (suc m) -> Nat = λ m refl . zero; f (suc zero) refl
+    !   |                                                                              ^
+    ! expecting succ zero equals to succ (succ zero), but it is not
+    ! 
+--- expect(any): 
+
+=== [s14] tag=probe-sound2 mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Nat = λ m refl . zero; f (suc zero) refl
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [s15] tag=probe-sound2 mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Nat = λ m refl . zero; f zero refl
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

@@ -1,0 +1,432 @@
+=== [sd01] tag=probe-sound mode=nf exit=1 ms=43 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x zero; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:101:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . plus x zero; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+    !   |                                                                                                     ^
+    ! expecting λ x . plus x zero equals to λ x . x, but it is not
+    ! 
+--- expect(any): 
+
+=== [sd02] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus x (suc zero); let g : Nat -> Nat = λ x . suc x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:111:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . plus x (suc zero); let g : Nat -> Nat = λ x . suc x; let p : Id (Nat -> Nat) f g = refl; p
+    !   |                                                                                                               ^
+    ! expecting λ x . plus x (succ zero) equals to λ x . succ x, but it is not
+    ! 
+--- expect(any): 
+
+=== [sd03] tag=probe-sound mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus (suc zero) x; let g : Nat -> Nat = λ x . suc x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . succ x) (λ x . succ x)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd04] tag=probe-sound mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . plus zero x; let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd05] tag=probe-sound mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | let g : Nat -> Nat = λ x . x; let f : Nat -> Nat = λ x . g x; let p : Id (Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd06] tag=probe-sound mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let g : Nat -> Nat = λ x . x; let p : Id (Nat -> Nat) g (λ x . g x) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd07] tag=probe-sound mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . x; let g : Nat -> Nat -> Nat = λ a . λ b . a; let p : Id (Nat -> Nat -> Nat) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id (Nat → Nat → Nat) (λ x y . x) (λ a b . a)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd08] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . x; let g : Nat -> Nat -> Nat = λ y x . x; let p : Id (Nat -> Nat -> Nat) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:116:
+    !   |
+    ! 1 | let f : Nat -> Nat -> Nat = λ x y . x; let g : Nat -> Nat -> Nat = λ y x . x; let p : Id (Nat -> Nat -> Nat) f g = refl; p
+    !   |                                                                                                                    ^
+    ! expecting λ x y . x equals to λ y x . x, but it is not
+    ! 
+--- expect(any): 
+
+=== [sd09] tag=probe-sound mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; let g : (A : U) -> A -> A = λ B y . y; let p : Id ((A : U) -> A -> A) f g = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id ((A : U) → A → A) (λ A x . x) (λ B y . y)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [sd10] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; let g : (A : U) -> A -> A = λ A x . g A x; let p : Id ((A : U) -> A -> A) f g = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:76:
+    !   |
+    ! 1 | let f : (A : U) -> A -> A = λ A x . x; let g : (A : U) -> A -> A = λ A x . g A x; let p : Id ((A : U) -> A -> A) f g = refl; p
+    !   |                                                                            ^
+    ! unbound variable: g
+    ! 
+--- expect(any): 
+
+=== [sd11] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let p : Id U Nat (Nat -> Nat) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:33:
+    !   |
+    ! 1 | let p : Id U Nat (Nat -> Nat) = refl; p
+    !   |                                 ^
+    ! expecting Nat equals to Nat → Nat, but it is not
+    ! 
+--- expect(any): 
+
+=== [sd12] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let g : Nat -> Nat = λ x . x; let p : Id U Nat (Nat -> Nat) = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:63:
+    !   |
+    ! 1 | let g : Nat -> Nat = λ x . x; let p : Id U Nat (Nat -> Nat) = refl; p
+    !   |                                                               ^
+    ! expecting Nat equals to Nat → Nat, but it is not
+    ! 
+--- expect(any): 
+
+=== [ab01] tag=probe-sound mode=nf exit=101 ms=9 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [ab02] tag=probe-sound mode=nf exit=101 ms=6 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [ab03] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let C : Id Nat (suc zero) zero -> Nat = λ (!); C
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let C : Id Nat (suc zero) zero -> Nat = λ (!); C
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab04] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let C : Id Nat (suc zero) zero -> Nat = λ (!); C
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let C : Id Nat (suc zero) zero -> Nat = λ (!); C
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab05] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let C : Id Nat (suc zero) zero -> Nat = λ (!); C refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let C : Id Nat (suc zero) zero -> Nat = λ (!); C refl
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab06] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let C : Id Nat zero zero -> Nat = λ (!); C
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:37:
+    !   |
+    ! 1 | let C : Id Nat zero zero -> Nat = λ (!); C
+    !   |                                     ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab07] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:24:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ (!); f
+    !   |                        ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab08] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ (!); f zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:24:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ (!); f zero
+    !   |                        ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab09] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : U -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let f : U -> Nat = λ (!); f
+    !   |                      ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab10] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | λ (!) . zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | λ (!) . zero
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab11] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ (!); f refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ (!); f refl
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab12] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:65:
+    !   |
+    ! 1 | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+    !   |                                                                 ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [ab13] tag=probe-sound mode=type exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+--- stdout:
+    > Id Nat (succ zero) zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ab14] tag=probe-sound mode=type exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:24:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ (!); f
+    !   |                        ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab15] tag=probe-sound mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ (!); f (f zero)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:24:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ (!); f (f zero)
+    !   |                        ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab16] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (n : Nat) -> Id Nat n zero -> Nat = λ n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:45:
+    !   |
+    ! 1 | let f : (n : Nat) -> Id Nat n zero -> Nat = λ n (!); f
+    !   |                                             ^
+    ! It should not be '(!)' for equation between n and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab17] tag=probe-sound mode=nf exit=101 ms=9 verdict=INFO
+--- stdin:
+    | let f : (n : Nat) -> Id Nat (suc n) zero -> Nat = λ n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [ab18] tag=probe-sound mode=nf exit=101 ms=7 verdict=INFO
+--- stdin:
+    | let f : (n : Nat) -> Id Nat (suc n) zero -> Nat = λ n (!); f zero
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [ab19] tag=probe-sound mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) (suc zero) -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:49:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) (suc zero) -> Nat = λ (!); f
+    !   |                                                 ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [ab20] tag=probe-sound mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (suc zero) zero = refl; p
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:34:
+    !   |
+    ! 1 | let p : Id Nat (suc zero) zero = refl; p
+    !   |                                  ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+

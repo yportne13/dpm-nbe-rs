@@ -1,0 +1,370 @@
+=== [pp01] tag=probe-pp mode=nf exit=1 ms=38 verdict=INFO
+--- stdin:
+    | succ zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | succ zero
+    !   | ^
+    ! unbound variable: succ
+    ! 
+--- expect(any): 
+
+=== [pp02] tag=probe-pp mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | succ
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | succ
+    !   | ^
+    ! unbound variable: succ
+    ! 
+--- expect(any): 
+
+=== [pp03] tag=probe-pp mode=nf exit=1 ms=10 verdict=INFO
+--- stdin:
+    | Suc zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | Suc zero
+    !   | ^
+    ! unbound variable: Suc
+    ! 
+--- expect(any): 
+
+=== [pp04] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | plus (suc zero) zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp05] tag=probe-pp mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | Nat -> Nat
+--- stdout:
+    > Nat → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp06] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | (A : U) -> A -> A
+--- stdout:
+    > (A : U) → A → A
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp07] tag=probe-pp mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | (A : U)(B : U) → A → B
+--- stdout:
+    > (A : U)(B : U) → A → B
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp08] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | (A : U)(B : U) -> A -> B
+--- stdout:
+    > (A : U)(B : U) → A → B
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp09] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | Id Nat zero zero
+--- stdout:
+    > Id Nat zero zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp10] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | (x : Nat) -> Id Nat x x
+--- stdout:
+    > (x : Nat) → Id Nat x x
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp11] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f
+--- stdout:
+    > λ x . succ x
+    >   :
+    > Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp12] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . suc x; f zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp13] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; f
+--- stdout:
+    > λ A x . x
+    >   :
+    > (A : U) → A → A
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp14] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; f Nat zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp15] tag=probe-pp mode=type exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; f
+--- stdout:
+    > (A : U) → A → A
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp16] tag=probe-pp mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : (A B : U)(g : A -> B)(x : A) -> B = λ A B g x . g x; f Nat Nat (λ n . suc n) zero
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp17] tag=probe-pp mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (A B : U)(g : A -> B)(x : A) -> B = λ A B g x . g x; f
+--- stdout:
+    > λ A B g x . g x
+    >   :
+    > (A : U)(B : U)(g : A → B)(x : A) → B
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp18] tag=probe-pp mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | (Nat -> Nat) -> Nat
+--- stdout:
+    > (Nat → Nat) → Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp19] tag=probe-pp mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | Id (Nat -> Nat) (λ x . x) (λ y . y)
+--- stdout:
+    > Id (Nat → Nat) (λ x . x) (λ y . y)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp20] tag=probe-pp mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ y . y; Id (Nat -> Nat) f g
+--- stdout:
+    > Id (Nat → Nat) (λ x . x) (λ y . y)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp21] tag=probe-pp mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ y . y; refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:61:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ y . y; refl
+    !   |                                                             ^
+    ! Can't infer type for refl
+    ! 
+--- expect(any): 
+
+=== [pp22] tag=probe-pp mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | Id Nat zero (plus zero zero)
+--- stdout:
+    > Id Nat zero zero
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp23] tag=probe-pp mode=type exit=0 ms=8 verdict=INFO
+--- stdin:
+    | Id Nat zero (plus zero zero)
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp24] tag=probe-pp mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | refl : Id Nat zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:6:
+    !   |
+    ! 1 | refl : Id Nat zero zero
+    !   |      ^
+    ! expected end of input
+    ! 
+--- expect(any): 
+
+=== [pp25] tag=probe-pp mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . x; Id (Nat -> Nat) f g
+--- stdout:
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp26] tag=probe-pp mode=nf exit=1 ms=6 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . x; refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:61:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . x; refl
+    !   |                                                             ^
+    ! Can't infer type for refl
+    ! 
+--- expect(any): 
+
+=== [pp27] tag=probe-pp mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let y : Nat = zero; (λ x . x) zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let y : Nat = zero; (λ x . x) zero
+    !   |                      ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [pp28] tag=probe-pp mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let id : (A : U) -> A -> A = λ A x . x; let y : Nat = id Nat zero; y
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp29] tag=probe-pp mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | Id Nat (suc zero) (plus zero (suc zero))
+--- stdout:
+    > Id Nat (succ zero) (succ zero)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pp30] tag=probe-pp mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | Id U Nat Nat
+--- stdout:
+    > Id U Nat Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

@@ -1,0 +1,312 @@
+=== [u01] tag=probe-final mode=nf exit=0 ms=45 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Nat = λ m refl . zero; f
+--- stdout:
+    > λ m refl . zero
+    >   :
+    > (m : Nat) → Id Nat (plus m zero) m → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u02] tag=probe-final mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (plus m zero) m -> Nat = λ m refl . zero; f zero refl
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u03] tag=probe-final mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (plus m n) (plus n m) -> Nat = λ m n refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:62:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat (plus m n) (plus n m) -> Nat = λ m n refl . zero; f
+    !   |                                                              ^
+    ! I am not sure if there should be a pattern 'refl' for equation between plus m n and plus n m.
+    ! 
+--- expect(any): 
+
+=== [u04] tag=probe-final mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (plus m n) (plus n m) -> Nat = λ m n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:62:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat (plus m n) (plus n m) -> Nat = λ m n (!); f
+    !   |                                                              ^
+    ! I am not sure if there should be a pattern '(!)' for equation between plus m n and plus n m.
+    ! 
+--- expect(any): 
+
+=== [u05] tag=probe-final mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat m (plus m zero) -> Nat = λ m refl . zero; f
+--- stdout:
+    > λ m refl . zero
+    >   :
+    > (m : Nat) → Id Nat m (plus m zero) → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u06] tag=probe-final mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (suc m) zero -> Nat = λ m refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:51:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (suc m) zero -> Nat = λ m refl . zero; f
+    !   |                                                   ^
+    ! It should not be 'refl' for equation between succ m and zero, in fact you should try pattern '(!)'.
+    ! 
+--- expect(any): 
+
+=== [u07] tag=probe-final mode=nf exit=101 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (suc m) zero -> Nat = λ m (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [u08] tag=probe-final mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat (suc m) (suc (suc m)) -> Nat = λ m (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:60:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat (suc m) (suc (suc m)) -> Nat = λ m (!); f
+    !   |                                                            ^
+    ! It should not be '(!)' for equation between succ m and succ (succ m), in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [u09] tag=probe-final mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Id Nat m n = λ m n refl . refl; f
+--- stdout:
+    > λ m n refl . refl
+    >   :
+    > (m : Nat)(n : Nat) → Id Nat (succ m) (succ n) → Id Nat m n
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u10] tag=probe-final mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Id Nat m n = λ m n refl . refl; f zero zero refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u11] tag=probe-final mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Id Nat m n = λ m n refl . refl; f (suc zero) (suc zero) refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u12] tag=probe-final mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Id Nat m n = λ m n refl . refl; f zero (suc zero) refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:100:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Id Nat m n = λ m n refl . refl; f zero (suc zero) refl
+    !   |                                                                                                    ^
+    ! expecting succ zero equals to succ (succ zero), but it is not
+    ! 
+--- expect(any): 
+
+=== [u13] tag=probe-final mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat (plus zero zero) zero -> Nat = λ refl . zero; f refl
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u14] tag=probe-final mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (m : Nat) -> Id Nat zero (plus m zero) -> Nat = λ m refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:57:
+    !   |
+    ! 1 | let f : (m : Nat) -> Id Nat zero (plus m zero) -> Nat = λ m refl . zero; f
+    !   |                                                         ^
+    ! I am not sure if there should be a pattern 'refl' for equation between zero and plus m zero.
+    ! 
+--- expect(any): 
+
+=== [u15] tag=probe-final mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let A : U = Nat; let x : A = zero; x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u16] tag=probe-final mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let A : U = Id Nat zero zero; let x : A = refl; x
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u17] tag=probe-final mode=type exit=0 ms=12 verdict=INFO
+--- stdin:
+    | let A : U = Nat; let x : A = zero; x
+--- stdout:
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u18] tag=probe-final mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let F : U -> U = λ A . A; F Nat
+--- stdout:
+    > Nat
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u19] tag=probe-final mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let F : U -> U = λ A . A; let x : F Nat = zero; x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u20] tag=probe-final mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> U = λ n . Nat; let x : f zero = zero; x
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u21] tag=probe-final mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ y . y; Id (Nat -> Nat) f g
+--- stdout:
+    > Id (Nat → Nat) (λ x . x) (λ y . y)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u22] tag=probe-final mode=nf exit=0 ms=6 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> A -> A = λ A x . x; let g : (A : U) -> A -> A = λ A x . x; Id ((A : U) -> A -> A) f g
+--- stdout:
+    > Id ((A : U) → A → A) (λ A x . x) (λ A x . x)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u23] tag=probe-final mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A B : U) -> A -> B -> A = λ A B a b . a; f
+--- stdout:
+    > λ A B a b . a
+    >   :
+    > (A : U)(B : U) → A → B → A
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u24] tag=probe-final mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : (n : Nat) -> Nat = λ n . n; let g : (n : Nat) -> Nat = λ m . m; Id ((n : Nat) -> Nat) f g
+--- stdout:
+    > Id ((n : Nat) → Nat) (λ n . n) (λ m . m)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [u25] tag=probe-final mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (zero)))))))))))))))))))))))))
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

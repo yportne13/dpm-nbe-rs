@@ -1,0 +1,399 @@
+=== [fx01] tag=explore-lambda mode=nf exit= ms=42 verdict=INFO
+--- stdin:
+    | \ x . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | \ x . x
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx02] tag=explore-lambda mode=nf exit= ms=27 verdict=INFO
+--- stdin:
+    | (λ x . x) Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . x) Nat
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx03] tag=explore-lambda mode=type exit= ms=18 verdict=INFO
+--- stdin:
+    | \ x . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | \ x . x
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx04] tag=explore-lambda mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | (λ x . x) (Id Nat zero zero)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . x) (Id Nat zero zero)
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx05] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | (λ x . refl) Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . refl) Nat
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx06] tag=explore-lambda mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | (λ x y . x) Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x y . x) Nat zero
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx07] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | (λ A x . x) Nat zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ A x . x) Nat zero
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx08] tag=explore-lambda mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | (λ x . plus x zero) (suc zero)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . plus x zero) (suc zero)
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx09] tag=explore-lambda mode=nf exit= ms=24 verdict=INFO
+--- stdin:
+    | (λ x . plus zero x) (suc zero)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . plus zero x) (suc zero)
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx10] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | λ x . x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | λ x . x
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx11] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | (λ a b c refl refl . refl) Nat zero zero zero refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ a b c refl refl . refl) Nat zero zero zero refl refl
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx12] tag=explore-lambda mode=type exit= ms=21 verdict=INFO
+--- stdin:
+    | (λ a b c refl refl . refl) Nat zero zero zero refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ a b c refl refl . refl) Nat zero zero zero refl refl
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx13] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | \ . zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:3:
+    !   |
+    ! 1 | \ . zero
+    !   |   ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [fx14] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | \x.x
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | \x.x
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx15] tag=explore-lambda mode=nf exit= ms=34 verdict=INFO
+--- stdin:
+    | \ x y . y
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:1:
+    !   |
+    ! 1 | \ x y . y
+    !   | ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx16] tag=explore-lambda mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | (λ x . zero) U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . zero) U
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx17] tag=explore-lambda mode=type exit= ms=25 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx18] tag=explore-lambda mode=nf exit= ms=28 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans Nat zero zero zero refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx19] tag=explore-lambda mode=type exit= ms=24 verdict=INFO
+--- stdin:
+    | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx20] tag=explore-lambda mode=nf exit= ms=31 verdict=INFO
+--- stdin:
+    | let cong : (A B : U)(f : A -> B)(a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; cong Nat Nat (λ n . suc n) zero zero refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ zero) (succ zero)
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx21] tag=explore-lambda mode=type exit= ms=29 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx22] tag=explore-lambda mode=type exit= ms=29 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [fx23] tag=explore-lambda mode=nf exit= ms=36 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:65:
+    !   |
+    ! 1 | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat refl
+    !   |                                                                 ^
+    ! expecting succ zero equals to zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [fx24] tag=explore-lambda mode=nf exit= ms=28 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'main' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! 
+--- expect(any): 
+
+=== [fx25] tag=explore-lambda mode=nf exit= ms=24 verdict=INFO
+--- stdin:
+    | (λ x . x) U
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . x) U
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx26] tag=explore-lambda mode=nf exit= ms=25 verdict=INFO
+--- stdin:
+    | (λ x . U) Nat
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . U) Nat
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx27] tag=explore-lambda mode=nf exit= ms=24 verdict=INFO
+--- stdin:
+    | (λ x . Nat) zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . Nat) zero
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx28] tag=explore-lambda mode=nf exit= ms=24 verdict=INFO
+--- stdin:
+    | (λ x y . plus x y) (suc zero) (suc (suc zero))
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x y . plus x y) (suc zero) (suc (suc zero))
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx29] tag=explore-lambda mode=nf exit= ms=26 verdict=INFO
+--- stdin:
+    | (λ x . x) (λ y . y)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . x) (λ y . y)
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [fx30] tag=explore-lambda mode=type exit= ms=17 verdict=INFO
+--- stdin:
+    | (λ x . x) (λ y . y)
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:2:
+    !   |
+    ! 1 | (λ x . x) (λ y . y)
+    !   |  ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+

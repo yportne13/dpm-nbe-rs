@@ -1,0 +1,247 @@
+=== [v01] tag=verify mode=nf exit=0 ms=41 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x x . x; f (suc zero) (suc (suc zero))
+--- stdout:
+    > succ (succ zero)
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v02] tag=verify mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . x; f (suc zero) (suc (suc zero))
+--- stdout:
+    > succ zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v03] tag=verify mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl;
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!);
+    | U
+--- stdout:
+    > U
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v04] tag=verify mode=type exit=0 ms=11 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl;
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl;
+    | U
+--- stdout:
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v05] tag=verify mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero
+--- stdout:
+    > λ m n refl refl . refl
+    >   :
+    > (n : Nat) → Id Nat n zero → Id Nat zero zero → Id Nat n zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v06] tag=verify mode=nf exit=101 ms=7 verdict=INFO
+--- stdin:
+    | let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); C Nat
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [v07] tag=verify mode=nf exit=101 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [v08] tag=verify mode=type exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); f Nat
+--- stdout:
+    > Id Nat (succ zero) zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v09] tag=verify mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let p : Id Nat zero (plus zero zero) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v10] tag=verify mode=type exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat zero (plus zero zero) -> Nat = λ refl . zero; f
+--- stdout:
+    > Id Nat zero zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v11] tag=verify mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat zero (plus zero zero) -> Nat = λ refl . zero; f
+--- stdout:
+    > λ refl . zero
+    >   :
+    > Id Nat zero zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v12] tag=verify mode=nf exit=0 ms=7 verdict=INFO
+--- stdin:
+    | {- a -} {- b -} zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v13] tag=verify mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | {- a {- b -} -} zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:14:
+    !   |
+    ! 1 | {- a {- b -} -} zero
+    !   |              ^
+    ! expected an atom
+    ! 
+--- expect(any): 
+
+=== [v14] tag=verify mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | {- a -} b
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:9:
+    !   |
+    ! 1 | {- a -} b
+    !   |         ^
+    ! unbound variable: b
+    ! 
+--- expect(any): 
+
+=== [v15] tag=verify mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let a : Nat = zero; λ a . a
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:21:
+    !   |
+    ! 1 | let a : Nat = zero; λ a . a
+    !   |                     ^
+    ! Can't infer type for lambda expression
+    ! 
+--- expect(any): 
+
+=== [v16] tag=verify mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans U Nat Nat Nat refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id U Nat Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v17] tag=verify mode=type exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let trans : (A : U)(a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans U Nat Nat Nat refl refl
+--- stdout:
+    > Id U Nat Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v18] tag=verify mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . f x; Id (Nat -> Nat) g f
+--- stdout:
+    > Id (Nat → Nat) (λ x . x) (λ x . x)
+    >   :
+    > U
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v19] tag=verify mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | plus (suc (suc (suc (suc (suc (suc zero)))))) (suc (suc (suc (suc (suc (suc zero))))))
+--- stdout:
+    > succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ zero)))))))))))
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [v20] tag=verify mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let p : Id Nat (plus (suc (suc (suc zero))) (suc (suc (suc zero)))) (suc (suc (suc (suc (suc (suc zero)))))) = refl; p
+--- stdout:
+    > refl
+    >   :
+    > Id Nat (succ (succ (succ (succ (succ (succ zero)))))) (succ (succ (succ (succ (succ (succ zero))))))
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

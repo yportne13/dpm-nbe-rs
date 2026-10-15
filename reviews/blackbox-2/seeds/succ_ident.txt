@@ -1,0 +1,1 @@
+let succ : Nat = suc zero; succ

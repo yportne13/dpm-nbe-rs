@@ -1,0 +1,571 @@
+{
+ "summary": {
+  "seeds": 50,
+  "raw_roundtrip_failures": 25,
+  "raw_fail_kinds": {
+   "succ-keyword": 10,
+   "uninferable-top": 15
+  },
+  "findings": 2
+ },
+ "rows": [
+  {
+   "name": "s01_plus",
+   "src": "plus (suc zero) (suc zero)",
+   "rc": 0,
+   "nf": "succ (succ zero)",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s02_arrow",
+   "src": "(A : U) -> A -> A",
+   "rc": 0,
+   "nf": "(A : U) → A → A",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s03_id",
+   "src": "Id Nat zero zero",
+   "rc": 0,
+   "nf": "Id Nat zero zero",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s04_refl",
+   "src": "let r : Id Nat zero zero = refl; r",
+   "rc": 0,
+   "nf": "refl",
+   "type": "Id Nat zero zero",
+   "type_mode": "Id Nat zero zero\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for refl",
+   "canon_rc": 0
+  },
+  {
+   "name": "s05_lambda",
+   "src": "let f : (A : U) -> A -> A = λ A x . x; f",
+   "rc": 0,
+   "nf": "λ A x . x",
+   "type": "(A : U) → A → A",
+   "type_mode": "(A : U) → A → A\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s06_lambda_app",
+   "src": "let f : (A : U) -> A -> A = λ A x . x; f Nat (suc zero)",
+   "rc": 0,
+   "nf": "succ zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s07_multi_binder",
+   "src": "let f : (A B : U) -> A -> B -> A = λ A B x y . x; f",
+   "rc": 0,
+   "nf": "λ A B x y . x",
+   "type": "(A : U)(B : U) → A → B → A",
+   "type_mode": "(A : U)(B : U) → A → B → A\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s08_nested_arrow",
+   "src": "let f : Nat -> Nat -> Nat -> Nat = λ a b c . plus a (plus b c); f",
+   "rc": 0,
+   "nf": "λ a b c . plus a (plus b c)",
+   "type": "Nat → Nat → Nat → Nat",
+   "type_mode": "Nat → Nat → Nat → Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s09_id_fun",
+   "src": "let g : Nat -> Nat = λ x . x; Id (Nat -> Nat) g g",
+   "rc": 0,
+   "nf": "Id (Nat → Nat) (λ x . x) (λ x . x)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s10_app_of_app",
+   "src": "let g : Nat -> Nat = λ n . suc n; let f : Nat -> Nat -> Nat = λ a b . plus a b; f (g zero) (g (suc zero))",
+   "rc": 0,
+   "nf": "succ (succ (succ zero))",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s11_arrow_arg",
+   "src": "let g : Nat -> Nat = λ n . n; let f : (Nat -> Nat) -> Nat = λ h . h zero; f g",
+   "rc": 0,
+   "nf": "zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s12_big_type_out",
+   "src": "(A : U)(B : U)(C : U) -> A -> B -> C -> A",
+   "rc": 0,
+   "nf": "(A : U)(B : U)(C : U) → A → B → C → A",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s13_unicode",
+   "src": "(A : U) → A → A",
+   "rc": 0,
+   "nf": "(A : U) → A → A",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s14_absurd_unused",
+   "src": "let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); U",
+   "rc": 0,
+   "nf": "U",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s15_refl_pattern",
+   "src": "let f : (A : U) -> Id A zero zero -> A = λ A refl . A; f",
+   "rc": 1
+  },
+  {
+   "name": "s16_plus_conv",
+   "src": "let f : Id Nat (plus (suc zero) (suc zero)) (suc (suc zero)) = refl; f",
+   "rc": 0,
+   "nf": "refl",
+   "type": "Id Nat (succ (succ zero)) (succ (succ zero))",
+   "type_mode": "Id Nat (succ (succ zero)) (succ (succ zero))\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for refl",
+   "canon_rc": 0
+  },
+  {
+   "name": "s17_trans",
+   "src": "let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans",
+   "rc": 0,
+   "nf": "λ A a b c refl refl . refl",
+   "type": "(A : U)(a : A)(b : A)(c : A) → Id A a b → Id A b c → Id A a c",
+   "type_mode": "(A : U)(a : A)(b : A)(c : A) → Id A a b → Id A b c → Id A a c\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s18_H",
+   "src": "let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H",
+   "rc": 0,
+   "nf": "λ m n refl refl . refl",
+   "type": "(m : Nat)(n : Nat) → Id Nat n (plus m zero) → Id Nat m zero → Id Nat n zero",
+   "type_mode": "(m : Nat)(n : Nat) → Id Nat n (plus m zero) → Id Nat m zero → Id Nat n zero\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s19_let_chain",
+   "src": "let a : Nat = zero; let b : Nat = suc a; let c : Nat = suc b; c",
+   "rc": 0,
+   "nf": "succ (succ zero)",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s20_shadow",
+   "src": "let x : Nat = zero; let x : Nat = suc x; let x : Nat = suc x; x",
+   "rc": 0,
+   "nf": "succ (succ zero)",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s21_type_of_type",
+   "src": "U",
+   "rc": 0,
+   "nf": "U",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s22_nat",
+   "src": "Nat",
+   "rc": 0,
+   "nf": "Nat",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s23_zero",
+   "src": "zero",
+   "rc": 0,
+   "nf": "zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s24_pi_dep",
+   "src": "(A : U) -> A -> A",
+   "rc": 0,
+   "nf": "(A : U) → A → A",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s25_pi_dep2",
+   "src": "(f : Nat -> Nat) -> Id Nat (f zero) (f zero)",
+   "rc": 0,
+   "nf": "(f : Nat → Nat) → Id Nat (f zero) (f zero)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s26_id_u",
+   "src": "let f : (A : U) -> Id U A A = λ A . refl; f",
+   "rc": 0,
+   "nf": "λ A . refl",
+   "type": "(A : U) → Id U A A",
+   "type_mode": "(A : U) → Id U A A\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s27_id_id",
+   "src": "let x : Id (Id Nat zero zero) refl refl = refl; x",
+   "rc": 0,
+   "nf": "refl",
+   "type": "Id (Id Nat zero zero) refl refl",
+   "type_mode": "Id (Id Nat zero zero) refl refl\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for refl",
+   "canon_rc": 0
+  },
+  {
+   "name": "s28_fun_type_in_id",
+   "src": "let g : Nat -> Nat = λ n . n; Id (Nat -> Nat) g (λ n . n)",
+   "rc": 0,
+   "nf": "Id (Nat → Nat) (λ n . n) (λ n . n)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s29_id_of_arrow_type",
+   "src": "Id U (Nat -> Nat) (Nat -> Nat)",
+   "rc": 0,
+   "nf": "Id U (Nat → Nat) (Nat → Nat)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s30_plus_var",
+   "src": "let n : Nat = suc (suc zero); plus n n",
+   "rc": 0,
+   "nf": "succ (succ (succ (succ zero)))",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s31_big_plus",
+   "src": "plus (suc (suc (suc zero))) (suc (suc zero))",
+   "rc": 0,
+   "nf": "succ (succ (succ (succ (succ zero))))",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s32_absurd_pat_unused_fn",
+   "src": "let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); let d : Nat = zero; d",
+   "rc": 0,
+   "nf": "zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s33_dep_pi",
+   "src": "(A : U) (B : A -> U) -> (x : A) -> B x",
+   "rc": 0,
+   "nf": "(A : U)(B : A → U)(x : A) → B x",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s34_nested_lambda",
+   "src": "let f : Nat -> Nat -> Nat = λ a b . plus a b; f",
+   "rc": 0,
+   "nf": "λ a b . plus a b",
+   "type": "Nat → Nat → Nat",
+   "type_mode": "Nat → Nat → Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s35_higher_order",
+   "src": "let f : (Nat -> Nat) -> Nat -> Nat = λ g n . g (g n); f",
+   "rc": 0,
+   "nf": "λ g n . g (g n)",
+   "type": "(Nat → Nat) → Nat → Nat",
+   "type_mode": "(Nat → Nat) → Nat → Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s36_id_in_arg",
+   "src": "let g : Nat -> Nat = λ n . n; let f : Id (Nat -> Nat) g g -> Nat = λ r . zero; f",
+   "rc": 0,
+   "nf": "λ r . zero",
+   "type": "Id (Nat → Nat) (λ n . n) (λ n . n) → Nat",
+   "type_mode": "Id (Nat → Nat) (λ n . n) (λ n . n) → Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s37_pi_in_arg",
+   "src": "(A : U) -> Id U (A -> A) (A -> A)",
+   "rc": 0,
+   "nf": "(A : U) → Id U (A → A) (A → A)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s38_complex_nf",
+   "src": "let f : (A : U) -> A -> A = λ A x . x; let g : Nat -> Nat = f Nat; g (suc zero)",
+   "rc": 0,
+   "nf": "succ zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s39_id_trans_chain",
+   "src": "let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; trans Nat zero zero zero refl (trans Nat zero zero zero refl refl)",
+   "rc": 0,
+   "nf": "refl",
+   "type": "Id Nat zero zero",
+   "type_mode": "Id Nat zero zero\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for refl",
+   "canon_rc": 0
+  },
+  {
+   "name": "s40_lambda_thunk",
+   "src": "let k : Nat -> U = λ n . Nat; k zero",
+   "rc": 0,
+   "nf": "Nat",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s41_type_level_let",
+   "src": "let T : U = Nat -> Nat; T",
+   "rc": 0,
+   "nf": "Nat → Nat",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s42_id_sym",
+   "src": "let f : (A : U) (a b : A) -> Id A a b -> Id A b a = λ A a b refl . refl; f",
+   "rc": 0,
+   "nf": "λ A a b refl . refl",
+   "type": "(A : U)(a : A)(b : A) → Id A a b → Id A b a",
+   "type_mode": "(A : U)(a : A)(b : A) → Id A a b → Id A b a\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s43_suc_of_id",
+   "src": "Id Nat (suc zero) (suc zero)",
+   "rc": 0,
+   "nf": "Id Nat (succ zero) (succ zero)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s44_pi_codomain_fun",
+   "src": "(A : U) -> (A -> A) -> A -> A",
+   "rc": 0,
+   "nf": "(A : U) → (A → A) → A → A",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s45_deep_apply",
+   "src": "let g : Nat -> Nat = λ n . suc n; g (g (g (g zero)))",
+   "rc": 0,
+   "nf": "succ (succ (succ (succ zero)))",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 1,
+   "raw_fail": "succ-keyword | unbound variable: succ",
+   "canon_rc": 0
+  },
+  {
+   "name": "s46_multi_group_binder",
+   "src": "let f : (A : U) (B : U) (x : A) (y : B) -> A = λ A B x y . x; f",
+   "rc": 0,
+   "nf": "λ A B x y . x",
+   "type": "(A : U)(B : U)(x : A)(y : B) → A",
+   "type_mode": "(A : U)(B : U)(x : A)(y : B) → A\n",
+   "raw_rc": 1,
+   "raw_fail": "uninferable-top | Can't infer type for lambda expression",
+   "canon_rc": 0
+  },
+  {
+   "name": "s47_comment_prog",
+   "src": "let x : Nat = zero; -- comment\n x {- block -}",
+   "rc": 0,
+   "nf": "zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s48_lambda_unicode",
+   "src": "let f : Nat -> Nat = λ n . n; f zero",
+   "rc": 0,
+   "nf": "zero",
+   "type": "Nat",
+   "type_mode": "Nat\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s49_id_pi",
+   "src": "Id U ((A : U) -> A) ((A : U) -> A)",
+   "rc": 0,
+   "nf": "Id U ((A : U) → A) ((A : U) → A)",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  },
+  {
+   "name": "s50_absurd_two_args_unused",
+   "src": "let C : (A : U) -> Id Nat (suc zero) zero -> Nat -> A = λ A (!); U",
+   "rc": 0,
+   "nf": "U",
+   "type": "U",
+   "type_mode": "U\n",
+   "raw_rc": 0,
+   "raw_fail": null,
+   "canon_rc": 0
+  }
+ ],
+ "findings": [
+  [
+   "SEED-NOT-WELLTYPED",
+   "s15_refl_pattern",
+   "1",
+   "  Nat"
+  ],
+  [
+   "E-TYPE-NOT-NORMAL",
+   "s16_plus_conv",
+   "0",
+   "nf(type)='Id Nat (succ (succ zero)) (succ (succ zero))' type='Id Nat (suc (suc zero)) (suc (suc zero))'"
+  ]
+ ]
+}

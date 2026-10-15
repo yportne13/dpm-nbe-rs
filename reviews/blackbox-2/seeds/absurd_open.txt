@@ -1,0 +1,1 @@
+let f : (x : Nat) -> Id Nat (plus x zero) (suc x) -> Nat = \x (!); f

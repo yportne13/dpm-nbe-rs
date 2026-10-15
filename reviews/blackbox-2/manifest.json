@@ -1,0 +1,4198 @@
+[
+ {
+  "id": "P001",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P001.txt",
+  "timeout": 10.0,
+  "note": "keyword 'let' alone as term"
+ },
+ {
+  "id": "P002",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P002.txt",
+  "timeout": 10.0,
+  "note": "identifier looking like let"
+ },
+ {
+  "id": "P003",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P003.txt",
+  "timeout": 10.0,
+  "note": "let without type"
+ },
+ {
+  "id": "P004",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P004.txt",
+  "timeout": 10.0,
+  "note": "let with dangling colon"
+ },
+ {
+  "id": "P005",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P005.txt",
+  "timeout": 10.0,
+  "note": "let without ="
+ },
+ {
+  "id": "P006",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P006.txt",
+  "timeout": 10.0,
+  "note": "let without value"
+ },
+ {
+  "id": "P007",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P007.txt",
+  "timeout": 10.0,
+  "note": "let without body/;"
+ },
+ {
+  "id": "P008",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P008.txt",
+  "timeout": 10.0,
+  "note": "let with empty body"
+ },
+ {
+  "id": "P009",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P009.txt",
+  "timeout": 10.0,
+  "note": "normal let"
+ },
+ {
+  "id": "P010",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P010.txt",
+  "timeout": 10.0,
+  "note": "double semicolon"
+ },
+ {
+  "id": "P011",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P011.txt",
+  "timeout": 10.0,
+  "note": "stray semicolon"
+ },
+ {
+  "id": "P012",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P012.txt",
+  "timeout": 10.0,
+  "note": "two lets"
+ },
+ {
+  "id": "P013",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P013.txt",
+  "timeout": 10.0,
+  "note": "shadowing"
+ },
+ {
+  "id": "P014",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P014.txt",
+  "timeout": 10.0,
+  "note": "self shadow (recursive?)"
+ },
+ {
+  "id": "P015",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P015.txt",
+  "timeout": 10.0,
+  "note": "bare suc, primitive not fully applied"
+ },
+ {
+  "id": "P016",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P016.txt",
+  "timeout": 10.0,
+  "note": "identifier sucx"
+ },
+ {
+  "id": "P017",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P017.txt",
+  "timeout": 10.0,
+  "note": "suc applied, normal"
+ },
+ {
+  "id": "P018",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P018.txt",
+  "timeout": 10.0,
+  "note": "suc over-applied / trailing junk"
+ },
+ {
+  "id": "P019",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P019.txt",
+  "timeout": 10.0,
+  "note": "normal tower"
+ },
+ {
+  "id": "P020",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P020.txt",
+  "timeout": 10.0,
+  "note": "bare universe"
+ },
+ {
+  "id": "P021",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P021.txt",
+  "timeout": 10.0,
+  "note": "identifier Ux"
+ },
+ {
+  "id": "P022",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P022.txt",
+  "timeout": 10.0,
+  "note": "UU"
+ },
+ {
+  "id": "P023",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P023.txt",
+  "timeout": 10.0,
+  "note": "U applied to U"
+ },
+ {
+  "id": "P024",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P024.txt",
+  "timeout": 10.0,
+  "note": "U with digit"
+ },
+ {
+  "id": "P025",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P025.txt",
+  "timeout": 10.0,
+  "note": "keyword-looking identifier 'in'"
+ },
+ {
+  "id": "P026",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P026.txt",
+  "timeout": 10.0,
+  "note": "identifier inx"
+ },
+ {
+  "id": "P027",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P027.txt",
+  "timeout": 10.0,
+  "note": "'in' as binder name"
+ },
+ {
+  "id": "P028",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P028.txt",
+  "timeout": 10.0,
+  "note": "bare refl, cannot infer"
+ },
+ {
+  "id": "P029",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P029.txt",
+  "timeout": 10.0,
+  "note": "identifier reflx"
+ },
+ {
+  "id": "P030",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P030.txt",
+  "timeout": 10.0,
+  "note": "bare Nat type"
+ },
+ {
+  "id": "P031",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P031.txt",
+  "timeout": 10.0,
+  "note": "identifier Natx"
+ },
+ {
+  "id": "P032",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P032.txt",
+  "timeout": 10.0,
+  "note": "upper-case NAT"
+ },
+ {
+  "id": "P033",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P033.txt",
+  "timeout": 10.0,
+  "note": "upper-case Zero"
+ },
+ {
+  "id": "P034",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P034.txt",
+  "timeout": 10.0,
+  "note": "bare zero"
+ },
+ {
+  "id": "P035",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P035.txt",
+  "timeout": 10.0,
+  "note": "identifier zerox"
+ },
+ {
+  "id": "P036",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P036.txt",
+  "timeout": 10.0,
+  "note": "bare plus"
+ },
+ {
+  "id": "P037",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P037.txt",
+  "timeout": 10.0,
+  "note": "partially applied plus"
+ },
+ {
+  "id": "P038",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P038.txt",
+  "timeout": 10.0,
+  "note": "fully applied plus"
+ },
+ {
+  "id": "P039",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P039.txt",
+  "timeout": 10.0,
+  "note": "over-applied plus"
+ },
+ {
+  "id": "P040",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P040.txt",
+  "timeout": 10.0,
+  "note": "identifier plusx"
+ },
+ {
+  "id": "P041",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P041.txt",
+  "timeout": 10.0,
+  "note": "bare Id"
+ },
+ {
+  "id": "P042",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P042.txt",
+  "timeout": 10.0,
+  "note": "partially applied Id"
+ },
+ {
+  "id": "P043",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P043.txt",
+  "timeout": 10.0,
+  "note": "partially applied Id 2"
+ },
+ {
+  "id": "P044",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P044.txt",
+  "timeout": 10.0,
+  "note": "fully applied Id"
+ },
+ {
+  "id": "P045",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P045.txt",
+  "timeout": 10.0,
+  "note": "over-applied Id"
+ },
+ {
+  "id": "P046",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P046.txt",
+  "timeout": 10.0,
+  "note": "identifier Idx"
+ },
+ {
+  "id": "P047",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P047.txt",
+  "timeout": 10.0,
+  "note": "rebind primitive Id"
+ },
+ {
+  "id": "P048",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P048.txt",
+  "timeout": 10.0,
+  "note": "rebind primitive suc"
+ },
+ {
+  "id": "P049",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P049.txt",
+  "timeout": 10.0,
+  "note": "rebind Nat"
+ },
+ {
+  "id": "P050",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P050.txt",
+  "timeout": 10.0,
+  "note": "rebind U"
+ },
+ {
+  "id": "P051",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P051.txt",
+  "timeout": 10.0,
+  "note": "rebind refl"
+ },
+ {
+  "id": "P052",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P052.txt",
+  "timeout": 10.0,
+  "note": "rebind plus"
+ },
+ {
+  "id": "P053",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P053.txt",
+  "timeout": 10.0,
+  "note": "rebind zero"
+ },
+ {
+  "id": "P054",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P054.txt",
+  "timeout": 10.0,
+  "note": "identifier lambda"
+ },
+ {
+  "id": "P055",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P055.txt",
+  "timeout": 10.0,
+  "note": "underscore binder"
+ },
+ {
+  "id": "P056",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P056.txt",
+  "timeout": 10.0,
+  "note": "underscore binder, A body"
+ },
+ {
+  "id": "P057",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P057.txt",
+  "timeout": 10.0,
+  "note": "underscore in let binder"
+ },
+ {
+  "id": "P058",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P058.txt",
+  "timeout": 10.0,
+  "note": "underscore as term"
+ },
+ {
+  "id": "P059",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P059.txt",
+  "timeout": 10.0,
+  "note": "bare underscore"
+ },
+ {
+  "id": "P060",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P060.txt",
+  "timeout": 10.0,
+  "note": "underscore-prefixed identifier"
+ },
+ {
+  "id": "P061",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P061.txt",
+  "timeout": 10.0,
+  "note": "identifier starting with underscore"
+ },
+ {
+  "id": "P062",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P062.txt",
+  "timeout": 10.0,
+  "note": "inferred lambda at top level"
+ },
+ {
+  "id": "P063",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P063.txt",
+  "timeout": 10.0,
+  "note": "space after backslash"
+ },
+ {
+  "id": "P064",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P064.txt",
+  "timeout": 10.0,
+  "note": "empty lambda body"
+ },
+ {
+  "id": "P065",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P065.txt",
+  "timeout": 10.0,
+  "note": "no patterns before dot"
+ },
+ {
+  "id": "P066",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P066.txt",
+  "timeout": 10.0,
+  "note": "bare backslash"
+ },
+ {
+  "id": "P067",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P067.txt",
+  "timeout": 10.0,
+  "note": "backslash pattern, no dot"
+ },
+ {
+  "id": "P068",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P068.txt",
+  "timeout": 10.0,
+  "note": "no space around dot"
+ },
+ {
+  "id": "P069",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P069.txt",
+  "timeout": 10.0,
+  "note": "unicode lambda"
+ },
+ {
+  "id": "P070",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P070.txt",
+  "timeout": 10.0,
+  "note": "unicode lambda tight"
+ },
+ {
+  "id": "P071",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P071.txt",
+  "timeout": 10.0,
+  "note": "bare unicode lambda"
+ },
+ {
+  "id": "P072",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P072.txt",
+  "timeout": 10.0,
+  "note": "unicode lambda, empty patterns"
+ },
+ {
+  "id": "P073",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P073.txt",
+  "timeout": 10.0,
+  "note": "unicode lambda ok"
+ },
+ {
+  "id": "P074",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P074.txt",
+  "timeout": 10.0,
+  "note": "ascii lambda ok"
+ },
+ {
+  "id": "P075",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P075.txt",
+  "timeout": 10.0,
+  "note": "unicode lambda applied"
+ },
+ {
+  "id": "P076",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P076.txt",
+  "timeout": 10.0,
+  "note": "lambda as value (nf is lambda)"
+ },
+ {
+  "id": "P077",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P077.txt",
+  "timeout": 10.0,
+  "note": "README absurd example, final term U"
+ },
+ {
+  "id": "P078",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P078.txt",
+  "timeout": 10.0,
+  "note": "absurd lambda as final term"
+ },
+ {
+  "id": "P079",
+  "category": "parser",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\P079.txt",
+  "timeout": 10.0,
+  "note": "absurd lambda as final term, type mode"
+ },
+ {
+  "id": "P080",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P080.txt",
+  "timeout": 10.0,
+  "note": "absurd lambda partially applied"
+ },
+ {
+  "id": "P081",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P081.txt",
+  "timeout": 10.0,
+  "note": "absurd lambda applied to refl"
+ },
+ {
+  "id": "P082",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P082.txt",
+  "timeout": 10.0,
+  "note": "absurd unused"
+ },
+ {
+  "id": "P083",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P083.txt",
+  "timeout": 10.0,
+  "note": "absurd pattern alone"
+ },
+ {
+  "id": "P084",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P084.txt",
+  "timeout": 10.0,
+  "note": "spaced absurd pattern alone"
+ },
+ {
+  "id": "P085",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P085.txt",
+  "timeout": 10.0,
+  "note": "absurd pattern on non-empty type"
+ },
+ {
+  "id": "P086",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P086.txt",
+  "timeout": 10.0,
+  "note": "absurd pattern on non-empty type, checked"
+ },
+ {
+  "id": "P087",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P087.txt",
+  "timeout": 10.0,
+  "note": "refl pattern"
+ },
+ {
+  "id": "P088",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P088.txt",
+  "timeout": 10.0,
+  "note": "absurd where refl expected -> panic?"
+ },
+ {
+  "id": "P089",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P089.txt",
+  "timeout": 10.0,
+  "note": "absurd reached through let"
+ },
+ {
+  "id": "P090",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P090.txt",
+  "timeout": 10.0,
+  "note": "empty parens"
+ },
+ {
+  "id": "P091",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P091.txt",
+  "timeout": 10.0,
+  "note": "empty parens with space"
+ },
+ {
+  "id": "P092",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P092.txt",
+  "timeout": 10.0,
+  "note": "nested empty parens"
+ },
+ {
+  "id": "P093",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P093.txt",
+  "timeout": 10.0,
+  "note": "parenthesised atom"
+ },
+ {
+  "id": "P094",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P094.txt",
+  "timeout": 10.0,
+  "note": "double parenthesised atom"
+ },
+ {
+  "id": "P095",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P095.txt",
+  "timeout": 10.0,
+  "note": "unbalanced open paren"
+ },
+ {
+  "id": "P096",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P096.txt",
+  "timeout": 10.0,
+  "note": "unbalanced close paren"
+ },
+ {
+  "id": "P097",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P097.txt",
+  "timeout": 10.0,
+  "note": "close paren alone"
+ },
+ {
+  "id": "P098",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P098.txt",
+  "timeout": 10.0,
+  "note": "open paren alone"
+ },
+ {
+  "id": "P099",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P099.txt",
+  "timeout": 10.0,
+  "note": "empty parens then atom"
+ },
+ {
+  "id": "P100",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P100.txt",
+  "timeout": 10.0,
+  "note": "type used as function"
+ },
+ {
+  "id": "P101",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P101.txt",
+  "timeout": 10.0,
+  "note": "ascii arrow"
+ },
+ {
+  "id": "P102",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P102.txt",
+  "timeout": 10.0,
+  "note": "unicode arrow"
+ },
+ {
+  "id": "P103",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P103.txt",
+  "timeout": 10.0,
+  "note": "mixed arrows"
+ },
+ {
+  "id": "P104",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P104.txt",
+  "timeout": 10.0,
+  "note": "dependent arrow"
+ },
+ {
+  "id": "P105",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P105.txt",
+  "timeout": 10.0,
+  "note": "dependent unicode arrow"
+ },
+ {
+  "id": "P106",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P106.txt",
+  "timeout": 10.0,
+  "note": "arrow with no codomain"
+ },
+ {
+  "id": "P107",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P107.txt",
+  "timeout": 10.0,
+  "note": "arrow with no domain"
+ },
+ {
+  "id": "P108",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P108.txt",
+  "timeout": 10.0,
+  "note": "double arrow"
+ },
+ {
+  "id": "P109",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P109.txt",
+  "timeout": 10.0,
+  "note": "arrow alone"
+ },
+ {
+  "id": "P110",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P110.txt",
+  "timeout": 10.0,
+  "note": "unicode arrow alone"
+ },
+ {
+  "id": "P111",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P111.txt",
+  "timeout": 10.0,
+  "note": "hyphen between"
+ },
+ {
+  "id": "P112",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P112.txt",
+  "timeout": 10.0,
+  "note": "spaced hyphen gt"
+ },
+ {
+  "id": "P113",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P113.txt",
+  "timeout": 10.0,
+  "note": "bare gt"
+ },
+ {
+  "id": "P114",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P114.txt",
+  "timeout": 10.0,
+  "note": "multi-binder type"
+ },
+ {
+  "id": "P115",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P115.txt",
+  "timeout": 10.0,
+  "note": "grouped binders"
+ },
+ {
+  "id": "P116",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P116.txt",
+  "timeout": 10.0,
+  "note": "juxtaposed binder groups (printer output!)"
+ },
+ {
+  "id": "P117",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P117.txt",
+  "timeout": 10.0,
+  "note": "juxtaposed binder groups in source"
+ },
+ {
+  "id": "P118",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P118.txt",
+  "timeout": 10.0,
+  "note": "line comment"
+ },
+ {
+  "id": "P119",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P119.txt",
+  "timeout": 10.0,
+  "note": "comment-only input"
+ },
+ {
+  "id": "P120",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P120.txt",
+  "timeout": 10.0,
+  "note": "bare --"
+ },
+ {
+  "id": "P121",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P121.txt",
+  "timeout": 10.0,
+  "note": "four dashes"
+ },
+ {
+  "id": "P122",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P122.txt",
+  "timeout": 10.0,
+  "note": "-- at very EOF"
+ },
+ {
+  "id": "P123",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P123.txt",
+  "timeout": 10.0,
+  "note": "-- at EOF, no newline"
+ },
+ {
+  "id": "P124",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P124.txt",
+  "timeout": 10.0,
+  "note": "-- swallows paren"
+ },
+ {
+  "id": "P125",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P125.txt",
+  "timeout": 10.0,
+  "note": "-- swallows block open"
+ },
+ {
+  "id": "P126",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P126.txt",
+  "timeout": 10.0,
+  "note": "line comment starting with ("
+ },
+ {
+  "id": "P127",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P127.txt",
+  "timeout": 10.0,
+  "note": "empty block comment alone"
+ },
+ {
+  "id": "P128",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P128.txt",
+  "timeout": 10.0,
+  "note": "block comment then atom"
+ },
+ {
+  "id": "P129",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P129.txt",
+  "timeout": 10.0,
+  "note": "trailing block comment"
+ },
+ {
+  "id": "P130",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P130.txt",
+  "timeout": 10.0,
+  "note": "unterminated block comment"
+ },
+ {
+  "id": "P131",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P131.txt",
+  "timeout": 10.0,
+  "note": "unterminated block comment only"
+ },
+ {
+  "id": "P132",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P132.txt",
+  "timeout": 10.0,
+  "note": "nested block comment"
+ },
+ {
+  "id": "P133",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P133.txt",
+  "timeout": 10.0,
+  "note": "nested block comment, unbalanced"
+ },
+ {
+  "id": "P134",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P134.txt",
+  "timeout": 10.0,
+  "note": "close block comment alone"
+ },
+ {
+  "id": "P135",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P135.txt",
+  "timeout": 10.0,
+  "note": "stray close block comment"
+ },
+ {
+  "id": "P136",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P136.txt",
+  "timeout": 10.0,
+  "note": "comment like {--}"
+ },
+ {
+  "id": "P137",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P137.txt",
+  "timeout": 10.0,
+  "note": "open block comment alone"
+ },
+ {
+  "id": "P138",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P138.txt",
+  "timeout": 10.0,
+  "note": "line comment inside block comment"
+ },
+ {
+  "id": "P139",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P139.txt",
+  "timeout": 10.0,
+  "note": "trailing junk after comments"
+ },
+ {
+  "id": "P140",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P140.txt",
+  "timeout": 10.0,
+  "note": "commented-out program then real term"
+ },
+ {
+  "id": "P141",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P141.txt",
+  "timeout": 10.0,
+  "note": "CRLF program"
+ },
+ {
+  "id": "P142",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P142.txt",
+  "timeout": 10.0,
+  "note": "lone CR separator"
+ },
+ {
+  "id": "P143",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P143.txt",
+  "timeout": 10.0,
+  "note": "tab padding"
+ },
+ {
+  "id": "P144",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P144.txt",
+  "timeout": 10.0,
+  "note": "tabs as token separators"
+ },
+ {
+  "id": "P145",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P145.txt",
+  "timeout": 10.0,
+  "note": "blank lines around"
+ },
+ {
+  "id": "P146",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P146.txt",
+  "timeout": 10.0,
+  "note": "leading spaces"
+ },
+ {
+  "id": "P147",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P147.txt",
+  "timeout": 10.0,
+  "note": "trailing spaces"
+ },
+ {
+  "id": "P148",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P148.txt",
+  "timeout": 10.0,
+  "note": "empty input"
+ },
+ {
+  "id": "P149",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P149.txt",
+  "timeout": 10.0,
+  "note": "single newline"
+ },
+ {
+  "id": "P150",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P150.txt",
+  "timeout": 10.0,
+  "note": "single space"
+ },
+ {
+  "id": "P151",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P151.txt",
+  "timeout": 10.0,
+  "note": "UTF-8 BOM then atom"
+ },
+ {
+  "id": "P152",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P152.txt",
+  "timeout": 10.0,
+  "note": "BOM after atom"
+ },
+ {
+  "id": "P153",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P153.txt",
+  "timeout": 10.0,
+  "note": "BOM inside program"
+ },
+ {
+  "id": "P154",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P154.txt",
+  "timeout": 10.0,
+  "note": "non-breaking space after atom"
+ },
+ {
+  "id": "P155",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P155.txt",
+  "timeout": 10.0,
+  "note": "zero-width space after atom"
+ },
+ {
+  "id": "P156",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P156.txt",
+  "timeout": 10.0,
+  "note": "BOM mid-token"
+ },
+ {
+  "id": "P157",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P157.txt",
+  "timeout": 10.0,
+  "note": "NUL byte after atom"
+ },
+ {
+  "id": "P158",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P158.txt",
+  "timeout": 10.0,
+  "note": "NUL byte before atom"
+ },
+ {
+  "id": "P159",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P159.txt",
+  "timeout": 10.0,
+  "note": "invalid UTF-8 byte"
+ },
+ {
+  "id": "P160",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P160.txt",
+  "timeout": 10.0,
+  "note": "BOM only"
+ },
+ {
+  "id": "P161",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P161.txt",
+  "timeout": 10.0,
+  "note": "UTF-16 LE BOM"
+ },
+ {
+  "id": "P162",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P162.txt",
+  "timeout": 10.0,
+  "note": "unicode line separator"
+ },
+ {
+  "id": "P163",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P163.txt",
+  "timeout": 10.0,
+  "note": "greek identifier"
+ },
+ {
+  "id": "P164",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P164.txt",
+  "timeout": 10.0,
+  "note": "multi greek identifier"
+ },
+ {
+  "id": "P165",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P165.txt",
+  "timeout": 10.0,
+  "note": "unbound greek identifier"
+ },
+ {
+  "id": "P166",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P166.txt",
+  "timeout": 10.0,
+  "note": "CJK identifier"
+ },
+ {
+  "id": "P167",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P167.txt",
+  "timeout": 10.0,
+  "note": "digit-suffixed identifier"
+ },
+ {
+  "id": "P168",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P168.txt",
+  "timeout": 10.0,
+  "note": "digits-only token"
+ },
+ {
+  "id": "P169",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P169.txt",
+  "timeout": 10.0,
+  "note": "digits-only binder"
+ },
+ {
+  "id": "P170",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P170.txt",
+  "timeout": 10.0,
+  "note": "digit-leading identifier"
+ },
+ {
+  "id": "P171",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P171.txt",
+  "timeout": 10.0,
+  "note": "digit-leading binder"
+ },
+ {
+  "id": "P172",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P172.txt",
+  "timeout": 10.0,
+  "note": "prime identifier"
+ },
+ {
+  "id": "P173",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P173.txt",
+  "timeout": 10.0,
+  "note": "prime binder"
+ },
+ {
+  "id": "P174",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P174.txt",
+  "timeout": 10.0,
+  "note": "question-mark identifier"
+ },
+ {
+  "id": "P175",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P175.txt",
+  "timeout": 10.0,
+  "note": "underscore inside identifier"
+ },
+ {
+  "id": "P176",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P176.txt",
+  "timeout": 10.0,
+  "note": "hyphen inside identifier"
+ },
+ {
+  "id": "P177",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P177.txt",
+  "timeout": 10.0,
+  "note": "dot inside identifier"
+ },
+ {
+  "id": "P178",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P178.txt",
+  "timeout": 10.0,
+  "note": "colon inside identifier"
+ },
+ {
+  "id": "P179",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P179.txt",
+  "timeout": 10.0,
+  "note": "lambda char inside identifier"
+ },
+ {
+  "id": "P180",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P180.txt",
+  "timeout": 10.0,
+  "note": "lambda char in identifier tail"
+ },
+ {
+  "id": "P181",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P181.txt",
+  "timeout": 10.0,
+  "note": "arrow char inside identifier"
+ },
+ {
+  "id": "P182",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P182.txt",
+  "timeout": 10.0,
+  "note": "equals inside identifier"
+ },
+ {
+  "id": "P183",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P183.txt",
+  "timeout": 20,
+  "note": "100k char unbound identifier"
+ },
+ {
+  "id": "P184",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P184.txt",
+  "timeout": 20,
+  "note": "100k char binder + reference"
+ },
+ {
+  "id": "P185",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P185.txt",
+  "timeout": 30,
+  "note": "1M char binder + reference"
+ },
+ {
+  "id": "P186",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P186.txt",
+  "timeout": 30,
+  "note": "1M char unbound identifier"
+ },
+ {
+  "id": "P187",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P187.txt",
+  "timeout": 10.0,
+  "note": "trailing semicolon"
+ },
+ {
+  "id": "P188",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P188.txt",
+  "timeout": 10.0,
+  "note": "leading semicolon"
+ },
+ {
+  "id": "P189",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P189.txt",
+  "timeout": 10.0,
+  "note": "double semicolon only"
+ },
+ {
+  "id": "P190",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P190.txt",
+  "timeout": 10.0,
+  "note": "dot alone"
+ },
+ {
+  "id": "P191",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P191.txt",
+  "timeout": 10.0,
+  "note": "colon alone"
+ },
+ {
+  "id": "P192",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P192.txt",
+  "timeout": 10.0,
+  "note": "equals alone"
+ },
+ {
+  "id": "P193",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P193.txt",
+  "timeout": 10.0,
+  "note": "dot accessor"
+ },
+ {
+  "id": "P194",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P194.txt",
+  "timeout": 10.0,
+  "note": "trailing dot"
+ },
+ {
+  "id": "P195",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P195.txt",
+  "timeout": 10.0,
+  "note": "string literal"
+ },
+ {
+  "id": "P196",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P196.txt",
+  "timeout": 10.0,
+  "note": "char literal"
+ },
+ {
+  "id": "P197",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P197.txt",
+  "timeout": 10.0,
+  "note": "hash comment attempt"
+ },
+ {
+  "id": "P198",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P198.txt",
+  "timeout": 10.0,
+  "note": "hash mid"
+ },
+ {
+  "id": "P199",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P199.txt",
+  "timeout": 10.0,
+  "note": "percent"
+ },
+ {
+  "id": "P200",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P200.txt",
+  "timeout": 10.0,
+  "note": "at sign"
+ },
+ {
+  "id": "P201",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P201.txt",
+  "timeout": 10.0,
+  "note": "tilde"
+ },
+ {
+  "id": "P202",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P202.txt",
+  "timeout": 10.0,
+  "note": "ampersand"
+ },
+ {
+  "id": "P203",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P203.txt",
+  "timeout": 10.0,
+  "note": "pipe"
+ },
+ {
+  "id": "P204",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P204.txt",
+  "timeout": 10.0,
+  "note": "dollar"
+ },
+ {
+  "id": "P205",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P205.txt",
+  "timeout": 10.0,
+  "note": "question"
+ },
+ {
+  "id": "P206",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P206.txt",
+  "timeout": 10.0,
+  "note": "ML-style 'in'"
+ },
+ {
+  "id": "P207",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P207.txt",
+  "timeout": 10.0,
+  "note": ":= assignment"
+ },
+ {
+  "id": "P208",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P208.txt",
+  "timeout": 10.0,
+  "note": "<= assignment"
+ },
+ {
+  "id": "P209",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P209.txt",
+  "timeout": 10.0,
+  "note": "double colon"
+ },
+ {
+  "id": "P210",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P210.txt",
+  "timeout": 10.0,
+  "note": "fat arrow"
+ },
+ {
+  "id": "P211",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P211.txt",
+  "timeout": 10.0,
+  "note": "forall keyword"
+ },
+ {
+  "id": "P212",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P212.txt",
+  "timeout": 10.0,
+  "note": "apply a Nat"
+ },
+ {
+  "id": "P213",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P213.txt",
+  "timeout": 10.0,
+  "note": "refl applied"
+ },
+ {
+  "id": "P214",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P214.txt",
+  "timeout": 10.0,
+  "note": "Nat applied"
+ },
+ {
+  "id": "P215",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P215.txt",
+  "timeout": 10.0,
+  "note": "U applied twice"
+ },
+ {
+  "id": "P216",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P216.txt",
+  "timeout": 10.0,
+  "note": "suc of refl"
+ },
+ {
+  "id": "P217",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P217.txt",
+  "timeout": 10.0,
+  "note": "plus of U"
+ },
+ {
+  "id": "P218",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P218.txt",
+  "timeout": 10.0,
+  "note": "Id in U"
+ },
+ {
+  "id": "P219",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P219.txt",
+  "timeout": 10.0,
+  "note": "self application"
+ },
+ {
+  "id": "P220",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P220.txt",
+  "timeout": 10.0,
+  "note": "recursive-looking shadowing"
+ },
+ {
+  "id": "P221",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P221.txt",
+  "timeout": 10.0,
+  "note": "type-level let then arrow"
+ },
+ {
+  "id": "P222",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P222.txt",
+  "timeout": 10.0,
+  "note": "apply Nat value"
+ },
+ {
+  "id": "P223",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P223.txt",
+  "timeout": 10.0,
+  "note": "only CRLFs"
+ },
+ {
+  "id": "P224",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P224.txt",
+  "timeout": 10.0,
+  "note": "form feed before atom"
+ },
+ {
+  "id": "P225",
+  "category": "parser",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P225.txt",
+  "timeout": 10.0,
+  "note": "vertical tab before atom"
+ },
+ {
+  "id": "P226",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P226.txt",
+  "timeout": 25,
+  "note": "100 nested parens"
+ },
+ {
+  "id": "P227",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P227.txt",
+  "timeout": 25,
+  "note": "500 nested parens"
+ },
+ {
+  "id": "P228",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P228.txt",
+  "timeout": 25,
+  "note": "512 nested parens"
+ },
+ {
+  "id": "P229",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P229.txt",
+  "timeout": 25,
+  "note": "513 nested parens"
+ },
+ {
+  "id": "P230",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P230.txt",
+  "timeout": 25,
+  "note": "1000 nested parens"
+ },
+ {
+  "id": "P231",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P231.txt",
+  "timeout": 25,
+  "note": "5000 nested parens"
+ },
+ {
+  "id": "P232",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P232.txt",
+  "timeout": 25,
+  "note": "10000 nested parens"
+ },
+ {
+  "id": "P233",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P233.txt",
+  "timeout": 25,
+  "note": "50000 nested parens"
+ },
+ {
+  "id": "P234",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P234.txt",
+  "timeout": 25,
+  "note": "100 nested parens around suc zero"
+ },
+ {
+  "id": "P235",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P235.txt",
+  "timeout": 25,
+  "note": "1000 nested parens around suc zero"
+ },
+ {
+  "id": "P236",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P236.txt",
+  "timeout": 25,
+  "note": "10000 nested parens around suc zero"
+ },
+ {
+  "id": "P237",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P237.txt",
+  "timeout": 25,
+  "note": "100-arrow type, 100-pattern lambda"
+ },
+ {
+  "id": "P238",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P238.txt",
+  "timeout": 25,
+  "note": "500-arrow type, 500-pattern lambda"
+ },
+ {
+  "id": "P239",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P239.txt",
+  "timeout": 25,
+  "note": "1000-arrow type, 1000-pattern lambda"
+ },
+ {
+  "id": "P240",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P240.txt",
+  "timeout": 25,
+  "note": "2000-arrow type, 2000-pattern lambda"
+ },
+ {
+  "id": "P241",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P241.txt",
+  "timeout": 25,
+  "note": "100 nested f(...) applications (flat)"
+ },
+ {
+  "id": "P242",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P242.txt",
+  "timeout": 25,
+  "note": "500 nested f(...) applications (flat)"
+ },
+ {
+  "id": "P243",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P243.txt",
+  "timeout": 25,
+  "note": "1000 nested f(...) applications (flat)"
+ },
+ {
+  "id": "P244",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P244.txt",
+  "timeout": 25,
+  "note": "5000 nested f(...) applications (flat)"
+ },
+ {
+  "id": "P245",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P245.txt",
+  "timeout": 25,
+  "note": "10000 nested f(...) applications (flat)"
+ },
+ {
+  "id": "P246",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P246.txt",
+  "timeout": 25,
+  "note": "100 nested f(...) applications (parenthesised)"
+ },
+ {
+  "id": "P247",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P247.txt",
+  "timeout": 25,
+  "note": "500 nested f(...) applications (parenthesised)"
+ },
+ {
+  "id": "P248",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P248.txt",
+  "timeout": 25,
+  "note": "1000 nested f(...) applications (parenthesised)"
+ },
+ {
+  "id": "P249",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P249.txt",
+  "timeout": 25,
+  "note": "5000 nested f(...) applications (parenthesised)"
+ },
+ {
+  "id": "P250",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P250.txt",
+  "timeout": 25,
+  "note": "10000 nested f(...) applications (parenthesised)"
+ },
+ {
+  "id": "P251",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P251.txt",
+  "timeout": 25,
+  "note": "suc tower depth 100"
+ },
+ {
+  "id": "P252",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P252.txt",
+  "timeout": 25,
+  "note": "suc tower depth 1000"
+ },
+ {
+  "id": "P253",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P253.txt",
+  "timeout": 25,
+  "note": "suc tower depth 10000"
+ },
+ {
+  "id": "P254",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P254.txt",
+  "timeout": 25,
+  "note": "suc tower depth 100000"
+ },
+ {
+  "id": "P255",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P255.txt",
+  "timeout": 25,
+  "note": "plus tower depth 50"
+ },
+ {
+  "id": "P256",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P256.txt",
+  "timeout": 25,
+  "note": "plus tower depth 200"
+ },
+ {
+  "id": "P257",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P257.txt",
+  "timeout": 25,
+  "note": "plus tower depth 1000"
+ },
+ {
+  "id": "P258",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P258.txt",
+  "timeout": 25,
+  "note": "plus tower depth 5000"
+ },
+ {
+  "id": "P259",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P259.txt",
+  "timeout": 25,
+  "note": "50 nested Id types"
+ },
+ {
+  "id": "P260",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P260.txt",
+  "timeout": 25,
+  "note": "200 nested Id types"
+ },
+ {
+  "id": "P261",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P261.txt",
+  "timeout": 25,
+  "note": "1000 nested Id types"
+ },
+ {
+  "id": "P262",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P262.txt",
+  "timeout": 25,
+  "note": "100-arrow chain"
+ },
+ {
+  "id": "P263",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P263.txt",
+  "timeout": 25,
+  "note": "500-arrow chain"
+ },
+ {
+  "id": "P264",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P264.txt",
+  "timeout": 25,
+  "note": "1000-arrow chain"
+ },
+ {
+  "id": "P265",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P265.txt",
+  "timeout": 25,
+  "note": "5000-arrow chain"
+ },
+ {
+  "id": "P266",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P266.txt",
+  "timeout": 25,
+  "note": "10000-arrow chain"
+ },
+ {
+  "id": "P267",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P267.txt",
+  "timeout": 25,
+  "note": "50000-arrow chain"
+ },
+ {
+  "id": "P268",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P268.txt",
+  "timeout": 25,
+  "note": "1000-arrow chain bound to 1-pattern lambda (ill-typed, parse depth)"
+ },
+ {
+  "id": "P269",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P269.txt",
+  "timeout": 25,
+  "note": "10000-arrow chain bound to 1-pattern lambda (ill-typed, parse depth)"
+ },
+ {
+  "id": "P270",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P270.txt",
+  "timeout": 25,
+  "note": "100 sequential lets"
+ },
+ {
+  "id": "P271",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P271.txt",
+  "timeout": 25,
+  "note": "1000 sequential lets"
+ },
+ {
+  "id": "P272",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P272.txt",
+  "timeout": 25,
+  "note": "5000 sequential lets"
+ },
+ {
+  "id": "P273",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P273.txt",
+  "timeout": 25,
+  "note": "100 self-shadowing lets"
+ },
+ {
+  "id": "P274",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P274.txt",
+  "timeout": 25,
+  "note": "1000 self-shadowing lets"
+ },
+ {
+  "id": "P275",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P275.txt",
+  "timeout": 25,
+  "note": "5000 self-shadowing lets"
+ },
+ {
+  "id": "P276",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P276.txt",
+  "timeout": 25,
+  "note": "1000 shadowing lets of same name"
+ },
+ {
+  "id": "P277",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P277.txt",
+  "timeout": 25,
+  "note": "10000 shadowing lets of same name"
+ },
+ {
+  "id": "P278",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P278.txt",
+  "timeout": 25,
+  "note": "1000 nested parens in type position"
+ },
+ {
+  "id": "P279",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P279.txt",
+  "timeout": 25,
+  "note": "10000 nested parens in type position"
+ },
+ {
+  "id": "P280",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P280.txt",
+  "timeout": 25,
+  "note": "plus followed by 1000 extra atoms"
+ },
+ {
+  "id": "P281",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P281.txt",
+  "timeout": 25,
+  "note": "plus followed by 10000 extra atoms"
+ },
+ {
+  "id": "P282",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P282.txt",
+  "timeout": 25,
+  "note": "100 nested parenthesised lambdas"
+ },
+ {
+  "id": "P283",
+  "category": "depth",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P283.txt",
+  "timeout": 25,
+  "note": "500 nested parenthesised lambdas"
+ },
+ {
+  "id": "P284",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P284.txt",
+  "timeout": 25,
+  "note": "plus 100 100"
+ },
+ {
+  "id": "P285",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P285.txt",
+  "timeout": 25,
+  "note": "plus 1000 1000"
+ },
+ {
+  "id": "P286",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P286.txt",
+  "timeout": 25,
+  "note": "plus 5000 5000"
+ },
+ {
+  "id": "P287",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P287.txt",
+  "timeout": 25,
+  "note": "plus 1000 zero"
+ },
+ {
+  "id": "P288",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P288.txt",
+  "timeout": 25,
+  "note": "plus 10000 zero"
+ },
+ {
+  "id": "P289",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P289.txt",
+  "timeout": 25,
+  "note": "plus 100000 zero"
+ },
+ {
+  "id": "P290",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P290.txt",
+  "timeout": 30,
+  "note": "suc tower 100000 as normal form"
+ },
+ {
+  "id": "P291",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P291.txt",
+  "timeout": 30,
+  "note": "suc tower 1000000 as normal form"
+ },
+ {
+  "id": "P292",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P292.txt",
+  "timeout": 10.0,
+  "note": "nested plus"
+ },
+ {
+  "id": "P293",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P293.txt",
+  "timeout": 10.0,
+  "note": "plus 3 2"
+ },
+ {
+  "id": "P294",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P294.txt",
+  "timeout": 10.0,
+  "note": "plus 0 0 0 1"
+ },
+ {
+  "id": "P295",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P295.txt",
+  "timeout": 10.0,
+  "note": "plus of let-bound n"
+ },
+ {
+  "id": "P296",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P296.txt",
+  "timeout": 20,
+  "note": "doubling chain k=10 (2^10)"
+ },
+ {
+  "id": "P297",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P297.txt",
+  "timeout": 20,
+  "note": "doubling chain k=16 (2^16)"
+ },
+ {
+  "id": "P298",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P298.txt",
+  "timeout": 20,
+  "note": "doubling chain k=20 (2^20)"
+ },
+ {
+  "id": "P299",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P299.txt",
+  "timeout": 20,
+  "note": "doubling chain k=22 (2^22)"
+ },
+ {
+  "id": "P300",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P300.txt",
+  "timeout": 20,
+  "note": "doubling chain k=24 (2^24)"
+ },
+ {
+  "id": "P301",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P301.txt",
+  "timeout": 20,
+  "note": "doubling chain k=26 (2^26)"
+ },
+ {
+  "id": "P302",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P302.txt",
+  "timeout": 25,
+  "note": "chained trans n=1"
+ },
+ {
+  "id": "P303",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P303.txt",
+  "timeout": 25,
+  "note": "chained trans n=2"
+ },
+ {
+  "id": "P304",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P304.txt",
+  "timeout": 25,
+  "note": "chained trans n=3"
+ },
+ {
+  "id": "P305",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P305.txt",
+  "timeout": 25,
+  "note": "chained trans n=5"
+ },
+ {
+  "id": "P306",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P306.txt",
+  "timeout": 25,
+  "note": "chained trans n=8"
+ },
+ {
+  "id": "P307",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P307.txt",
+  "timeout": 25,
+  "note": "chained trans n=12"
+ },
+ {
+  "id": "P308",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P308.txt",
+  "timeout": 25,
+  "note": "chained trans n=20"
+ },
+ {
+  "id": "P309",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P309.txt",
+  "timeout": 25,
+  "note": "chained trans with variables n=4"
+ },
+ {
+  "id": "P310",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P310.txt",
+  "timeout": 25,
+  "note": "chained trans with variables n=12"
+ },
+ {
+  "id": "P311",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P311.txt",
+  "timeout": 25,
+  "note": "README H example as final term (nf is lambda)"
+ },
+ {
+  "id": "P312",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P312.txt",
+  "timeout": 25,
+  "note": "README H example, final term U"
+ },
+ {
+  "id": "P313",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P313.txt",
+  "timeout": 25,
+  "note": "lambda with 100 binders as nf"
+ },
+ {
+  "id": "P314",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P314.txt",
+  "timeout": 25,
+  "note": "lambda with 1000 binders as nf"
+ },
+ {
+  "id": "P315",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P315.txt",
+  "timeout": 25,
+  "note": "lambda with 5000 binders as nf"
+ },
+ {
+  "id": "P316",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P316.txt",
+  "timeout": 25,
+  "note": "100 lets all in scope"
+ },
+ {
+  "id": "P317",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P317.txt",
+  "timeout": 25,
+  "note": "1000 lets all in scope"
+ },
+ {
+  "id": "P318",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P318.txt",
+  "timeout": 25,
+  "note": "chain of 100 dependent lets"
+ },
+ {
+  "id": "P319",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P319.txt",
+  "timeout": 25,
+  "note": "chain of 1000 dependent lets"
+ },
+ {
+  "id": "P320",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P320.txt",
+  "timeout": 25,
+  "note": "plus n zero = n definitional"
+ },
+ {
+  "id": "P321",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P321.txt",
+  "timeout": 25,
+  "note": "plus zero n = n definitional"
+ },
+ {
+  "id": "P322",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P322.txt",
+  "timeout": 25,
+  "note": "plus (suc n) zero conversion"
+ },
+ {
+  "id": "P323",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P323.txt",
+  "timeout": 25,
+  "note": "plus computes in conversion"
+ },
+ {
+  "id": "P324",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P324.txt",
+  "timeout": 25,
+  "note": "sym-like with refl patterns"
+ },
+ {
+  "id": "P325",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P325.txt",
+  "timeout": 25,
+  "note": "refl value"
+ },
+ {
+  "id": "P326",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P326.txt",
+  "timeout": 25,
+  "note": "dependent refl"
+ },
+ {
+  "id": "P327",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P327.txt",
+  "timeout": 25,
+  "note": "refl in U"
+ },
+ {
+  "id": "P328",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P328.txt",
+  "timeout": 25,
+  "note": "refl of Nat at U"
+ },
+ {
+  "id": "P329",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P329.txt",
+  "timeout": 25,
+  "note": "Id U Nat Nat as type"
+ },
+ {
+  "id": "P330",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P330.txt",
+  "timeout": 25,
+  "note": "absurd on Id U A B"
+ },
+ {
+  "id": "P331",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P331.txt",
+  "timeout": 25,
+  "note": "impossible refl pattern (should be type error)"
+ },
+ {
+  "id": "P332",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P332.txt",
+  "timeout": 25,
+  "note": "doubling 8 -> 256"
+ },
+ {
+  "id": "P333",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P333.txt",
+  "timeout": 25,
+  "note": "increment chain"
+ },
+ {
+  "id": "P334",
+  "category": "semantic",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P334.txt",
+  "timeout": 25,
+  "note": "2000-arrow type in output"
+ },
+ {
+  "id": "C001",
+  "category": "cli",
+  "args": [],
+  "stdin_file": "corpus\\C001.txt",
+  "timeout": 10,
+  "note": "no args"
+ },
+ {
+  "id": "C002",
+  "category": "cli",
+  "args": [],
+  "stdin_file": "corpus\\C002.txt",
+  "timeout": 10,
+  "note": "no args, empty stdin"
+ },
+ {
+  "id": "C003",
+  "category": "cli",
+  "args": [
+   "--help"
+  ],
+  "stdin_file": "corpus\\C003.txt",
+  "timeout": 10,
+  "note": "--help with stdin"
+ },
+ {
+  "id": "C004",
+  "category": "cli",
+  "args": [
+   "--help"
+  ],
+  "stdin_file": "corpus\\C004.txt",
+  "timeout": 10,
+  "note": "--help with empty stdin"
+ },
+ {
+  "id": "C005",
+  "category": "cli",
+  "args": [
+   "-h"
+  ],
+  "stdin_file": "corpus\\C005.txt",
+  "timeout": 10,
+  "note": "-h short help"
+ },
+ {
+  "id": "C006",
+  "category": "cli",
+  "args": [
+   "help"
+  ],
+  "stdin_file": "corpus\\C006.txt",
+  "timeout": 10,
+  "note": "help word"
+ },
+ {
+  "id": "C007",
+  "category": "cli",
+  "args": [
+   "--version"
+  ],
+  "stdin_file": "corpus\\C007.txt",
+  "timeout": 10,
+  "note": "--version"
+ },
+ {
+  "id": "C008",
+  "category": "cli",
+  "args": [
+   "-V"
+  ],
+  "stdin_file": "corpus\\C008.txt",
+  "timeout": 10,
+  "note": "-V"
+ },
+ {
+  "id": "C009",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C009.txt",
+  "timeout": 10,
+  "note": "nf normal"
+ },
+ {
+  "id": "C010",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C010.txt",
+  "timeout": 10,
+  "note": "type normal"
+ },
+ {
+  "id": "C011",
+  "category": "cli",
+  "args": [
+   "NF"
+  ],
+  "stdin_file": "corpus\\C011.txt",
+  "timeout": 10,
+  "note": "uppercase NF"
+ },
+ {
+  "id": "C012",
+  "category": "cli",
+  "args": [
+   "Type"
+  ],
+  "stdin_file": "corpus\\C012.txt",
+  "timeout": 10,
+  "note": "capitalised Type"
+ },
+ {
+  "id": "C013",
+  "category": "cli",
+  "args": [
+   "nf",
+   "extra"
+  ],
+  "stdin_file": "corpus\\C013.txt",
+  "timeout": 10,
+  "note": "nf plus extra arg"
+ },
+ {
+  "id": "C014",
+  "category": "cli",
+  "args": [
+   "nf",
+   "type"
+  ],
+  "stdin_file": "corpus\\C014.txt",
+  "timeout": 10,
+  "note": "nf and type"
+ },
+ {
+  "id": "C015",
+  "category": "cli",
+  "args": [
+   "type",
+   "nf"
+  ],
+  "stdin_file": "corpus\\C015.txt",
+  "timeout": 10,
+  "note": "type and nf"
+ },
+ {
+  "id": "C016",
+  "category": "cli",
+  "args": [
+   "--help",
+   "nf"
+  ],
+  "stdin_file": "corpus\\C016.txt",
+  "timeout": 10,
+  "note": "--help then nf"
+ },
+ {
+  "id": "C017",
+  "category": "cli",
+  "args": [
+   "nf",
+   "--help"
+  ],
+  "stdin_file": "corpus\\C017.txt",
+  "timeout": 10,
+  "note": "nf then --help"
+ },
+ {
+  "id": "C018",
+  "category": "cli",
+  "args": [
+   ""
+  ],
+  "stdin_file": "corpus\\C018.txt",
+  "timeout": 10,
+  "note": "empty argument"
+ },
+ {
+  "id": "C019",
+  "category": "cli",
+  "args": [
+   " "
+  ],
+  "stdin_file": "corpus\\C019.txt",
+  "timeout": 10,
+  "note": "space argument"
+ },
+ {
+  "id": "C020",
+  "category": "cli",
+  "args": [
+   "nf "
+  ],
+  "stdin_file": "corpus\\C020.txt",
+  "timeout": 10,
+  "note": "trailing space in mode"
+ },
+ {
+  "id": "C021",
+  "category": "cli",
+  "args": [
+   " nf"
+  ],
+  "stdin_file": "corpus\\C021.txt",
+  "timeout": 10,
+  "note": "leading space in mode"
+ },
+ {
+  "id": "C022",
+  "category": "cli",
+  "args": [
+   "λ"
+  ],
+  "stdin_file": "corpus\\C022.txt",
+  "timeout": 10,
+  "note": "unicode lambda argument"
+ },
+ {
+  "id": "C023",
+  "category": "cli",
+  "args": [
+   "--"
+  ],
+  "stdin_file": "corpus\\C023.txt",
+  "timeout": 10,
+  "note": "double dash"
+ },
+ {
+  "id": "C024",
+  "category": "cli",
+  "args": [
+   "-"
+  ],
+  "stdin_file": "corpus\\C024.txt",
+  "timeout": 10,
+  "note": "single dash (stdin?)"
+ },
+ {
+  "id": "C025",
+  "category": "cli",
+  "args": [
+   "-x"
+  ],
+  "stdin_file": "corpus\\C025.txt",
+  "timeout": 10,
+  "note": "unknown short flag"
+ },
+ {
+  "id": "C026",
+  "category": "cli",
+  "args": [
+   "--nf"
+  ],
+  "stdin_file": "corpus\\C026.txt",
+  "timeout": 10,
+  "note": "--nf long flag"
+ },
+ {
+  "id": "C027",
+  "category": "cli",
+  "args": [
+   "nf",
+   "nf",
+   "nf"
+  ],
+  "stdin_file": "corpus\\C027.txt",
+  "timeout": 10,
+  "note": "nf repeated"
+ },
+ {
+  "id": "C028",
+  "category": "cli",
+  "args": [
+   "--help",
+   "--help"
+  ],
+  "stdin_file": "corpus\\C028.txt",
+  "timeout": 10,
+  "note": "--help twice"
+ },
+ {
+  "id": "C029",
+  "category": "cli",
+  "args": [
+   "--HELP"
+  ],
+  "stdin_file": "corpus\\C029.txt",
+  "timeout": 10,
+  "note": "--HELP uppercase"
+ },
+ {
+  "id": "C030",
+  "category": "cli",
+  "args": [
+   "--help=1"
+  ],
+  "stdin_file": "corpus\\C030.txt",
+  "timeout": 10,
+  "note": "--help=1"
+ },
+ {
+  "id": "C031",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C031.txt",
+  "timeout": 10,
+  "note": "type error exit code"
+ },
+ {
+  "id": "C032",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C032.txt",
+  "timeout": 10,
+  "note": "type error in nf"
+ },
+ {
+  "id": "C033",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C033.txt",
+  "timeout": 10,
+  "note": "parse error exit code"
+ },
+ {
+  "id": "C034",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C034.txt",
+  "timeout": 10,
+  "note": "parse error in type mode"
+ },
+ {
+  "id": "C035",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C035.txt",
+  "timeout": 10,
+  "note": "parse error, stdout must stay clean"
+ },
+ {
+  "id": "C036",
+  "category": "cli",
+  "args": [
+   "--help"
+  ],
+  "stdin_file": "corpus\\C036.txt",
+  "timeout": 15,
+  "note": "--help with 5MB stdin (does it read stdin?)"
+ },
+ {
+  "id": "C037",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C037.txt",
+  "timeout": 10,
+  "note": "type of a computation"
+ },
+ {
+  "id": "C038",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C038.txt",
+  "timeout": 10,
+  "note": "nf of a computation"
+ },
+ {
+  "id": "C039",
+  "category": "cli",
+  "args": [
+   "Nf"
+  ],
+  "stdin_file": "corpus\\C039.txt",
+  "timeout": 10,
+  "note": "mixed-case Nf"
+ },
+ {
+  "id": "C040",
+  "category": "cli",
+  "args": [
+   "nf\n"
+  ],
+  "stdin_file": "corpus\\C040.txt",
+  "timeout": 10,
+  "note": "mode with embedded newline"
+ },
+ {
+  "id": "C041",
+  "category": "cli",
+  "args": [
+   "nf\t"
+  ],
+  "stdin_file": "corpus\\C041.txt",
+  "timeout": 10,
+  "note": "mode with embedded tab"
+ },
+ {
+  "id": "C042",
+  "category": "cli",
+  "args": [
+   "nf",
+   "-h"
+  ],
+  "stdin_file": "corpus\\C042.txt",
+  "timeout": 10,
+  "note": "nf then -h"
+ },
+ {
+  "id": "C043",
+  "category": "cli",
+  "args": [
+   "--help",
+   "-h"
+  ],
+  "stdin_file": "corpus\\C043.txt",
+  "timeout": 10,
+  "note": "--help and -h"
+ },
+ {
+  "id": "C044",
+  "category": "cli",
+  "args": [
+   "h"
+  ],
+  "stdin_file": "corpus\\C044.txt",
+  "timeout": 10,
+  "note": "h alone"
+ },
+ {
+  "id": "C045",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C045.txt",
+  "timeout": 10,
+  "note": "nf with empty stdin -> error exit"
+ },
+ {
+  "id": "C046",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C046.txt",
+  "timeout": 10,
+  "note": "type with empty stdin -> error exit"
+ },
+ {
+  "id": "C047",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C047.txt",
+  "timeout": 10,
+  "note": "nf invalid utf8 exit code"
+ },
+ {
+  "id": "C048",
+  "category": "cli",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\C048.txt",
+  "timeout": 10,
+  "note": "type invalid utf8 exit code"
+ },
+ {
+  "id": "C049",
+  "category": "cli",
+  "args": [
+   "--help"
+  ],
+  "stdin_file": "corpus\\C049.txt",
+  "timeout": 10,
+  "note": "--help invalid utf8"
+ },
+ {
+  "id": "C050",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C050.txt",
+  "timeout": 10,
+  "note": "1000 NUL bytes"
+ },
+ {
+  "id": "C051",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C051.txt",
+  "timeout": 25,
+  "note": "10MB of spaces"
+ },
+ {
+  "id": "C052",
+  "category": "cli",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\C052.txt",
+  "timeout": 25,
+  "note": "200k lets"
+ },
+ {
+  "id": "P387",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P387.txt",
+  "timeout": 60,
+  "note": "doubling chain k=10 -> 2^10 succs"
+ },
+ {
+  "id": "P388",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P388.txt",
+  "timeout": 60,
+  "note": "doubling chain k=12 -> 2^12 succs"
+ },
+ {
+  "id": "P389",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P389.txt",
+  "timeout": 60,
+  "note": "doubling chain k=14 -> 2^14 succs"
+ },
+ {
+  "id": "P390",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P390.txt",
+  "timeout": 60,
+  "note": "doubling chain k=16 -> 2^16 succs"
+ },
+ {
+  "id": "P391",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P391.txt",
+  "timeout": 120,
+  "note": "doubling k=17 -> 2^17 succs (suspected stack overflow)"
+ },
+ {
+  "id": "P392",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P392.txt",
+  "timeout": 120,
+  "note": "doubling k=18 -> 2^18 succs"
+ },
+ {
+  "id": "P393",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P393.txt",
+  "timeout": 60,
+  "note": "refl between two 400-deep towers"
+ },
+ {
+  "id": "P394",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P394.txt",
+  "timeout": 60,
+  "note": "refl between two computed 2^10 towers"
+ },
+ {
+  "id": "P395",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P395.txt",
+  "timeout": 60,
+  "note": "500-deep suc tower (max under depth limit)"
+ },
+ {
+  "id": "P396",
+  "category": "blowup",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P396.txt",
+  "timeout": 60,
+  "note": "20 x 2^8 towers in scope"
+ },
+ {
+  "id": "P397",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P397.txt",
+  "timeout": 10.0,
+  "note": "PANIC: absurd-lambda value in nf (rc 101)"
+ },
+ {
+  "id": "P398",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P398.txt",
+  "timeout": 10.0,
+  "note": "PANIC: minimal absurd lambda, nf"
+ },
+ {
+  "id": "P399",
+  "category": "regress",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\P399.txt",
+  "timeout": 10.0,
+  "note": "PANIC: same in type mode"
+ },
+ {
+  "id": "P400",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P400.txt",
+  "timeout": 10.0,
+  "note": "CONVERSION BUG: identical neutral types judged unequal"
+ },
+ {
+  "id": "P401",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P401.txt",
+  "timeout": 10.0,
+  "note": "CONVERSION BUG: self-contradictory error message"
+ },
+ {
+  "id": "P402",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P402.txt",
+  "timeout": 10.0,
+  "note": "CONVERSION BUG: rejects a variable checked against its own type"
+ },
+ {
+  "id": "P403",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P403.txt",
+  "timeout": 10.0,
+  "note": "ROUNDTRIP: printed nf says 'succ', parser wants 'suc'"
+ },
+ {
+  "id": "P404",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P404.txt",
+  "timeout": 10.0,
+  "note": "DEPTH: 512 parens -> wrong message \"'zero' is a keyword\""
+ },
+ {
+  "id": "P405",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P405.txt",
+  "timeout": 20,
+  "note": "DEPTH: 513 parens -> 'expression nesting is too deep'"
+ },
+ {
+  "id": "P406",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P406.txt",
+  "timeout": 60,
+  "note": "ECHO: 1MB line echoed into stderr on error"
+ },
+ {
+  "id": "P407",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P407.txt",
+  "timeout": 20,
+  "note": "UTF8: long multibyte line, error rendering"
+ },
+ {
+  "id": "P408",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P408.txt",
+  "timeout": 10.0,
+  "note": "'_' is neither binder nor term"
+ },
+ {
+  "id": "P409",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P409.txt",
+  "timeout": 10.0,
+  "note": "unterminated {- accepted silently"
+ },
+ {
+  "id": "P410",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P410.txt",
+  "timeout": 10.0,
+  "note": "UTF-8 BOM rejected"
+ },
+ {
+  "id": "P411",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P411.txt",
+  "timeout": 10.0,
+  "note": "invalid UTF-8 -> exit code 2"
+ },
+ {
+  "id": "P412",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P412.txt",
+  "timeout": 10.0,
+  "note": "keyword rebinding rejected"
+ },
+ {
+  "id": "P413",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P413.txt",
+  "timeout": 10.0,
+  "note": "'succ' IS a legal identifier (printer name)"
+ },
+ {
+  "id": "P414",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P414.txt",
+  "timeout": 10.0,
+  "note": "underscore binder error"
+ },
+ {
+  "id": "P415",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P415.txt",
+  "timeout": 10.0,
+  "note": "more patterns than arrows -> 'Too many patterns.'"
+ },
+ {
+  "id": "P416",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P416.txt",
+  "timeout": 10.0,
+  "note": "grouped binder, 3 patterns -> OK"
+ },
+ {
+  "id": "P417",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P417.txt",
+  "timeout": 10.0,
+  "note": "refl pattern, declared type checked under refinement -> error at 'zero'"
+ },
+ {
+  "id": "P418",
+  "category": "regress",
+  "args": [
+   "nf"
+  ],
+  "stdin_file": "corpus\\P418.txt",
+  "timeout": 10.0,
+  "note": "absurd pattern on open contradiction -> conservative error (good)"
+ },
+ {
+  "id": "P419",
+  "category": "regress",
+  "args": [
+   "type"
+  ],
+  "stdin_file": "corpus\\P419.txt",
+  "timeout": 10.0,
+  "note": "conversion bug also in type mode"
+ }
+]

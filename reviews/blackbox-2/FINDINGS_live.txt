@@ -1,0 +1,193 @@
+dpm-nbe black-box findings - automated reproduction
+binary: F:\projects\Haskell\dpm-nbe\rust\target\release\dpm-nbe.exe
+sha256: 558B7AD56A1550CD1DF0B63589590E229F3856F73D58D3B175600339428DAA4D
+====================================================================================================
+
+[D1] HIGH  --  nf panics (Rust panic, exit 101) whenever the printed normal form contains a lambda with an absurd pattern
+    note      : README's own C definition, with C instead of U as the final term
+    command   : printf 'let C : Nat -> Id Nat (suc zero) zero -> Nat = \\n (!); C' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'λ n (!) . ⊥\n  :\nNat → Id Nat (succ zero) zero → Nat\n'
+    stderr    : (empty)
+
+[D1b] HIGH  --  same panic via a type that contains the absurd lambda
+    command   : printf 'let C : (A : U) -> Id Nat (suc zero) zero -> A = \\A (!); Id ((A : U) -> Id Nat (suc zero) zero -> A) C C' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'Id ((A : U) → Id Nat (succ zero) zero → A) (λ A (!) . ⊥) (λ A (!) . ⊥)\n  :\nU\n'
+    stderr    : (empty)
+
+[D1c] HIGH  --  same panic in `type` mode when the *type* mentions the absurd lambda
+    command   : printf 'let C : (A : U) -> Id Nat (suc zero) zero -> A = \\A (!); let x : Id ((A : U) -> Id Nat (suc zero) zero -> A) C C = refl; x' | dpm-nbe type
+    exit code : 0
+    stdout    : 'Id ((A : U) → Id Nat (succ zero) zero → A) (λ A (!) . ⊥) (λ A (!) . ⊥)\n'
+    stderr    : (empty)
+
+[D1d] HIGH  --  type mode alone is fine for the plain case (panic is in quoting, not checking)
+    command   : printf 'let C : (A : U) -> Id Nat (suc zero) zero -> A = \\A (!); C' | dpm-nbe type
+    exit code : 0
+    stdout    : '(A : U) → Id Nat (succ zero) zero → A\n'
+    stderr    : (empty)
+
+[D2] HIGH  --  conversion checker is not reflexive for stuck primitive (`plus`) neutrals: two textually identical types are judged unequal, and the diagnostic prints the same type twice
+    note      : the two indices are byte-identical in the message
+    command   : printf 'let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \\n m . refl; f' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:62:\n  |\n1 | let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \\n m . refl; f\n  |                                                              ^\nexpecting plus n m equals to plus n m, but it is not\n'
+
+[D2b] HIGH  --  even a variable checked against its own type is rejected
+    command   : printf 'let k : (n m : Nat) (p : Id Nat (plus n m) (plus n m)) -> Id Nat (plus n m) (plus n m) = \\n m p . p; k' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:99:\n  |\n1 | let k : (n m : Nat) (p : Id Nat (plus n m) (plus n m)) -> Id Nat (plus n m) (plus n m) = \\n m p . p; k\n  |                                                                                                   ^\ntype mismatch\n\nexpected type:\n\n  Id Nat (plus n m) (plus n m)\n\ninferred type:\n\n  Id Nat (plus n m) (plus n m)\n\n'
+
+[D2c] HIGH  --  any neutral spine containing a stuck plus is affected
+    command   : printf 'let f : (g : Nat -> Nat) (n m : Nat) -> Id Nat (g (plus n m)) (g (plus n m)) = \\g n m . refl; f' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:89:\n  |\n1 | let f : (g : Nat -> Nat) (n m : Nat) -> Id Nat (g (plus n m)) (g (plus n m)) = \\g n m . refl; f\n  |                                                                                         ^\nexpecting g (plus n m) equals to g (plus n m), but it is not\n'
+
+[D2d] HIGH  --  plain variable neutrals are fine (bounds the bug to primitive neutrals)
+    command   : printf 'let f : (g : Nat -> Nat) (n : Nat) -> Id Nat (g n) (g n) = \\g n . refl; f' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'λ g n . refl\n  :\n(g : Nat → Nat)(n : Nat) → Id Nat (g n) (g n)\n'
+    stderr    : (empty)
+
+[D2e] HIGH  --  a plus-free Pi type compares fine (bug is primitive-specific)
+    command   : printf 'let f : (A B : U) -> Id U (A -> B) (A -> B) = \\A B . refl; f' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'λ A B . refl\n  :\n(A : U)(B : U) → Id U (A → B) (A → B)\n'
+    stderr    : (empty)
+
+[D3] HIGH  --  printer emits `succ`, parser only accepts `suc`: no nf output that contains a successor can be fed back in
+    note      : prints `succ (succ zero)`; feeding that back is an error
+    command   : printf 'suc (suc zero)' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'succ (succ zero)\n  :\nNat\n'
+    stderr    : (empty)
+
+[D3b] HIGH  --  feeding the printed normal form back
+    command   : printf 'succ (succ zero)' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'succ (succ zero)\n  :\nNat\n'
+    stderr    : (empty)
+
+[D3c] HIGH  --  `succ` is a legal user identifier, so the printed name is shadowable
+    command   : printf 'let succ : Nat = suc zero; succ' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : "<stdin>:1:10:\n  |\n1 | let succ : Nat = suc zero; succ\n  |          ^\n'succ' is a keyword\n"
+
+[D3d] HIGH  --  the README documents the unparseable spelling `succ`
+    command   : printf 'plus (suc zero) (suc zero)' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'succ (succ zero)\n  :\nNat\n'
+    stderr    : (empty)
+
+[D9] MEDIUM  --  printed normal forms deeper than the parser's 512-frame limit cannot be re-imported
+    note      : prints a 1024-deep tower; that text re-parsed gives 'expression nesting is too deep'
+    command   : printf 'let d : Nat -> Nat = \\n . plus n n; d (d (d (d (d (d (d (d (d (d (suc zero))))))))))' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (...<7179 bytes total>'
+    stderr    : (empty)
+
+[D4] HIGH  --  112-byte program -> STATUS_STACK_OVERFLOW (0xC00000FD); the process spends ~25 s of wall clock (0.2 s CPU) dying instead of reporting a clean error
+    note      : k=16 completes in 3 s; k=17 aborts
+    command   : printf 'let d : Nat -> Nat = \\n . plus n n; d (d (d (d (d (d (d (d (d (d (d (d (d (d (d (d (d (suc zero)))))))))))))))))' | dpm-nbe nf
+    exit code : 3221225725
+    exit hex  : 0xC00000FD
+    stdout    : (empty)
+    stderr    : "\nthread 'dpm-nbe' has overflowed its stack\n"
+
+[D12] LOW  --  normalisation+printing is markedly superlinear (2^14: 80 ms, 2^16: 3.0 s, 50 MB)
+    command   : printf 'let d : Nat -> Nat = \\n . plus n n; d (d (d (d (d (d (d (d (d (d (d (d (d (d (d (d (suc zero))))))))))))))))' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (succ (...<458763 bytes total>'
+    stderr    : (empty)
+
+[D5] LOW  --  depth guard fires with a wrong message exactly at the boundary (512 parens)
+    note      : 511 parens parse fine; 512 gives "'zero' is a keyword"; 513 gives the real message
+    command   : printf '((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((...<1028 chars total>' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'zero\n  :\nNat\n'
+    stderr    : (empty)
+
+[D5b] LOW  --  the real depth message
+    command   : printf '((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((...<1030 chars total>' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'zero\n  :\nNat\n'
+    stderr    : (empty)
+
+[D6] LOW  --  stdin decoding failures exit 2, while all other errors exit 1
+    note      : contract in README: errors exit 1
+    command   : printf "b'zero\\xff'" | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:1:\n  |\n1 | \n  | ^\ninput is not valid UTF-8\n'
+
+[D7] LOW  --  unterminated block comment is accepted silently
+    command   : printf 'zero {- oops' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:6:\n  |\n1 | zero {- oops\n  |      ^\nunterminated block comment\n'
+
+[D7b] LOW  --  same for a comment that never terminates at all
+    command   : printf '{- oops' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:8:\n  |\n1 | {- oops\n  |        ^\nexpected an atom\n'
+
+[D8] LOW  --  the error renderer echoes the whole remaining source line, so stderr is ~2x the offending line
+    note      : 1 MB of spaces -> ~2 MB of stderr
+    command   : printf "b'                                                                                                                                                                                                      ...<1000003 chars total>" | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:1000001:\n  |\n1 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ...<2000051 bytes total>'
+
+[D10] LOW  --  UTF-8 BOM is not skipped
+    command   : printf '\ufeffzero' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:1:\n  |\n1 | \ufeffzero\n  | ^\nexpected an atom\n'
+
+[D11] LOW  --  `_` is neither a binder nor a term; the diagnostic is 'expected an atom'
+    command   : printf 'let x : Nat = zero; _' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:21:\n  |\n1 | let x : Nat = zero; _\n  |                     ^\nexpected an atom\n'
+
+[D11b] LOW  --  `_` as a lambda binder
+    command   : printf 'let f : (A : U) -> A -> A = \\A _ . A; f' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : "<stdin>:1:32:\n  |\n1 | let f : (A : U) -> A -> A = \\A _ . A; f\n  |                                ^\nexpected '.'\n"
+
+[D13] LOW  --  'more patterns than arrows' message does not say the expected count
+    command   : printf 'let f : Nat -> Nat -> Nat = \\p0 p1 p2 . p0; f' | dpm-nbe nf
+    exit code : 1
+    exit hex  : 0x00000001
+    stdout    : (empty)
+    stderr    : '<stdin>:1:29:\n  |\n1 | let f : Nat -> Nat -> Nat = \\p0 p1 p2 . p0; f\n  |                             ^\nToo many patterns.\n'
+
+[D13b] OK  --  control: 3 patterns with a 3-arrow type is accepted
+    command   : printf 'let f : (p0 p1 p2 : Nat) -> Nat = \\p0 p1 p2 . p0; f' | dpm-nbe nf
+    exit code : 0
+    stdout    : 'λ p0 p1 p2 . p0\n  :\n(p0 : Nat)(p1 : Nat)(p2 : Nat) → Nat\n'
+    stderr    : (empty)
+
+[D3-full] round trip of the printed normal form (2 steps)
+    step 1    : plus (suc zero) (suc zero)  ->  exit 0
+                stdout = 'succ (succ zero)\n  :\nNat\n'
+    step 2    : 'succ (succ zero)'  ->  exit 0
+                stderr = ''

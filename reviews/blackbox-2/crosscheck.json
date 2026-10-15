@@ -1,0 +1,228 @@
+{
+ "type_mismatch": [],
+ "stdout_polluted": [],
+ "stderr_dirty": [],
+ "raw_roundtrip_fail": [
+  [
+   "P013",
+   "shadowing",
+   "succ"
+  ],
+  [
+   "P017",
+   "suc applied, normal",
+   "succ"
+  ],
+  [
+   "P019",
+   "normal tower",
+   "succ"
+  ],
+  [
+   "P075",
+   "unicode lambda applied",
+   "succ"
+  ],
+  [
+   "P076",
+   "lambda as value (nf is lambda)",
+   "infer"
+  ],
+  [
+   "P117",
+   "juxtaposed binder groups in source",
+   "infer"
+  ],
+  [
+   "P234",
+   "100 nested parens around suc zero",
+   "succ"
+  ],
+  [
+   "P251",
+   "suc tower depth 100",
+   "succ"
+  ],
+  [
+   "P284",
+   "plus 100 100",
+   "succ"
+  ],
+  [
+   "P292",
+   "nested plus",
+   "succ"
+  ],
+  [
+   "P293",
+   "plus 3 2",
+   "succ"
+  ],
+  [
+   "P294",
+   "plus 0 0 0 1",
+   "succ"
+  ],
+  [
+   "P295",
+   "plus of let-bound n",
+   "succ"
+  ],
+  [
+   "P302",
+   "chained trans n=1",
+   "infer"
+  ],
+  [
+   "P303",
+   "chained trans n=2",
+   "infer"
+  ],
+  [
+   "P304",
+   "chained trans n=3",
+   "infer"
+  ],
+  [
+   "P305",
+   "chained trans n=5",
+   "infer"
+  ],
+  [
+   "P306",
+   "chained trans n=8",
+   "infer"
+  ],
+  [
+   "P307",
+   "chained trans n=12",
+   "infer"
+  ],
+  [
+   "P308",
+   "chained trans n=20",
+   "infer"
+  ],
+  [
+   "P309",
+   "chained trans with variables n=4",
+   "infer"
+  ],
+  [
+   "P310",
+   "chained trans with variables n=12",
+   "infer"
+  ],
+  [
+   "P311",
+   "README H example as final term (nf is la",
+   "infer"
+  ],
+  [
+   "P316",
+   "100 lets all in scope",
+   "succ"
+  ],
+  [
+   "P318",
+   "chain of 100 dependent lets",
+   "succ"
+  ],
+  [
+   "P321",
+   "plus zero n = n definitional",
+   "infer"
+  ],
+  [
+   "P323",
+   "plus computes in conversion",
+   "infer"
+  ],
+  [
+   "P324",
+   "sym-like with refl patterns",
+   "infer"
+  ],
+  [
+   "P325",
+   "refl value",
+   "infer"
+  ],
+  [
+   "P327",
+   "refl in U",
+   "infer"
+  ],
+  [
+   "P328",
+   "refl of Nat at U",
+   "infer"
+  ],
+  [
+   "P333",
+   "increment chain",
+   "succ"
+  ],
+  [
+   "C038",
+   "nf of a computation",
+   "succ"
+  ],
+  [
+   "P387",
+   "doubling chain k=10 -> 2^10 succs",
+   "succ"
+  ],
+  [
+   "P393",
+   "refl between two 400-deep towers",
+   "infer"
+  ],
+  [
+   "P394",
+   "refl between two computed 2^10 towers",
+   "infer"
+  ],
+  [
+   "P395",
+   "500-deep suc tower (max under depth limi",
+   "succ"
+  ],
+  [
+   "P396",
+   "20 x 2^8 towers in scope",
+   "succ"
+  ],
+  [
+   "P403",
+   "ROUNDTRIP: printed nf says 'succ', parse",
+   "succ"
+  ],
+  [
+   "P413",
+   "'succ' IS a legal identifier (printer na",
+   "succ"
+  ],
+  [
+   "P416",
+   "grouped binder, 3 patterns -> OK",
+   "infer"
+  ]
+ ],
+ "canon_roundtrip_fail": [
+  [
+   "P387",
+   "doubling chain k=10 -> 2^10 succs",
+   1,
+   "expression nesting is too deep"
+  ],
+  [
+   "P394",
+   "refl between two computed 2^10 towers",
+   1,
+   "expression nesting is too deep"
+  ]
+ ],
+ "checked": 119,
+ "roundtrip_checked": 116
+}

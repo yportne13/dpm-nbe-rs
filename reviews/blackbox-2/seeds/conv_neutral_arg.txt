@@ -1,0 +1,1 @@
+let f : (g : Nat -> Nat) (n m : Nat) -> Id Nat (g (plus n m)) (g (plus n m)) = \g n m . refl; f

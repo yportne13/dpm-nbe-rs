@@ -1,0 +1,460 @@
+=== [pt01] tag=probe-pat mode=nf exit=1 ms=47 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:43:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ (!); f
+    !   |                                           ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [pt02] tag=probe-pat mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Id Nat (suc zero) zero -> Nat = λ x (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:41:
+    !   |
+    ! 1 | let f : Id Nat (suc zero) zero -> Nat = λ x (!); f
+    !   |                                         ^
+    ! Too many patterns.
+    ! 
+--- expect(any): 
+
+=== [pt03] tag=probe-pat mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:50:
+    !   |
+    ! 1 | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ (!) x; f
+    !   |                                                  ^
+    ! expected at least one pattern
+    ! 
+--- expect(any): 
+
+=== [pt04] tag=probe-pat mode=nf exit=101 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat (suc zero) zero -> Nat = λ x (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [pt05] tag=probe-pat mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . zero; f
+--- stdout:
+    > λ x y . zero
+    >   :
+    > Nat → Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt06] tag=probe-pat mode=type exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x y . zero; f
+--- stdout:
+    > Nat → Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt07] tag=probe-pat mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ refl . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ refl . zero; f
+    !   |                      ^
+    ! Expected an identity type for pattern 'refl', but got:
+    ! 
+    !   Nat
+    ! 
+--- expect(any): 
+
+=== [pt08] tag=probe-pat mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let f : Id Nat zero zero -> Nat = λ refl . zero; f
+--- stdout:
+    > λ refl . zero
+    >   :
+    > Id Nat zero zero → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt09] tag=probe-pat mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Id Nat zero zero -> Nat = λ refl . zero; f refl
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt10] tag=probe-pat mode=nf exit=1 ms=10 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ zero . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:29:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ zero . zero; f
+    !   |                             ^
+    ! 'zero' is a keyword
+    ! 
+--- expect(any): 
+
+=== [pt11] tag=probe-pat mode=nf exit=1 ms=12 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ suc . zero; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:28:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ suc . zero; f
+    !   |                            ^
+    ! 'suc' is a keyword
+    ! 
+--- expect(any): 
+
+=== [pt12] tag=probe-pat mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; f
+--- stdout:
+    > λ x . x
+    >   :
+    > Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt13] tag=probe-pat mode=nf exit=1 ms=10 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x x . x; f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:22:
+    !   |
+    ! 1 | let f : Nat -> Nat = λ x x . x; f
+    !   |                      ^
+    ! Too many patterns.
+    ! 
+--- expect(any): 
+
+=== [pt14] tag=probe-pat mode=nf exit=0 ms=13 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x x . x; f
+--- stdout:
+    > λ x x' . x'
+    >   :
+    > Nat → Nat → Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt15] tag=probe-pat mode=nf exit=0 ms=10 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat -> Nat = λ x x . x; f zero zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [pt16] tag=probe-pat mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let f : Nat -> Nat = λ x . x; let g : Nat -> Nat = λ x . x; g zero
+--- stdout:
+    > zero
+    >   :
+    > Nat
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [ab30] tag=probe-pat mode=nf exit=1 ms=10 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:44:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+    !   |                                            ^
+    ! It should not be '(!)' for equation between zero and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab31] tag=probe-pat mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f Nat refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:44:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f Nat refl
+    !   |                                            ^
+    ! It should not be '(!)' for equation between zero and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab32] tag=probe-pat mode=type exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:44:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat zero zero -> A = λ A (!); f
+    !   |                                            ^
+    ! It should not be '(!)' for equation between zero and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab33] tag=probe-pat mode=nf exit=1 ms=7 verdict=INFO
+--- stdin:
+    | let f : Nat -> Id Nat zero zero -> Nat = λ x (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:42:
+    !   |
+    ! 1 | let f : Nat -> Id Nat zero zero -> Nat = λ x (!); f
+    !   |                                          ^
+    ! It should not be '(!)' for equation between zero and zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab34] tag=probe-pat mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> Id Nat (suc zero) (suc zero) -> A = λ A (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:56:
+    !   |
+    ! 1 | let f : (A : U) -> Id Nat (suc zero) (suc zero) -> A = λ A (!); f
+    !   |                                                        ^
+    ! It should not be '(!)' for equation between succ zero and succ zero, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab35] tag=probe-pat mode=nf exit=101 ms=10 verdict=INFO
+--- stdin:
+    | let f : (A : U) -> (Id Nat (suc zero) zero -> A) = λ A (!); f Nat
+--- stdout:
+    > 
+--- stderr:
+    ! 
+    ! thread 'dpm-nbe' panicked at src\eval.rs:282:20:
+    ! eval: impossible (Bot)
+    ! note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    ! error: internal panic while elaborating the program
+    ! 
+--- expect(any): 
+
+=== [ab36] tag=probe-pat mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat m n -> Nat = λ m n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:44:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat m n -> Nat = λ m n (!); f
+    !   |                                            ^
+    ! It should not be '(!)' for equation between m and n, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab37] tag=probe-pat mode=nf exit=1 ms=11 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Nat = λ m n (!); f
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:56:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Nat = λ m n (!); f
+    !   |                                                        ^
+    ! It should not be '(!)' for equation between succ m and succ n, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [ab38] tag=probe-pat mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Nat = λ m n (!); f zero zero
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:56:
+    !   |
+    ! 1 | let f : (m n : Nat) -> Id Nat (suc m) (suc n) -> Nat = λ m n (!); f zero zero
+    !   |                                                        ^
+    ! It should not be '(!)' for equation between succ m and succ n, in fact you should try pattern 'refl'.
+    ! 
+--- expect(any): 
+
+=== [et01] tag=probe-pat mode=nf exit=1 ms=10 verdict=INFO
+--- stdin:
+    | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:69:
+    !   |
+    ! 1 | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+    !   |                                                                     ^
+    ! expecting λ x . g x equals to g, but it is not
+    ! 
+--- expect(any): 
+
+=== [et02] tag=probe-pat mode=nf exit=1 ms=9 verdict=INFO
+--- stdin:
+    | let eta : (A : U)(g : A -> A) -> Id (A -> A) (λ x . g x) g = λ A g . refl; eta
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:70:
+    !   |
+    ! 1 | let eta : (A : U)(g : A -> A) -> Id (A -> A) (λ x . g x) g = λ A g . refl; eta
+    !   |                                                                      ^
+    ! expecting λ x . g x equals to g, but it is not
+    ! 
+--- expect(any): 
+
+=== [et03] tag=probe-pat mode=type exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:69:
+    !   |
+    ! 1 | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) (λ x . g x) g = λ g . refl; eta
+    !   |                                                                     ^
+    ! expecting λ x . g x equals to g, but it is not
+    ! 
+--- expect(any): 
+
+=== [et04] tag=probe-pat mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) g (λ x . g x) = λ g . refl; eta
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:69:
+    !   |
+    ! 1 | let eta : (g : Nat -> Nat) -> Id (Nat -> Nat) g (λ x . g x) = λ g . refl; eta
+    !   |                                                                     ^
+    ! expecting g equals to λ x . g x, but it is not
+    ! 
+--- expect(any): 
+
+=== [hh01] tag=probe-pat mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl refl
+--- stdout:
+    > refl
+    >   :
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [hh02] tag=probe-pat mode=type exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl refl
+--- stdout:
+    > Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [hh03] tag=probe-pat mode=nf exit=1 ms=8 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H (suc zero) zero refl refl
+--- stdout:
+    > 
+--- stderr:
+    ! <stdin>:1:125:
+    !   |
+    ! 1 | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H (suc zero) zero refl refl
+    !   |                                                                                                                             ^
+    ! expecting zero equals to succ zero, but it is not
+    ! 
+--- expect(any): 
+
+=== [hh04] tag=probe-pat mode=nf exit=0 ms=8 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H zero zero refl
+--- stdout:
+    > λ m n refl refl . refl
+    >   :
+    > Id Nat zero zero → Id Nat zero zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [hh05] tag=probe-pat mode=nf exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H
+--- stdout:
+    > λ m n refl refl . refl
+    >   :
+    > (m : Nat)(n : Nat) → Id Nat n (plus m zero) → Id Nat m zero → Id Nat n zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+
+=== [hh06] tag=probe-pat mode=type exit=0 ms=9 verdict=INFO
+--- stdin:
+    | let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; H
+--- stdout:
+    > (m : Nat)(n : Nat) → Id Nat n (plus m zero) → Id Nat m zero → Id Nat n zero
+    > 
+--- stderr:
+    ! 
+--- expect(any): 
+

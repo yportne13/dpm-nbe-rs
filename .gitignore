@@ -1,0 +1,13 @@
+# 构建产物
+/target/
+
+# 评审/测试的原始证据（体积大或数量多，都可由本仓库中保留的脚本重新生成）
+# 报告本身（*.md、*.json、*.csv、*.ps1、*.py、seeds/*.txt）是保留的。
+/reviews/robustness/artifacts/
+/reviews/robustness/fuzz/
+/reviews/blackbox-2/bin/
+/reviews/blackbox-2/corpus/
+/reviews/blackbox-2/logs/
+/reviews/blackbox-2/logs_live/
+/reviews/blackbox-2/fuzz/
+/reviews/blackbox-2/*.jsonl

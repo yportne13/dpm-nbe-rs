@@ -1,0 +1,1 @@
+let f : (A : U) -> Id Nat (suc zero) zero -> A = \A refl . A; f
