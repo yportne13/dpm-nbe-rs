@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WASM_BINDGEN_VERSION: 0.2.128
+
+jobs:
+  test:
+    name: Library, language server, web build and extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---------------------------------------------------------------- rust
+      - name: Test the workspace
+        run: cargo test --workspace
+
+      - name: Build the language server
+        run: cargo build --release -p dpm-nbe-lsp
+
+      # ------------------------------------------------------------ wasm/web
+      - uses: actions/cache@v4
+        with:
+          path: ~/.wasm-bindgen-cli
+          key: wasm-bindgen-cli-${{ env.WASM_BINDGEN_VERSION }}-${{ runner.os }}
+      - name: Install wasm-bindgen
+        run: |
+          if [ ! -x "$HOME/.wasm-bindgen-cli/bin/wasm-bindgen" ]; then
+            cargo install --root "$HOME/.wasm-bindgen-cli" \
+              wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
+          fi
+          echo "$HOME/.wasm-bindgen-cli/bin" >> "$GITHUB_PATH"
+
+      - name: Build the browser language server
+        run: node web/build.mjs
+
+      - name: Web integration tests
+        run: |
+          node web/tools/smoke.mjs
+          node web/tools/client-smoke.mjs
+
+      # ------------------------------------------------------------ extension
+      - name: Install the extension client dependencies
+        run: npm ci --prefix vscode/client --no-audit --no-fund
+
+      - name: Bundle the extension
+        run: npm run bundle --prefix vscode/client
+
+      - name: Extension tests (wasm worker bridge, jsonrpc interoperability)
+        run: |
+          node vscode/client/test/transport.test.mjs
+          node vscode/client/test/jsonrpc.test.mjs

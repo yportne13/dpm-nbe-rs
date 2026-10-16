@@ -1,0 +1,90 @@
+name: Deploy the web IDE to GitHub Pages
+
+# The page is a static site whose only build step is the WebAssembly language
+# server, so it is built here and published straight from `web/www`.
+#
+# One-time setup: Settings -> Pages -> Source = "GitHub Actions".
+# (`configure-pages` with `enablement: true` also turns Pages on for you.)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'lsp/**'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  WASM_BINDGEN_VERSION: 0.2.128
+
+jobs:
+  build:
+    name: Build and smoke-test the site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # `wasm-bindgen` must match the version pinned in
+      # web/api/dpm-nbe-wasm/Cargo.toml exactly.  Installed into its own prefix
+      # so that caching cannot disturb the rustup shims in ~/.cargo/bin.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.wasm-bindgen-cli
+          key: wasm-bindgen-cli-${{ env.WASM_BINDGEN_VERSION }}-${{ runner.os }}
+      - name: Install wasm-bindgen
+        run: |
+          if [ ! -x "$HOME/.wasm-bindgen-cli/bin/wasm-bindgen" ]; then
+            cargo install --root "$HOME/.wasm-bindgen-cli" \
+              wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION"
+          fi
+          echo "$HOME/.wasm-bindgen-cli/bin" >> "$GITHUB_PATH"
+
+      - name: Build the wasm language server
+        run: node web/build.mjs
+
+      - name: Smoke-test the module and the client
+        run: |
+          node web/tools/smoke.mjs
+          node web/tools/client-smoke.mjs
+
+      # `base_path` lets the site work both at <user>.github.io/<repo>/ and at a
+      # custom domain; the pages themselves only use relative URLs.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/www
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -11,3 +11,15 @@
 /reviews/blackbox-2/logs_live/
 /reviews/blackbox-2/fuzz/
 /reviews/blackbox-2/*.jsonl
+
+# 语言服务器 / 网页版 / 编辑器扩展的构建产物
+# （源码都在仓库里：lsp/、web/api/、web/www/、vscode/client/src、
+#   vscode/syntaxes；下面这些全部由 `node web/build.mjs` 与
+#   `node vscode/scripts/build.mjs` 重新生成）
+/web/www/pkg/
+/web/api/*/target/
+/web/api/*/pkg/
+/vscode/media/
+/vscode/client/node_modules/
+/vscode/client/dist/
+/vscode/*.vsix

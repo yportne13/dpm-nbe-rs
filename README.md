@@ -10,6 +10,19 @@ under a normalization-by-evaluation setup**).
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 
+On top of the library, the repository also carries a language server and an
+online IDE, so the language can be edited with diagnostics, hover, completion
+and go-to-definition:
+
+* [`lsp/`](lsp/README.md) — `dpm-nbe-lsp`, a stdio LSP server (its only
+  dependency is `serde_json`), plus 25 integration tests.
+* [`web/`](web/README.md) — the same server compiled to WebAssembly and served
+  as a zero-dependency web IDE; the page speaks real JSON-RPC/LSP to it.
+  Hosted at <https://yportne13.github.io/dpm-nbe-rs/> (GitHub Pages, built by
+  [`.github/workflows/pages.yml`](.github/workflows/pages.yml)).
+* [`vscode/`](vscode/README.md) — a VS Code extension that starts the native
+  binary on the desktop and the wasm module in the browser.
+
 ## Build and run
 
 ```sh
@@ -48,6 +61,25 @@ inferred type:
 
   U
 ```
+
+## Language server and web IDE
+
+```sh
+cargo build --release -p dpm-nbe-lsp    # -> target/release/dpm-nbe-lsp
+cargo test --workspace                  # library + server
+
+node web/build.mjs                      # wasm language server -> web/www/pkg/
+node web/serve.mjs                      # -> http://127.0.0.1:8140/
+node web/tools/smoke.mjs                # 38 checks, no browser needed
+```
+
+The editor features all come from the language server: diagnostics are the
+parser/elaborator's own errors (with the same line and column the CLI prints),
+hover shows the type a binder is given by the syntax, completion only offers
+names that are actually in scope, and `dpm-nbe/evaluate` returns exactly what
+`dpm-nbe nf` would print.  Because the protocol layer has no dependency on
+sockets or threads, the browser build runs the *same* code — the web page just
+replaces `Content-Length` framing with a function call.
 
 ## The language
 
@@ -102,6 +134,12 @@ All of these typecheck; `H` is the interesting case, see [NOTES.md](NOTES.md).
 | `src/pretty.rs` | pretty printer |
 | `src/main.rs` | command-line interface |
 | `tests/golden.rs` | black-box suite driving the built binary |
+| `lsp/src/analysis.rs` | lexer, binder scopes, hover/completion/definition/symbols, diagnostics |
+| `lsp/src/protocol.rs` | JSON-RPC / LSP message handling (no I/O) |
+| `lsp/src/stdio.rs` | `Content-Length` framing for the `dpm-nbe-lsp` binary |
+| `web/api/dpm-nbe-wasm/` | `wasm-bindgen` binding of the server for the browser |
+| `web/www/` | the web IDE (`app.js`, `lsp.js`, `editor.js`, `style.css`) |
+| `vscode/` | VS Code extension: grammar, language config, desktop and web clients |
 
 The Haskell original lives in [`../Haskell/dpm-nbe/src`](../Haskell/dpm-nbe/src)
 and is the specification this port was written against; `NOTES.md` lists every
