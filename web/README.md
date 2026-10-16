@@ -7,6 +7,10 @@
 
 ## What this is
 
+**Live: <https://yportne13.github.io/dpm-nbe-rs/>** (built and deployed by
+[`.github/workflows/pages.yml`](../.github/workflows/pages.yml) on every push
+that touches the server or the page).
+
 The page in `web/www` is a small IDE for `.dpm` files.  It is *not* a second
 implementation of the language: `web/api/dpm-nbe-wasm` is a `wasm-bindgen`
 binding over the crate in [`../lsp/`](../lsp/README.md), and the frontend is an
