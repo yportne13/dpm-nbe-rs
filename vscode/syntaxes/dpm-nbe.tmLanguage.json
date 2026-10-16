@@ -1,0 +1,73 @@
+{
+  "name": "dpm-nbe",
+  "scopeName": "source.dpm-nbe",
+  "fileTypes": ["dpm"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#absurd" },
+    { "include": "#keyword" },
+    { "include": "#type" },
+    { "include": "#constructor" },
+    { "include": "#primitive" },
+    { "include": "#arrow" },
+    { "include": "#lambda" },
+    { "include": "#wildcard" },
+    { "include": "#punctuation" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-dash.dpm-nbe",
+          "match": "--.*$"
+        },
+        {
+          "name": "comment.block.dpm-nbe",
+          "begin": "\\{-",
+          "end": "-\\}"
+        }
+      ]
+    },
+    "absurd": {
+      "name": "constant.language.absurd.dpm-nbe",
+      "match": "\\(!\\)"
+    },
+    "keyword": {
+      "name": "keyword.control.dpm-nbe",
+      "match": "\\b(let|in)\\b"
+    },
+    "type": {
+      "name": "support.type.dpm-nbe",
+      "match": "\\b(U|Nat|Id)\\b"
+    },
+    "constructor": {
+      "name": "constant.language.dpm-nbe",
+      "match": "\\b(zero|refl)\\b"
+    },
+    "primitive": {
+      "name": "keyword.operator.primitive.dpm-nbe",
+      "match": "\\b(plus|suc|succ)\\b"
+    },
+    "arrow": {
+      "name": "keyword.operator.arrow.dpm-nbe",
+      "match": "->|→"
+    },
+    "lambda": {
+      "name": "keyword.operator.lambda.dpm-nbe",
+      "match": "λ|\\\\"
+    },
+    "wildcard": {
+      "name": "variable.language.wildcard.dpm-nbe",
+      "match": "(?<![A-Za-z0-9'])_(?![A-Za-z0-9'])"
+    },
+    "punctuation": {
+      "name": "punctuation.dpm-nbe",
+      "match": "[():;.=]"
+    },
+    "identifier": {
+      "name": "variable.other.dpm-nbe",
+      "match": "[A-Za-z0-9][A-Za-z0-9']*"
+    }
+  }
+}

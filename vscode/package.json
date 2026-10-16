@@ -1,0 +1,96 @@
+{
+  "name": "dpm-nbe-lsp",
+  "displayName": "dpm-nbe language server",
+  "description": "Language support for dpm-nbe: dependent pattern matching under normalization by evaluation.",
+  "version": "0.1.0",
+  "license": "BSD-3-Clause",
+  "publisher": "dpm-nbe",
+  "private": true,
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:dpm-nbe"
+  ],
+  "main": "./client/dist/desktop/extension.js",
+  "browser": "./client/dist/web/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "dpm-nbe",
+        "aliases": [
+          "dpm-nbe",
+          "dpm"
+        ],
+        "extensions": [
+          ".dpm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "dpm-nbe",
+        "scopeName": "source.dpm-nbe",
+        "path": "./syntaxes/dpm-nbe.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "dpm-nbe.restartServer",
+        "title": "Restart language server",
+        "category": "dpm-nbe"
+      },
+      {
+        "command": "dpm-nbe.showResult",
+        "title": "Show normal form and type",
+        "category": "dpm-nbe"
+      },
+      {
+        "command": "dpm-nbe.showType",
+        "title": "Show type",
+        "category": "dpm-nbe"
+      }
+    ],
+    "configuration": {
+      "title": "dpm-nbe",
+      "properties": {
+        "dpm-nbe.lsp.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "Path to the `dpm-nbe-lsp` executable. Leave empty to search `PATH`, then `<workspace>/target/{release,debug}/`, then `<workspace>/lsp/target/{release,debug}/`."
+        },
+        "dpm-nbe.lsp.mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "cli",
+            "wasm"
+          ],
+          "default": "auto",
+          "description": "Which server to run: the native executable, the WebAssembly module (browser), or auto."
+        },
+        "dpm-nbe.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace the LSP traffic between VS Code and the server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "sync-wasm": "node ./scripts/sync-wasm.mjs",
+    "bundle": "npm --prefix client run bundle",
+    "test": "npm --prefix client run test",
+    "build": "node ./scripts/build.mjs"
+  }
+}

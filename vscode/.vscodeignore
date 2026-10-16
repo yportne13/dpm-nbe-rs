@@ -1,0 +1,8 @@
+.vscode/**
+client/src/**
+client/test/**
+client/bin/**
+client/package-lock.json
+scripts/**
+media/*.map
+**/*.ts

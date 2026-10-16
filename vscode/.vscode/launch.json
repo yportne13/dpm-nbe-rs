@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run desktop extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "${workspaceFolder}/.."],
+      "outFiles": ["${workspaceFolder}/client/dist/**/*.js"],
+      "preLaunchTask": "build extension"
+    },
+    {
+      "name": "Run web extension",
+      "type": "pwa-extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionDevelopmentKind=web",
+        "${workspaceFolder}/.."
+      ],
+      "outFiles": ["${workspaceFolder}/client/dist/**/*.js"],
+      "preLaunchTask": "build extension"
+    }
+  ]
+}
