@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dpm-nbe — language server in the browser</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <h1>dpm-nbe</h1>
+        <p class="tagline">
+          dependent pattern matching under normalization by evaluation —
+          <strong>the language server itself, compiled to WebAssembly</strong>
+        </p>
+      </div>
+      <div class="status">
+        <span id="server-status" class="badge">starting…</span>
+        <span id="server-detail" class="dim"></span>
+      </div>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+
+    <main>
+      <section class="pane editor-pane">
+        <div class="toolbar">
+          <select id="preset" aria-label="example program"></select>
+          <button id="run" class="primary" title="check and normalize (Ctrl+Enter)">Check <kbd>Ctrl↵</kbd></button>
+          <button id="type" title="show the type of the whole program">Type</button>
+          <button id="goto" title="go to the definition of the name at the caret (F12)">Definition <kbd>F12</kbd></button>
+          <button id="complete" title="complete at the caret (Ctrl+Space)">Complete <kbd>Ctrl␣</kbd></button>
+          <button id="reset" title="discard local edits and restore the example">Reset</button>
+          <span class="spacer"></span>
+          <span id="timing" class="dim"></span>
+          <button id="toggle-log" class="ghost" title="show the raw JSON-RPC traffic">LSP traffic</button>
+        </div>
+
+        <div id="editor" class="editor-host"></div>
+
+        <p class="hints dim">
+          Hover a name to see its type · <kbd>F12</kbd> or <kbd>Ctrl</kbd>+click to jump to a
+          definition · <kbd>Ctrl</kbd>+<kbd>Space</kbd> completes · edits are saved locally
+        </p>
+      </section>
+
+      <aside class="pane side">
+        <div class="block">
+          <h2>Result <span id="output-note" class="dim"></span></h2>
+          <pre id="output" class="output">…</pre>
+        </div>
+
+        <div class="block">
+          <h2>Diagnostics <span id="diag-count" class="pill">0</span></h2>
+          <ul id="diagnostics" class="list"></ul>
+        </div>
+
+        <div class="block">
+          <h2>Outline</h2>
+          <ul id="symbols" class="list"></ul>
+        </div>
+
+        <div class="block">
+          <h2>Cursor</h2>
+          <div id="cursor" class="dim">—</div>
+        </div>
+      </aside>
+    </main>
+
+    <section id="log-pane" class="pane log" hidden>
+      <h2>Language Server Protocol traffic</h2>
+      <pre id="log" class="log-body"></pre>
+    </section>
+
+    <footer class="dim">
+      The same <code>dpm-nbe-lsp</code> crate powers the native
+      <code>dpm-nbe-lsp</code> binary and this page: the browser only replaces
+      <code>stdin</code>/<code>stdout</code> framing with direct calls.
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+# Belt and braces: the same setting as `build.rs`, for a `cargo build` run from
+# inside this directory.  (`build.mjs` builds from the repository root with
+# `--manifest-path`, where cargo does *not* pick this file up — hence build.rs.)
+#
+# No `target = "wasm32-unknown-unknown"` here on purpose: forcing it would make a
+# plain `cargo test` in this directory try to run wasm tests.
+[build]
+rustflags = ["-C", "link-args=-zstack-size=67108864"]
