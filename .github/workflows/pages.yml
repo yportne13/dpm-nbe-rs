@@ -3,8 +3,11 @@ name: Deploy the web IDE to GitHub Pages
 # The page is a static site whose only build step is the WebAssembly language
 # server, so it is built here and published straight from `web/www`.
 #
-# One-time setup: Settings -> Pages -> Source = "GitHub Actions".
-# (`configure-pages` with `enablement: true` also turns Pages on for you.)
+# One-time setup: Settings -> Pages -> Source = "GitHub Actions" (already done
+# for this repository via `POST /repos/{owner}/{repo}/pages`, build_type
+# "workflow").  `configure-pages` deliberately does *not* pass
+# `enablement: true`: enabling a site is an admin action that a workflow
+# `GITHUB_TOKEN` is not allowed to perform, and it made this job fail with 403.
 
 on:
   push:
@@ -71,8 +74,6 @@ jobs:
       # `base_path` lets the site work both at <user>.github.io/<repo>/ and at a
       # custom domain; the pages themselves only use relative URLs.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
