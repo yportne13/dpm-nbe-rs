@@ -19,3 +19,12 @@ opt-level = 3
 lto = true
 
 [dependencies]
+
+# The language server lives in its own crate so that the `dpm-nbe` library and
+# CLI keep their "standard library only" dependency-free identity.
+#
+# `web/api/dpm-nbe-wasm` is deliberately *not* a member: it is a leaf package
+# built for `wasm32-unknown-unknown` with its own target directory.
+[workspace]
+members = [".", "lsp"]
+exclude = ["web/api/dpm-nbe-wasm"]

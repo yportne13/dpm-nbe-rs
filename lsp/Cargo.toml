@@ -1,0 +1,23 @@
+[package]
+name = "dpm-nbe-lsp"
+version = "0.1.0"
+edition = "2021"
+description = "Language server (LSP) for dpm-nbe, the dependent pattern matching / NbE language"
+license = "BSD-3-Clause"
+publish = false
+
+[lib]
+name = "dpm_nbe_lsp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dpm-nbe-lsp"
+path = "src/main.rs"
+
+[dependencies]
+# The checker itself: parse + elaborate + normalize.
+dpm-nbe = { path = ".." }
+# The only dependency of the server: used for the JSON-RPC/LSP wire format.
+# The protocol layer is hand-written (no tower-lsp / lsp-server) so that the
+# very same code compiles to `wasm32-unknown-unknown` and runs in a browser.
+serde_json = "1.0"
