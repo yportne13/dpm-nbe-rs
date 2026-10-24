@@ -1,3 +1,8 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
+
 let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
   λ A a b c refl refl . refl;
 

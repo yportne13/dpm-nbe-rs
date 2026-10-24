@@ -15,6 +15,9 @@ use std::io::{BufReader, Cursor};
 use std::process::{Command, Stdio};
 
 const README: &str = "\
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
 let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
   λ A a b c refl refl . refl;
 let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
@@ -23,6 +26,13 @@ let C : (A : U) -> Id Nat (suc zero) zero -> A =
   λ A (!);
 U
 ";
+
+/// The arithmetic prelude: a `data Nat` declaration and a `plus` defined
+/// through its eliminator, for snippets that use arithmetic.
+const PRELUDE: &str = concat!(
+    "data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n",
+    "let plus : Nat -> Nat -> Nat = λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n"
+);
 
 /// Byte offset of the first occurrence of `needle`.
 fn at(src: &str, needle: &str) -> usize {
@@ -82,15 +92,15 @@ fn lexer_covers_the_source_exactly() {
 
 #[test]
 fn lexer_classifies_identifiers_keywords_comments_and_punctuation() {
-    let src = "let x' : Nat = plus zero zero; -- done\n{- b -} x' (!) -> → λ \\ _";
+    let src = "data Nat : U where zero : Nat; -- done\n{- b -} x' (!) -> → λ \\ _";
     let kinds: Vec<(&str, TokKind)> = analysis::lex(src)
         .iter()
         .filter(|t| !t.is_trivia())
         .map(|t| (t.text(src), t.kind))
         .collect();
-    assert_eq!(kinds[0], ("let", TokKind::Keyword));
-    assert_eq!(kinds[1], ("x'", TokKind::Ident));
-    assert_eq!(kinds[3], ("Nat", TokKind::Keyword));
+    assert_eq!(kinds[0], ("data", TokKind::Keyword));
+    assert_eq!(kinds[1], ("Nat", TokKind::Ident));
+    assert!(kinds.contains(&("where", TokKind::Keyword)));
     assert!(kinds.contains(&("(!)", TokKind::Punct)));
     assert!(kinds.contains(&("->", TokKind::Punct)));
     assert!(kinds.contains(&("→", TokKind::Punct)));
@@ -156,14 +166,29 @@ fn scopes_of_the_readme_program() {
         .filter(|b| b.kind == BinderKind::Let)
         .map(|b| b.name.as_str())
         .collect();
-    assert_eq!(lets, ["trans", "H", "C"]);
+    assert_eq!(lets, ["plus", "trans", "H", "C"]);
 
     let pis: Vec<&str> = bs
         .iter()
         .filter(|b| b.kind == BinderKind::Pi)
         .map(|b| b.name.as_str())
         .collect();
-    assert_eq!(pis, ["A", "a", "b", "c", "m", "n", "A"]);
+    // the leading `n` is the binder of the `suc` constructor's type
+    assert_eq!(pis, ["n", "A", "a", "b", "c", "m", "n", "A"]);
+
+    // The declaration contributes the type and its constructors.
+    let datas: Vec<&str> = bs
+        .iter()
+        .filter(|b| b.kind == BinderKind::Data)
+        .map(|b| b.name.as_str())
+        .collect();
+    assert_eq!(datas, ["Nat"]);
+    let ctors: Vec<&str> = bs
+        .iter()
+        .filter(|b| b.kind == BinderKind::Ctor)
+        .map(|b| b.name.as_str())
+        .collect();
+    assert_eq!(ctors, ["zero", "suc"]);
 
     // λ patterns of the first definition.
     let lams: Vec<&str> = bs
@@ -171,7 +196,7 @@ fn scopes_of_the_readme_program() {
         .filter(|b| b.kind == BinderKind::Lambda)
         .map(|b| b.name.as_str())
         .collect();
-    assert_eq!(lams, ["A", "a", "b", "c", "m", "n", "A"]);
+    assert_eq!(lams, ["m", "n", "_", "_", "r", "A", "a", "b", "c", "m", "n", "A"]);
 
     // A `let` binding is not in scope inside its own type or value, but is in
     // its body.
@@ -192,11 +217,12 @@ fn scopes_of_the_readme_program() {
 fn symbols_nest_the_way_the_syntax_does() {
     let syms = analysis::symbols(README);
     assert_eq!(syms.len(), 1);
-    assert_eq!(syms[0].name, "trans");
-    assert!(syms[0].detail.as_deref().unwrap().starts_with("(A : U)"));
+    assert_eq!(syms[0].name, "plus");
+    assert!(syms[0].detail.as_deref().unwrap().starts_with("Nat"));
     assert_eq!(syms[0].children.len(), 1);
-    assert_eq!(syms[0].children[0].name, "H");
-    assert_eq!(syms[0].children[0].children[0].name, "C");
+    assert_eq!(syms[0].children[0].name, "trans");
+    assert_eq!(syms[0].children[0].children[0].name, "H");
+    assert_eq!(syms[0].children[0].children[0].children[0].name, "C");
     // `range` encloses `selectionRange`.
     for s in [&syms[0], &syms[0].children[0]] {
         assert!(s.span.0 <= s.selection.0 && s.selection.1 <= s.span.1);
@@ -219,9 +245,14 @@ fn hover_reports_the_type_of_a_bound_name() {
 
 #[test]
 fn hover_documents_the_vocabulary() {
+    // `plus` is an ordinary let-bound definition now, not vocabulary.
     let (line, character) = pos_of(README, "plus m zero");
     let info = analysis::hover(README, line, character).expect("a hover on plus");
-    assert!(info.markdown.contains("primitive addition"), "{}", info.markdown);
+    assert!(info.markdown.contains("plus : Nat"), "{}", info.markdown);
+
+    let (line, character) = pos_of(README, "elim Nat");
+    let info = analysis::hover(README, line, character).expect("a hover on elim");
+    assert!(info.markdown.contains("eliminator"), "{}", info.markdown);
 
     let (line, character) = pos_of(README, "(!)");
     let info = analysis::hover(README, line, character).expect("a hover on (!)");
@@ -236,20 +267,21 @@ fn completion_offers_keywords_and_names_in_scope() {
     let items = analysis::completions(src, line, character);
     let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
     assert!(labels.contains(&"x"), "{labels:?}");
-    assert!(labels.contains(&"Nat"));
-    assert!(labels.contains(&"plus"));
+    assert!(labels.contains(&"data"));
+    assert!(labels.contains(&"elim"));
     assert!(labels.contains(&"(!)"), "{labels:?}");
     let x = items.iter().find(|i| i.label == "x").unwrap();
     assert_eq!(x.detail.as_deref(), Some("Nat"));
     assert_eq!(x.kind, "variable");
 
     // Not yet defined: the lambda pattern is in scope only inside the body.
-    let src2 = "let f : Nat -> Nat = λ n . plus n zero; f zero";
-    let inside = at(src2, "plus n zero") + 1;
+    let src2 = "data Nat : U where zero : Nat; let f : Nat -> Nat = λ n . zero; f zero";
+    let inside = at(src2, ". zero; f") + 2;
     let (l, c) = LineIndex::new(src2).position(src2, inside);
     let items = analysis::completions(src2, l, c);
     assert!(items.iter().any(|i| i.label == "n"));
     assert!(items.iter().all(|i| i.label != "f"));
+    assert!(items.iter().any(|i| i.label == "zero" && i.kind == "variable"));
 }
 
 #[test]
@@ -268,9 +300,11 @@ fn definition_points_at_the_binding_site() {
     let def = analysis::definition(README, line, character).expect("a definition");
     assert_eq!(&README[def.0..def.1], "n");
 
-    // Keywords and syntax have no definition site.
+    // A constructor resolves to its declaration; keywords and syntax do not.
     let (line, character) = pos_of(README, "Nat (suc zero)");
-    assert!(analysis::definition(README, line, character).is_none());
+    let character = character + "Nat (".len();
+    let def = analysis::definition(README, line, character).expect("a definition");
+    assert_eq!(&README[def.0..def.1], "suc");
     let (line, character) = pos_of(README, "(!)");
     assert!(analysis::definition(README, line, character).is_none());
 }
@@ -283,26 +317,30 @@ fn definition_points_at_the_binding_site() {
 fn good_programs_produce_no_diagnostics() {
     assert!(analysis::diagnostics(README, "file:///a.dpm").is_empty());
     assert!(analysis::diagnostics("U", "file:///a.dpm").is_empty());
-    assert!(analysis::diagnostics("plus (suc zero) (suc zero)", "file:///a.dpm").is_empty());
+    assert!(analysis::diagnostics(
+        &format!("{PRELUDE}plus (suc zero) (suc zero)"),
+        "file:///a.dpm"
+    )
+    .is_empty());
 }
 
 #[test]
 fn type_errors_are_reported_with_a_range() {
-    let src = "let bad : Nat = U; U";
-    let ds = analysis::diagnostics(src, "file:///a.dpm");
+    let src = format!("{PRELUDE}let bad : Nat = U; U");
+    let ds = analysis::diagnostics(&src, "file:///a.dpm");
     assert_eq!(ds.len(), 1);
     assert_eq!(ds[0].code, "type-error");
     assert_eq!(ds[0].severity, analysis::Severity::Error);
     assert!(ds[0].message.contains("type mismatch"), "{}", ds[0].message);
-    // The CLI says `<stdin>:1:17:` — the `U` at 1-based column 17.
-    let index = LineIndex::new(src);
-    assert_eq!(index.position(src, ds[0].span.0), (0, 16));
+    // The CLI points at the `U` at 1-based column 17 of the third line.
+    let index = LineIndex::new(&src);
+    assert_eq!(index.position(&src, ds[0].span.0), (2, 16));
     assert!(ds[0].rendered.as_deref().unwrap().contains("^"));
 }
 
 #[test]
 fn parse_errors_are_reported_as_such() {
-    let ds = analysis::diagnostics("plus zero", "file:///a.dpm");
+    let ds = analysis::diagnostics("elim", "file:///a.dpm");
     assert_eq!(ds.len(), 1);
     assert_eq!(ds[0].code, "parse-error");
     assert!(!ds[0].message.is_empty());
@@ -314,9 +352,9 @@ fn parse_errors_are_reported_as_such() {
 
 #[test]
 fn evaluation_matches_the_command_line() {
-    let r = analysis::evaluate("plus (suc zero) (suc zero)", "a.dpm", "nf");
+    let r = analysis::evaluate(&format!("{PRELUDE}plus (suc zero) (suc zero)"), "a.dpm", "nf");
     assert!(r.ok);
-    assert_eq!(r.output, "succ (succ zero)\n  :\nNat");
+    assert_eq!(r.output, "suc (suc zero)\n  :\nNat");
 
     let r = analysis::evaluate("refl", "a.dpm", "nf");
     assert!(!r.ok);
@@ -375,7 +413,7 @@ fn malformed_input_does_not_panic() {
 fn diagnostics_are_pushed_on_open_and_cleared_on_close() {
     let mut server = Server::new();
     let uri = "file:///bad.dpm";
-    let pushed = open(&mut server, uri, "let bad : Nat = U; U");
+    let pushed = open(&mut server, uri, &format!("{PRELUDE}let bad : Nat = U; U"));
     assert_eq!(pushed.len(), 1);
     assert_eq!(pushed[0]["method"], "textDocument/publishDiagnostics");
     assert_eq!(pushed[0]["params"]["uri"], uri);
@@ -383,7 +421,7 @@ fn diagnostics_are_pushed_on_open_and_cleared_on_close() {
     let diag = &pushed[0]["params"]["diagnostics"][0];
     assert_eq!(diag["severity"], 1);
     assert_eq!(diag["source"], "dpm-nbe");
-    assert_eq!(diag["range"]["start"]["line"], 0);
+    assert_eq!(diag["range"]["start"]["line"], 2);
     assert_eq!(diag["range"]["start"]["character"], 16);
 
     let cleared = server.handle_message(&notification(
@@ -458,7 +496,8 @@ fn hover_completion_definition_and_symbols_over_the_protocol() {
     );
     let items = reply["result"]["items"].as_array().unwrap();
     assert!(items.iter().any(|i| i["label"] == "trans"));
-    assert!(items.iter().any(|i| i["label"] == "Nat" && i["kind"] == 14));
+    assert!(items.iter().any(|i| i["label"] == "Nat" && i["kind"] == 6));
+    assert!(items.iter().any(|i| i["label"] == "data" && i["kind"] == 14));
     assert!(items.iter().all(|i| i["label"] != "H"));
 
     let (line, character) = pos_of(README, "Id Nat n (plus m zero)");
@@ -484,16 +523,16 @@ fn hover_completion_definition_and_symbols_over_the_protocol() {
     );
     let syms = reply["result"].as_array().unwrap();
     assert_eq!(syms.len(), 1);
-    assert_eq!(syms[0]["name"], "trans");
-    assert_eq!(syms[0]["children"][0]["name"], "H");
-    assert_eq!(syms[0]["children"][0]["children"][0]["name"], "C");
+    assert_eq!(syms[0]["name"], "plus");
+    assert_eq!(syms[0]["children"][0]["name"], "trans");
+    assert_eq!(syms[0]["children"][0]["children"][0]["name"], "H");
 }
 
 #[test]
 fn custom_requests_serve_the_web_ide() {
     let mut server = Server::new();
     let uri = "file:///a.dpm";
-    open(&mut server, uri, "plus (suc zero) (suc zero)");
+    open(&mut server, uri, &format!("{PRELUDE}plus (suc zero) (suc zero)"));
 
     let reply = ask(
         &mut server,
@@ -501,7 +540,7 @@ fn custom_requests_serve_the_web_ide() {
         json!({ "textDocument": { "uri": uri }, "mode": "nf" }),
     );
     assert_eq!(reply["result"]["ok"], true);
-    assert_eq!(reply["result"]["output"], "succ (succ zero)\n  :\nNat");
+    assert_eq!(reply["result"]["output"], "suc (suc zero)\n  :\nNat");
 
     let reply = ask(
         &mut server,
@@ -591,11 +630,11 @@ fn the_binary_speaks_lsp_over_a_pipe() {
                         "uri": "file:///a.dpm",
                         "languageId": "dpm-nbe",
                         "version": 1,
-                        "text": "let bad : Nat = U; U"
+                        "text": format!("{PRELUDE}let bad : Nat = U; U")
                     }
                 }),
             ),
-            request(2, "dpm-nbe/evaluate", json!({ "text": "plus zero zero", "mode": "nf" })),
+            request(2, "dpm-nbe/evaluate", json!({ "text": format!("{PRELUDE}plus zero zero"), "mode": "nf" })),
             request(3, "shutdown", json!(null)),
             notification("exit", json!(null)),
         ];

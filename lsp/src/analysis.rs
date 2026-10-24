@@ -153,7 +153,7 @@ impl Token {
 
 /// Words the grammar reserves (`is_keyword` in `dpm-nbe`'s `src/parse.rs`).
 pub const KEYWORDS: &[&str] = &[
-    "let", "in", "λ", "U", "refl", "Nat", "zero", "suc", "succ", "plus", "Id",
+    "let", "in", "λ", "U", "refl", "Id", "data", "where", "elim",
 ];
 
 /// Multi-character punctuation, checked before the single characters.
@@ -361,6 +361,10 @@ pub enum BinderKind {
     Lambda,
     /// `(x : A) -> B`
     Pi,
+    /// `data D ... where ...` -- the declared type itself.
+    Data,
+    /// `data D ... where c : A; ...` -- a constructor.
+    Ctor,
 }
 
 impl BinderKind {
@@ -369,6 +373,8 @@ impl BinderKind {
             BinderKind::Let => "let",
             BinderKind::Lambda => "λ-pattern",
             BinderKind::Pi => "binder",
+            BinderKind::Data => "data declaration",
+            BinderKind::Ctor => "constructor",
         }
     }
 }
@@ -494,6 +500,14 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn save(&self) -> usize {
+        self.i
+    }
+
+    fn restore(&mut self, i: usize) {
+        self.i = i;
+    }
+
     fn eat(&mut self, s: &str) -> bool {
         if self.at(s) {
             self.bump();
@@ -513,12 +527,16 @@ impl<'a> Scanner<'a> {
     }
 
     /// A token that may start an atom (used to decide where a spine ends).
+    /// `where` must end the type of a `data` declaration; the other reserved
+    /// words (`U`, `Id`, `refl`, `elim`, ...) are ordinary atoms here.
     fn starts_atom(&self) -> bool {
         if self.i >= self.n() {
             return false;
         }
         let t = self.text(self.i);
-        !matches!(t, ")" | ";" | "=" | "." | ":" | "(!)") && !is_arrow(t) && !is_lambda(t)
+        !matches!(t, ")" | ";" | "=" | "." | ":" | "(!)" | "where")
+            && !is_arrow(t)
+            && !is_lambda(t)
     }
 
     /// `(` binder+ `:` — a dependent function type rather than a parenthesis.
@@ -551,9 +569,98 @@ impl<'a> Scanner<'a> {
         }
         match self.text(self.i) {
             "let" => self.let_expr(stop),
+            "data" => self.data_expr(stop),
             "(" if self.looks_like_pi() => self.pi_expr(stop),
             _ => self.fun_or_spine(stop),
         }
+    }
+
+    /// `data D groups* ':' Raw 'where' Ctor* Raw`, with
+    /// `Ctor = Ident ':' Raw ';'`.  The declared type and every constructor
+    /// become binders; each is visible from just after its own introduction to
+    /// the end of the declaration's body.
+    fn data_expr(&mut self, stop: Stop) -> usize {
+        self.bump(); // data
+        let name = self.text(self.i).to_string();
+        let data_def = self.span(self.i);
+        self.bump(); // the type name
+        // parameter groups, shaped like the ones of a Pi
+        while self.at("(") && self.looks_like_pi() {
+            self.bump(); // (
+            while self.i < self.n() && (self.text(self.i) == "_" || self.is_ident(self.i)) {
+                self.bump();
+            }
+            self.eat(":");
+            self.expr(Stop::RParen);
+            self.eat(")");
+        }
+        self.eat(":");
+        let ty_start = self.i;
+        let ty_end = self.expr(Stop::RParen);
+        let ty_text = self.src[self.range_of(ty_start, ty_end).0..]
+            .split("where")
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if !self.eat("where") {
+            return self.i;
+        }
+        // constructors: `name : type ;`, as long as they parse
+        let mut ctors: Vec<(String, Span, Option<String>, usize)> = Vec::new();
+        loop {
+            let s = self.save();
+            let mut consumed = None;
+            if self.is_ident(self.i) {
+                let def = self.span(self.i);
+                let cname = self.text(self.i).to_string();
+                self.bump();
+                if self.eat(":") {
+                    let t0 = self.i;
+                    let t1 = self.expr(Stop::Semi);
+                    let range = self.range_of(t0, t1);
+                    let type_text = if range.1 > range.0 {
+                        Some(self.src[range.0..range.1].trim().to_string())
+                    } else {
+                        None
+                    };
+                    if self.eat(";") {
+                        consumed = Some((cname, def, type_text, self.i));
+                    }
+                }
+            }
+            match consumed {
+                Some(c) => ctors.push(c),
+                None => {
+                    self.restore(s);
+                    break;
+                }
+            }
+        }
+        let body_start = self.i;
+        let body_end = self.expr(stop);
+        let body_span = self.range_of(body_start, body_end);
+        let data_type_text = (!ty_text.is_empty()).then_some(ty_text);
+        self.binders.push(Binder {
+            name,
+            kind: BinderKind::Data,
+            def: data_def,
+            scope: body_span,
+            type_text: data_type_text,
+            full: data_def,
+        });
+        for (cname, def, type_text, after) in ctors {
+            let from = self.range_of(after, body_end).0.min(body_span.1);
+            self.binders.push(Binder {
+                name: cname,
+                kind: BinderKind::Ctor,
+                def,
+                scope: (from, body_span.1.max(from)),
+                type_text,
+                full: def,
+            });
+        }
+        body_end
     }
 
     /// `Spine [-> Raw]`
@@ -584,13 +691,8 @@ impl<'a> Scanner<'a> {
 
     fn atom(&mut self, stop: Stop) -> usize {
         match self.text(self.i) {
-            "suc" | "succ" => {
+            "elim" => {
                 self.bump();
-                self.atom(stop);
-            }
-            "plus" => {
-                self.bump();
-                self.atom(stop);
                 self.atom(stop);
             }
             "Id" => {
@@ -619,7 +721,8 @@ impl<'a> Scanner<'a> {
             let t = self.text(self.i);
             if t == "refl" {
                 self.bump();
-            } else if self.is_ident(self.i) {
+            } else if t == "_" || self.is_ident(self.i) {
+                // `_` is a wildcard variable pattern
                 let name = t.to_string();
                 let span = self.span(self.i);
                 self.bump();
@@ -819,18 +922,17 @@ pub struct HoverInfo {
 pub fn keyword_doc(word: &str) -> Option<&'static str> {
     Some(match word {
         "U" => "`U` — the universe of types.  `U : U` holds in this system.",
-        "Nat" => "`Nat` — the type of natural numbers.",
-        "zero" => "`zero` — the zero constructor of `Nat`.",
-        "suc" | "succ" => "`suc t` — the successor constructor `Nat -> Nat`.\n\n`succ` is accepted as a synonym so that printed normal forms can be read back.",
-        "plus" => "`plus m n` — primitive addition on `Nat`.\n\n`plus m zero` reduces to `m` only once `m` is known; forcing is what makes the dependent pattern matching example work.",
         "Id" => "`Id A x y` — the identity (propositional equality) type of `A` at `x` and `y`.",
         "refl" => "`refl` — the constructor of `Id A x x`.\n\nAs a λ pattern it refines the context by unifying the indices of the identity type.",
+        "data" => "`data D (params) : U where c : ty; ...` — declare an inductive type.  No data types are built in: `Nat` is a declaration like any other.",
+        "where" => "`where` — introduces the constructor list of a `data` declaration.",
+        "elim" => "`elim D` — the eliminator generated for a data type `D`: parameters, a motive, one method per constructor, then the target.",
         "let" => "`let x : A = t; u` — a local definition, transparent when evaluating.",
-        "λ" => "`λ p1 p2 ... . t` — a lambda.  Patterns may be variables, `refl`, or the absurd pattern `(!)`.",
+        "λ" => "`λ p1 p2 ... . t` — a lambda.  Patterns may be variables (including `_`), `refl`, or the absurd pattern `(!)`.",
         "in" => "`in` — reserved by the grammar but never accepted, so it cannot be used as an identifier.",
         "(!)" => "`(!)` — the absurd pattern.  It must be the last pattern, and the equation must be contradictory.",
         "->" | "→" => "`A -> B` — a function type.  Write `(x : A) -> B` when `B` depends on `x`.",
-        "_" => "`_` — a wildcard binder (`(x : A) -> B`, `let _ : A = t; u`).",
+        "_" => "`_` — a wildcard binder (`(x : A) -> B`, `let _ : A = t; u`, and a λ pattern).",
         "\\" => "`\\` — ASCII spelling of `λ`.",
         _ => return None,
     })
@@ -871,6 +973,8 @@ pub fn hover(src: &str, line: usize, character: usize) -> Option<HoverInfo> {
                 }
                 BinderKind::Lambda => md.push_str("bound by a λ-pattern"),
                 BinderKind::Pi => md.push_str("bound by a function-type binder"),
+                BinderKind::Data => md.push_str("declared by `data`"),
+                BinderKind::Ctor => md.push_str("a constructor of a `data` declaration"),
             }
             Some(HoverInfo { span, markdown: md })
         }
