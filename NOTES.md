@@ -1,15 +1,22 @@
 # Porting notes
 
-This crate is a line-by-line port of the Haskell project in
-[`../Haskell/dpm-nbe/src`](../Haskell/dpm-nbe/src).  The port
-is meant to be *faithful*: the module split, the data types, the algorithm and
-the user-visible messages all follow the original.  This document records how
-the port works, and every place where it deliberately differs.
+This crate started as a line-by-line port of the Haskell project in
+[`../Haskell/dpm-nbe/src`](../Haskell/dpm-nbe/src), and keeps its module split,
+data types, algorithm and user-visible messages wherever the two still agree.
+This document records how the port works, and every place where it deliberately
+differs.
+
+The largest difference is that the port has **user-declared inductive types**
+while the original hardwires `Nat`, `zero`, `suc` and a primitive `plus`: the
+original's `Tm::Nat/Zero/Succ/Plus` and `Ne::Plus` are gone, replaced by the
+generic `Tm::Data/Ctor/Elim` and `Ne::Data/Ctor/Elim` below.  See deviation
+**14**.
 
 ## What the program does
 
-`dpm-nbe` is a small elaborator for a type theory with `U`, `Nat`, `Id` and
-function types, written in the style of András Kovács' *elaboration zoo*:
+`dpm-nbe` is a small elaborator for a type theory with `U`, `Id`, function
+types and user-declared inductive types, written in the style of András
+Kovács' *elaboration zoo*:
 
 ```
 parse (Raw) --elaborate--> core term + semantic type --evaluate--> value --quote--> normal form
@@ -31,7 +38,8 @@ let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero 
 proceeds as follows:
 
 1. the first `refl` unifies `n` with `plus m zero`: the evaluation environment
-   is extended with `n := plus m zero`, a value in normal form;
+   is extended with `n := plus m zero`, where `plus` is a function defined by
+   the generated eliminator, so the value is a *stuck* `elim` application;
 2. the second `refl` unifies `m` with `zero`, which makes the *old* value
    `plus m zero` reducible again (`plus zero zero = zero`);
 3. because the substitution is explicit and re-forced on demand, the third
@@ -278,6 +286,48 @@ is rejected with the self-contradictory "expecting plus n m equals to plus n m,
 but it is not".  The port compares `Ne::Plus` structurally, which restores
 reflexivity for neutrals without affecting anything that reduces.
 
+### 14. User-declared inductive types replace the built-in `Nat`
+
+The original hardwires `Nat`, `zero`, `suc` and a primitive `plus` (a `Plus`
+neutral with a one-line recursion).  The port removes all of that: the only
+built-ins left are `U`, function types, `Id`/`refl` and the absurd pattern;
+everything else is declared by the program itself.
+
+* **Syntax.**  `data D params : U where c1 : t1; ... ; body` declares a
+  nominal type; the declaration elaborates to a chain of transparent `let`s
+  binding the type former (`Tm::Data`), the constructors (`Tm::Ctor`) and the
+  body.  `elim D` is a core constant; its type is *generated on demand* from
+  the declaration (motive, one method per constructor, an induction hypothesis
+  after every recursive argument, target).
+* **Semantics.**  Data types, constructors and eliminators are neutral heads
+  with spines (`Ne::Data/Ctor/Elim`).  Forcing an eliminator checks its
+  target: a saturated constructor of the same declaration fires the method
+  with the recursive results, anything else stays stuck — so delayed
+  substitutions invalidate stuck eliminators exactly the way they used to
+  invalidate the primitive `plus`, and the `H` example keeps working unchanged
+  once `plus` is a defined function.
+* **Unification.**  `unify` decomposes same-constructor spines (generalised
+  injectivity of `suc`) and reports distinct constructors of one type as
+  contradictory (generalised `zero ≠ suc _`), which is what makes the absurd
+  pattern `λ A (!)` check against `Id Nat (suc zero) zero` for the *declared*
+  `Nat`.
+* **Well-formedness.**  The type after the parameters must be `U` (no indexed
+  families), every constructor must return `D params`, occurrences of `D` in
+  argument types must be strictly positive (as the whole argument type, or
+  behind function codomains), and constructor types may not depend on
+  enclosing *binders* (enclosing definitions are inlined as closed values at
+  declaration time).  Declarations are nominal: two identical declarations are
+  distinct types, compared by pointer equality of the definition.
+* **Storage.**  A stored constructor type keeps the datatype as its single
+  free variable (index = local depth), which keeps `IndDef` acyclic; the
+  elaborator closes it (`close_data`, `subst_outer`) wherever a closed term is
+  needed.  This convention, and the term-level `lift` that supports it, are
+  new in `syntax.rs`/`subst.rs`/`elab.rs`.
+
+Deliberately *not* supported: constructor patterns in λ (the original has no
+case syntax either — elimination is `elim`), mutual or indexed inductive
+types, and universes above `U`.
+
 ## Inherited limitations
 
 * There is **no occurs check** (`Elab.hs` marks it as a TODO), so unification
@@ -313,19 +363,26 @@ reflexivity for neutrals without affecting anything that reduces.
 
 ## Tests
 
-`cargo test` runs 113 unit tests inside `src/` plus the `tests/golden.rs`
-black-box suite (7 tests, 116 table checks: success cases including the README
-programs and generated transitivity proofs, elaboration errors with byte-pinned
-positions and carets, parse errors, the usage contract, BOM acceptance and the
-long-line window).
+`cargo test` runs 135 unit tests inside `src/` plus the `tests/golden.rs`
+black-box suite (7 tests, ~120 table checks: success cases including the
+arithmetic prelude, `Bool`/`List` elimination, the README programs and
+generated transitivity proofs, declaration errors, elaboration errors with
+byte-pinned positions and carets, parse errors, the usage contract, BOM
+acceptance and the long-line window).
 
 Unit tests cover: de Bruijn levels/indices and environments, substitution
-lookup/composition/forcing, `plus`, application and pattern matching (including
-partial application, saturated matching and stuck matches), conversion
-(including stuck `plus` reflexivity), quotation, unification (all `UnifyRes`
-cases, multi-equation threading), parser structure, error positions, every
-nesting limit and comment handling, error rendering, pretty printing
-(precedence, freshness), and the whole elaboration pipeline: the README
-examples, `genTransN` for n = 1..12 plus a scaling test up to n = 30, every
+lookup/composition/forcing/lifting, eliminator reduction (firing, stuck,
+partial application, over-application), application and pattern matching
+(including partial application, saturated matching and stuck matches),
+conversion (including stuck-eliminator reflexivity and nominal distinctness of
+identical declarations), quotation, unification (all `UnifyRes` cases,
+constructor injectivity and conflict, multi-equation threading), the generated
+eliminator types of `Nat`/`List`/the empty type, parser structure, error
+positions, every nesting limit and comment handling, error rendering, pretty
+printing (precedence, freshness), and the whole elaboration pipeline: the
+README examples, declarations (scoping, shadowing, nominal typing, positivity,
+indexed families rejected, enclosing binders rejected), `Bool`/`List`
+elimination, `genTransN` for n = 1..12 plus a scaling test up to n = 30, every
 error message, the definitional-equality cases, the two output modes, and the
-fixed regressions described above.
+fixed regressions described above.  The LSP suite adds 25 integration tests,
+the web IDE 39 + 29 smoke checks.

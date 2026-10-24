@@ -10,10 +10,17 @@
 import { CodeEditor } from './editor.js';
 import { LspClient, offsetAt } from './lsp.js';
 
+// Nothing is built in: programs that do arithmetic start by declaring Nat
+// and defining plus through its eliminator.
+const NAT = 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n'
+  + 'let plus : Nat -> Nat -> Nat =\n'
+  + '  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n';
+
 const PRESETS = {
   readme: {
-    label: 'README example (trans / cong / H / C)',
-    text: `let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+    label: 'README example (data / trans / H / C)',
+    text: NAT + `
+let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
   λ A a b c refl refl . refl;
 let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
   λ A B f a b refl . refl;
@@ -24,9 +31,17 @@ let C : (A : U) -> Id Nat (suc zero) zero -> A =
 U
 `,
   },
+  lists: {
+    label: 'Parameterised inductive types (List)',
+    text: NAT
+      + 'data List (A : U) : U where nil : List A; cons : (a : A) -> (as : List A) -> List A;\n'
+      + 'let length : (A : U) -> List A -> Nat =\n'
+      + '  λ A xs . elim List A (λ _ . Nat) zero (λ a as r . suc r) xs;\n'
+      + 'length Nat (cons Nat zero (cons Nat (suc zero) (nil Nat)))\n',
+  },
   arithmetic: {
     label: 'Arithmetic (plus normalizes)',
-    text: 'plus (suc (suc zero)) (suc (suc (suc zero)))\n',
+    text: NAT + 'plus (suc (suc zero)) (suc (suc (suc zero)))\n',
   },
   types: {
     label: 'A dependent type',
@@ -34,15 +49,15 @@ U
   },
   absurd: {
     label: 'Absurd pattern (λ A (!))',
-    text: 'let C : (A : U) -> Id Nat (suc zero) zero -> A =\n  λ A (!);\nC\n',
+    text: NAT + 'let C : (A : U) -> Id Nat (suc zero) zero -> A =\n  λ A (!);\nC\n',
   },
   broken: {
     label: 'A type error to look at',
-    text: 'let bad : Nat = U; U\n',
+    text: NAT + 'let bad : Nat = U; U\n',
   },
   deep: {
     label: 'Deep nesting (150 constructors)',
-    text: `let deep : Nat = ${'suc ('.repeat(150)}zero${')'.repeat(150)};\ndeep\n`,
+    text: NAT + `let deep : Nat = ${'suc ('.repeat(150)}zero${')'.repeat(150)};\ndeep\n`,
   },
 };
 
@@ -238,7 +253,7 @@ async function gotoDefinition(position) {
   try {
     const result = await client.definition(editor.value, position);
     if (!result) {
-      banner('info', 'No definition here: this name is not bound in the file (built-ins like <code>plus</code> or <code>U</code> live in the language).');
+      banner('info', 'No definition here: this name is not bound in the file (reserved words like <code>U</code> or <code>data</code> live in the language; every other name comes from a <code>let</code> or a <code>data</code> declaration).');
       setTimeout(() => {
         if ($('banner').className === 'banner info') $('banner').hidden = true;
       }, 3500);

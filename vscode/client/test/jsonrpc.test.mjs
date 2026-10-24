@@ -100,14 +100,14 @@ ok('a correct program raises no diagnostics', clean !== undefined && clean.param
 
 connection.sendNotification('textDocument/didChange', {
   textDocument: { uri, version: 2 },
-  contentChanges: [{ text: 'let bad : Nat = U; U' }],
+  contentChanges: [{ text: 'data Nat : U where zero : Nat; let bad : Nat = U; U' }],
 });
 await new Promise((resolve) => setTimeout(resolve, 400));
 const dirty = notifications
   .filter((n) => n.method === 'textDocument/publishDiagnostics')
   .at(-1);
 ok('a type error is published as a notification', dirty?.params?.diagnostics?.length === 1, JSON.stringify(dirty));
-ok('the diagnostic position matches the CLI', dirty?.params?.diagnostics?.[0]?.range?.start?.character === 16);
+ok('the diagnostic position matches the CLI', dirty?.params?.diagnostics?.[0]?.range?.start?.character === 47);
 ok('the diagnostic names its source', dirty?.params?.diagnostics?.[0]?.source === 'dpm-nbe');
 ok('the diagnostic carries the rendered caret diagram', /\^/.test(dirty?.params?.diagnostics?.[0]?.data?.rendered ?? ''));
 
@@ -135,10 +135,10 @@ const symbols = await connection.sendRequest('textDocument/documentSymbol', {
 ok('document symbols answer with the definitions', symbols?.[0]?.name === 'trans' && symbols[0].selectionRange !== undefined);
 
 const evaluated = await connection.sendRequest('dpm-nbe/evaluate', {
-  text: 'plus (suc zero) (suc zero)',
+  text: 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; suc (suc zero)',
   mode: 'nf',
 });
-ok('the server extension request works from a standard client', evaluated?.output === 'succ (succ zero)\n  :\nNat', JSON.stringify(evaluated));
+ok('the server extension request works from a standard client', evaluated?.output === 'suc (suc zero)\n  :\nNat', JSON.stringify(evaluated));
 
 const unknown = await connection
   .sendRequest('textDocument/typeDefinition', { textDocument: { uri }, position: { line: 0, character: 0 } })

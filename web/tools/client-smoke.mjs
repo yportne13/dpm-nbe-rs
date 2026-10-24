@@ -38,7 +38,11 @@ try {
   process.exit(2);
 }
 
-const README = `let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+const NAT = 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n'
+  + 'let plus : Nat -> Nat -> Nat =\n'
+  + '  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n';
+
+const README = NAT + `let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
   λ A a b c refl refl . refl;
 let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
   λ m n refl refl . refl;
@@ -75,9 +79,9 @@ ok('didOpen pushes diagnostics to the client', client.diagnostics.length === 0);
 ok('the diagnostics push reaches onNotification', notifications.some((n) => n.method === 'textDocument/publishDiagnostics'));
 ok('the log records both directions', log.some((e) => e.direction === 'client→server') && log.some((e) => e.direction === 'server→client'));
 
-client.change('let bad : Nat = U; U');
+client.change(NAT + 'let bad : Nat = U; U');
 ok('didChange updates the diagnostics', client.diagnostics.length === 1 && /type mismatch/.test(client.diagnostics[0].message), JSON.stringify(client.diagnostics));
-ok('the diagnostic range is an LSP range', client.diagnostics[0].range.start.character === 16 && client.diagnostics[0].range.start.line === 0);
+ok('the diagnostic range is an LSP range', client.diagnostics[0].range.start.character === 16 && client.diagnostics[0].range.start.line === 3);
 ok('the server version is tracked', client.version === 2, String(client.version));
 
 // --- concurrent requests keep their identities ------------------------------
@@ -88,13 +92,13 @@ const [hover, completion, symbols, tokens, evaluated] = await Promise.all([
   client.completion(README, hoverAt),
   client.documentSymbols(README),
   client.tokens(README),
-  client.evaluate('plus (suc zero) (suc zero)', 'nf'),
+  client.evaluate(NAT + 'plus (suc zero) (suc zero)', 'nf'),
 ]);
 ok('concurrent hover resolves correctly', /a : A/.test(hover?.contents?.value ?? ''), JSON.stringify(hover)?.slice(0, 120));
 ok('concurrent completion resolves correctly', (completion?.items ?? []).some((i) => i.label === 'refl'));
-ok('concurrent documentSymbol resolves correctly', symbols?.[0]?.name === 'trans' && symbols[0].children?.[0]?.name === 'H');
+ok('concurrent documentSymbol resolves correctly', symbols?.[0]?.name === 'plus' && symbols[0].children?.[0]?.name === 'trans');
 ok('concurrent tokens resolve correctly', tokens?.tokens?.[0]?.type === 'keyword');
-ok('concurrent evaluate resolves correctly', evaluated?.output === 'succ (succ zero)\n  :\nNat', JSON.stringify(evaluated));
+ok('concurrent evaluate resolves correctly', evaluated?.output === 'suc (suc zero)\n  :\nNat', JSON.stringify(evaluated));
 
 const definition = await client.definition(README, positionAt(README, README.indexOf('Id Nat n (plus m zero)') + 'Id Nat '.length));
 ok('definition returns a location in the same document', definition?.uri === 'file:///client.dpm');

@@ -35,19 +35,15 @@
     },
     "keyword": {
       "name": "keyword.control.dpm-nbe",
-      "match": "\\b(let|in)\\b"
+      "match": "\\b(let|in|data|where|elim)\\b"
     },
     "type": {
       "name": "support.type.dpm-nbe",
-      "match": "\\b(U|Nat|Id)\\b"
+      "match": "\\b(U|Id)\\b"
     },
     "constructor": {
       "name": "constant.language.dpm-nbe",
-      "match": "\\b(zero|refl)\\b"
-    },
-    "primitive": {
-      "name": "keyword.operator.primitive.dpm-nbe",
-      "match": "\\b(plus|suc|succ)\\b"
+      "match": "\\brefl\\b"
     },
     "arrow": {
       "name": "keyword.operator.arrow.dpm-nbe",

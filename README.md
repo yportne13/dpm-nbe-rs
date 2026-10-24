@@ -2,11 +2,13 @@
 
 A Rust re-implementation of the Haskell project
 [`KonjacSource/dpm-nbe`](../Haskell/dpm-nbe) (**dependent pattern matching
-under a normalization-by-evaluation setup**).
+under a normalization-by-evaluation setup**), upgraded with **user-declared
+inductive types**: nothing is built in any more, `Nat` is a declaration like
+any other.
 
-* ~2.4k lines of implementation, **no dependencies** (standard library only).
+* ~3k lines of implementation, **no dependencies** (standard library only).
 * Library + `dpm-nbe` command-line tool.
-* 113 unit tests + 7 black-box tests (116 checks).
+* 135 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 
@@ -15,7 +17,7 @@ online IDE, so the language can be edited with diagnostics, hover, completion
 and go-to-definition:
 
 * [`lsp/`](lsp/README.md) — `dpm-nbe-lsp`, a stdio LSP server (its only
-  dependency is `serde_json`), plus 25 integration tests.
+  dependency is `serde_json`).
 * [`web/`](web/README.md) — the same server compiled to WebAssembly and served
   as a zero-dependency web IDE; the page speaks real JSON-RPC/LSP to it.
   Hosted at <https://yportne13.github.io/dpm-nbe-rs/> (GitHub Pages, built by
@@ -30,7 +32,8 @@ cargo build --release
 cargo test
 
 # read a program from stdin, print its normal form and type
-echo 'plus (suc zero) (suc zero)' | ./target/release/dpm-nbe nf
+echo 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; suc zero' \
+  | ./target/release/dpm-nbe nf
 
 # print its type
 echo '(A : U) -> A -> A' | ./target/release/dpm-nbe type
@@ -39,7 +42,7 @@ echo '(A : U) -> A -> A' | ./target/release/dpm-nbe type
 `nf` prints
 
 ```
-succ (succ zero)
+suc zero
   :
 Nat
 ```
@@ -48,9 +51,9 @@ Errors are printed to stderr (with the source line, a caret and the message)
 and exit with status 1; parse and type errors are reported the same way:
 
 ```
-<stdin>:1:17:
-1 | let bad : Nat = U; U
-  |                 ^
+<stdin>:1:31:
+1 | data Nat : U where zero : Nat; let bad : Nat = U; U
+  |                               ^
 type mismatch
 
 expected type:
@@ -70,7 +73,7 @@ cargo test --workspace                  # library + server
 
 node web/build.mjs                      # wasm language server -> web/www/pkg/
 node web/serve.mjs                      # -> http://127.0.0.1:8140/
-node web/tools/smoke.mjs                # 38 checks, no browser needed
+node web/tools/smoke.mjs                # 39 checks, no browser needed
 ```
 
 The editor features all come from the language server: diagnostics are the
@@ -87,28 +90,70 @@ replaces `Content-Length` framing with a function call.
 | --- | --- |
 | `U` | universe |
 | `(x : A) -> B`, `A -> B` | dependent / non-dependent function type |
-| `\ p1 p2 ... . t` or `λ ...` | lambda (patterns: variables, `refl`, `(!)`) |
+| `\ p1 p2 ... . t` or `λ ...` | lambda (patterns: variables, `_`, `refl`, `(!)`) |
 | `let x : A = t; u` | local definition |
-| `t u` | application (juxtaposition, `plus`/`suc`/`Id` must be fully applied) |
+| `t u` | application (juxtaposition) |
 | `Id A x y`, `refl` | identity type and its constructor |
-| `Nat`, `zero`, `suc t`, `plus m n` | natural numbers |
+| `data D params : U where c : ty; ...` | inductive type declaration |
+| `elim D` | the eliminator generated for `D` |
 | `-- ...`, `{- ... -}` | comments |
 
 Notes on the concrete syntax:
 
-* `succ` is accepted as a synonym for `suc` (the printer writes `succ`), and
-  identifiers may contain `'` (the printer freshens names as `A'`), so printed
+* A `data` declaration scopes over its body like a `let`: it binds the type,
+  its constructors, and nothing else.  `elim D` is a core constant whose type
+  is derived from the declaration on demand.
+* Identifiers may contain `'` (the printer freshens names as `A'`), and
+  constructors print under the names they were declared with, so printed
   normal forms can be fed back in.
 * Patterns are only variables, `refl` and the absurd pattern `(!)`; `(!)` must
-  be the last pattern, and `_` is available as a `let` binder.
+  be the last pattern, and `_` is available as a wildcard binder.
 * Nested block comments are not supported.
+
+### Inductive types
+
+Nothing is built in.  A declaration introduces a nominal type, its
+constructors, and an eliminator:
+
+```
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
+plus (suc (suc zero)) (suc zero)
+```
+
+normalises to `suc (suc (suc zero)) : Nat`.  The eliminator is the structural
+recursor `elim D : (P : D -> U) -> (method per constructor) -> (x : D) -> P x`,
+with an induction hypothesis after every recursive argument; for `Nat`:
+
+```
+elim Nat : (P : Nat → U)
+        → P zero
+        → ((n : Nat)(n' : P n) → P (suc n))
+        → (x : Nat) → P x
+```
+
+Declarations may take parameters, and the eliminator abstracts them first:
+
+```
+data List (A : U) : U where nil : List A; cons : (a : A) -> (as : List A) -> List A;
+let length : (A : U) -> List A -> Nat =
+  λ A xs . elim List A (λ _ . Nat) zero (λ a as r . suc r) xs;
+```
+
+Checking rules: the type after the parameters must be `U` (no indexed
+families); every constructor must return `D params`; occurrences of `D` in
+constructor arguments must be strictly positive (`D params` itself, or behind
+function codomains — never in a domain); two identical declarations are still
+distinct types (typing is nominal).
 
 Example (a subset of the README of the original project; `tests/fixtures/`
 holds the full one):
 
 ```
-let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
-  λ A a b c refl refl . refl;
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
 
 let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
   λ m n refl refl . refl;
@@ -120,16 +165,19 @@ U
 ```
 
 All of these typecheck; `H` is the interesting case, see [NOTES.md](NOTES.md).
+With `plus` a defined function instead of a primitive, `plus m zero` is a
+*stuck eliminator* on the variable `m` — which is exactly what the
+delayed-substitution machinery of the original was built for.
 
 ## Layout
 
 | File | Contents |
 | --- | --- |
-| `src/syntax.rs` | surface/core syntax, values, neutrals, spines, substitutions |
-| `src/subst.rs` | explicit substitutions (`idSub`, `insertSub`, lookup) |
-| `src/eval.rs` | evaluation, forcing, primitives, conversion, quotation |
+| `src/syntax.rs` | surface/core syntax, values, neutrals, inductive definitions |
+| `src/subst.rs` | explicit substitutions (`idSub`, `insertSub`, lookup, lifting) |
+| `src/eval.rs` | evaluation, forcing, eliminator reduction, conversion, quotation |
 | `src/context.rs` | typing contexts and error rendering |
-| `src/elab.rs` | bidirectional checking, pattern matching, unification |
+| `src/elab.rs` | bidirectional checking, declarations, generated eliminators, pattern matching, unification |
 | `src/parse.rs` | recursive-descent parser |
 | `src/pretty.rs` | pretty printer |
 | `src/main.rs` | command-line interface |

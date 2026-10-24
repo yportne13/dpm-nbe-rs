@@ -20,7 +20,11 @@ const PKG = path.join(WEB, 'www', 'pkg', 'dpm-nbe-wasm');
 const GLUE = path.join(PKG, 'dpm_nbe_wasm.js');
 const WASM = path.join(PKG, 'dpm_nbe_wasm_bg.wasm');
 
-const README = `let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
+const NAT = 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n'
+  + 'let plus : Nat -> Nat -> Nat =\n'
+  + '  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n';
+
+const README = NAT + `let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
   λ A a b c refl refl . refl;
 let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
   λ m n refl refl . refl;
@@ -120,12 +124,12 @@ ok('a correct program has no diagnostics', replies[0].params.diagnostics.length 
 
 const badUri = 'file:///bad.dpm';
 replies = send(session, note('textDocument/didOpen', {
-  textDocument: { uri: badUri, languageId: 'dpm-nbe', version: 1, text: 'let bad : Nat = U; U' },
+  textDocument: { uri: badUri, languageId: 'dpm-nbe', version: 1, text: NAT + 'let bad : Nat = U; U' },
 }));
 const bad = replies[0].params.diagnostics;
 ok('a type error is reported', bad.length === 1 && bad[0].severity === 1 && bad[0].code === 'type-error');
 ok('the diagnostic carries the message', /type mismatch/.test(bad[0].message), bad[0]?.message);
-ok('the diagnostic points at column 16', bad[0].range.start.line === 0 && bad[0].range.start.character === 16, JSON.stringify(bad[0]?.range));
+ok('the diagnostic points at column 16', bad[0].range.start.line === 3 && bad[0].range.start.character === 16, JSON.stringify(bad[0]?.range));
 ok('the diagnostic carries the rendered caret diagram', /^\s*\|\s*\^/m.test(bad[0].data?.rendered ?? ''));
 
 // A ranged edit (defensive: the server advertises full sync) must be applied.
@@ -133,7 +137,7 @@ ok('the diagnostic carries the rendered caret diagram', /^\s*\|\s*\^/m.test(bad[
 replies = send(session, note('textDocument/didChange', {
   textDocument: { uri: badUri, version: 2 },
   contentChanges: [{
-    range: { start: { line: 0, character: 16 }, end: { line: 0, character: 17 } },
+    range: { start: { line: 3, character: 16 }, end: { line: 3, character: 17 } },
     text: 'zero',
   }],
 }));
@@ -149,7 +153,11 @@ ok('hover reports the binding form', /function-type binder/.test(hoverText));
 
 const plusAt = positionOf(README, offsetOfNeedle(README, 'plus m zero'));
 replies = send(session, request(3, 'textDocument/hover', { textDocument: { uri }, position: plusAt }));
-ok('hover documents a keyword', /primitive addition/.test(replies[0].result?.contents?.value ?? ''));
+ok('hover documents a definition', /plus : Nat/.test(replies[0].result?.contents?.value ?? ''), replies[0].result?.contents?.value);
+
+const elimAt = positionOf(README, offsetOfNeedle(README, 'elim Nat'));
+replies = send(session, request(3, 'textDocument/hover', { textDocument: { uri }, position: elimAt }));
+ok('hover documents the eliminator', /eliminator/.test(replies[0].result?.contents?.value ?? ''));
 
 // --- completion -----------------------------------------------------------
 
@@ -161,7 +169,7 @@ replies = send(session, request(4, 'textDocument/completion', {
 }));
 const labels = replies[0].result.items.map((i) => i.label);
 ok('completion offers names in scope', labels.includes('x'), labels.join(','));
-ok('completion offers the vocabulary', labels.includes('Nat') && labels.includes('plus') && labels.includes('(!)'));
+ok('completion offers the vocabulary', labels.includes('data') && labels.includes('elim') && labels.includes('(!)'));
 const xItem = replies[0].result.items.find((i) => i.label === 'x');
 ok('a completed name carries its type', xItem.kind === 6 && xItem.detail === 'Nat', JSON.stringify(xItem));
 
@@ -170,7 +178,7 @@ ok('a completed name carries its type', xItem.kind === 6 && xItem.detail === 'Na
 const useAt = positionOf(README, offsetOfNeedle(README, 'Id Nat n (plus m zero)', 'Id Nat '.length));
 replies = send(session, request(5, 'textDocument/definition', { textDocument: { uri }, position: useAt }));
 const defRange = replies[0].result?.range;
-ok('definition finds the binder', defRange !== undefined && defRange.start.line === 2, JSON.stringify(defRange));
+ok('definition finds the binder', defRange !== undefined && defRange.start.line === 5, JSON.stringify(defRange));
 if (defRange) {
   const at = offsetOf(README, defRange.start);
   ok('definition points at the identifier `n`', README.slice(at, at + 1) === 'n', JSON.stringify(README.slice(at, at + 4)));
@@ -178,24 +186,24 @@ if (defRange) {
 replies = send(session, request(6, 'textDocument/definition', {
   textDocument: { uri }, position: positionOf(README, offsetOfNeedle(README, 'Nat (suc zero)')),
 }));
-ok('a keyword has no definition', replies[0].result === null);
+ok('the declared type resolves to its declaration', replies[0].result?.range?.start?.line === 0, JSON.stringify(replies[0].result));
 
 // --- document symbols -----------------------------------------------------
 
 replies = send(session, request(7, 'textDocument/documentSymbol', { textDocument: { uri } }));
 const symbols = replies[0].result;
-ok('document symbols list the definitions', symbols.length === 1 && symbols[0].name === 'trans');
-ok('symbols nest the way the syntax does', symbols[0].children?.[0]?.name === 'H' && symbols[0].children[0].children?.[0]?.name === 'C');
-ok('a symbol carries its type as detail', /^\(A : U\)/.test(symbols[0].detail ?? ''), symbols[0].detail);
+ok('document symbols list the definitions', symbols.length === 1 && symbols[0].name === 'plus');
+ok('symbols nest the way the syntax does', symbols[0].children?.[0]?.name === 'trans' && symbols[0].children[0].children?.[0]?.name === 'H');
+ok('a symbol carries its type as detail', /^Nat/.test(symbols[0].detail ?? ''), symbols[0].detail);
 
 // --- evaluation -----------------------------------------------------------
 
 replies = send(session, request(8, 'dpm-nbe/evaluate', {
   textDocument: { uri: 'file:///run.dpm' },
-  text: 'plus (suc zero) (suc zero)',
+  text: NAT + 'plus (suc zero) (suc zero)',
   mode: 'nf',
 }));
-ok('evaluate returns the normal form and the type', replies[0].result.ok === true && replies[0].result.output === 'succ (succ zero)\n  :\nNat', replies[0].result.output);
+ok('evaluate returns the normal form and the type', replies[0].result.ok === true && replies[0].result.output === 'suc (suc zero)\n  :\nNat', replies[0].result.output);
 
 replies = send(session, request(9, 'dpm-nbe/evaluate', { text: 'refl', mode: 'nf' }));
 ok('evaluate reports language errors as data', replies[0].result.ok === false && /Can't infer type for refl/.test(replies[0].result.error));
@@ -221,10 +229,10 @@ ok('token ranges tile the line', contiguous && covered[covered.length - 1][1] ==
 
 // --- robustness -----------------------------------------------------------
 
-const deepNat = `let x : Nat = ${'suc ('.repeat(150)}zero${')'.repeat(150)}; x`;
+const deepNat = NAT + `let x : Nat = ${'suc ('.repeat(150)}zero${')'.repeat(150)}; x`;
 const deep = JSON.parse(mod.check(deepNat, 'nf'));
 ok('150 nested constructors do not overflow the shadow stack', deep.ok === true, JSON.stringify(deep).slice(0, 200));
-ok('... and normalize to the right numeral', deep.ok && deep.output.startsWith('succ (succ'), deep.output?.slice(0, 40));
+ok('... and normalize to the right numeral', deep.ok && deep.output.startsWith('suc (suc'), deep.output?.slice(0, 40));
 
 const tooDeep = `${'('.repeat(2000)}U`;
 replies = send(session, request(11, 'dpm-nbe/diagnostics', { text: tooDeep }));

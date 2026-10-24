@@ -93,7 +93,7 @@ const opened = ask({
       uri: 'file:///test.dpm',
       languageId: 'dpm-nbe',
       version: 1,
-      text: 'let bad : Nat = U; U',
+      text: 'data Nat : U where zero : Nat; let bad : Nat = U; U',
     },
   },
 });
@@ -104,18 +104,18 @@ const hover = ask({
   jsonrpc: '2.0',
   id: 2,
   method: 'textDocument/hover',
-  params: { textDocument: { uri: 'file:///test.dpm' }, text: 'plus zero zero', position: { line: 0, character: 1 } },
+  params: { textDocument: { uri: 'file:///test.dpm' }, text: 'data Nat : U where zero : Nat; U', position: { line: 0, character: 1 } },
 });
-ok('hover is answered', /primitive addition/.test(hover[0]?.result?.contents?.value ?? ''), JSON.stringify(hover));
+ok('hover is answered', /inductive type/.test(hover[0]?.result?.contents?.value ?? ''), JSON.stringify(hover));
 ok('requests keep their ids', hover[0].id === 2);
 
 const evaluate = ask({
   jsonrpc: '2.0',
   id: 3,
   method: 'dpm-nbe/evaluate',
-  params: { text: 'plus (suc zero) zero', mode: 'nf' },
+  params: { text: 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; suc (suc zero)', mode: 'nf' },
 });
-ok('the extension request works', evaluate[0].result.ok === true && evaluate[0].result.output.startsWith('succ zero'));
+ok('the extension request works', evaluate[0].result.ok === true && evaluate[0].result.output.startsWith('suc (suc zero)'));
 
 // A malformed frame must not take the transport down.
 const invalid = ask('not a message');
