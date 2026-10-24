@@ -97,14 +97,16 @@ pub enum Raw {
     Refl,
     /// `Id A u v`
     Id(Box<Raw>, Box<Raw>, Box<Raw>),
-    /// `Nat`
-    Nat,
-    /// `zero`
-    Zero,
-    /// `suc t`
-    Succ(Box<Raw>),
-    /// `plus t u`
-    Plus(Box<Raw>, Box<Raw>),
+    /// `data D params : ty where c1 : t1; ... ; body`
+    Data(
+        Name,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+    ),
+    /// `elim D` -- the eliminator (recursor) generated for a data type.
+    Elim(Box<Raw>),
     /// `\ (!)` -- only ever built by the parser for an absurd lambda.
     Bot,
     /// Source position attached for error reporting.
@@ -136,14 +138,75 @@ impl Raw {
                 Box::new(x.strip_pos()),
                 Box::new(y.strip_pos()),
             ),
-            Raw::Nat => Raw::Nat,
-            Raw::Zero => Raw::Zero,
-            Raw::Succ(n) => Raw::Succ(Box::new(n.strip_pos())),
-            Raw::Plus(m, n) => Raw::Plus(Box::new(m.strip_pos()), Box::new(n.strip_pos())),
+            Raw::Data(d, ps, ty, cs, body) => Raw::Data(
+                d.clone(),
+                ps.iter()
+                    .map(|(x, a)| (x.clone(), a.strip_pos()))
+                    .collect(),
+                Box::new(ty.strip_pos()),
+                cs.iter()
+                    .map(|(x, t)| (x.clone(), t.strip_pos()))
+                    .collect(),
+                Box::new(body.strip_pos()),
+            ),
+            Raw::Elim(a) => Raw::Elim(Box::new(a.strip_pos())),
             Raw::Bot => Raw::Bot,
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Inductive declarations
+// ---------------------------------------------------------------------------
+
+/// One constructor of an inductive type.
+#[derive(Clone, Debug)]
+pub struct CtorInfo {
+    pub name: Name,
+    /// The constructor's public type `Pi(params) Pi(args) D params`, stored as
+    /// a term of the declaration's context extended with the datatype itself
+    /// as the innermost binder: the datatype is therefore the *single free
+    /// variable* of `ty` (a `Var` whose index equals the number of binders
+    /// crossed since the root), which keeps [`IndDef`] acyclic.  The
+    /// elaborator closes it with [`crate::elab::close_data`] at the use sites.
+    pub ty: Tm,
+    /// Number of arguments after the parameters.
+    pub num_args: usize,
+    /// `recursive[j]`: the j-th argument (after the parameters) has type
+    /// `D params`, so the eliminator hands its method an induction hypothesis
+    /// for it.
+    pub recursive: Vec<bool>,
+}
+
+/// A user-declared inductive type.
+#[derive(Clone, Debug)]
+pub struct IndDef {
+    pub name: Name,
+    /// The parameter telescope, stored in the datatype's own context:
+    /// `params[i].1` is valid in `[..., D, params[0..i]]`, i.e. the datatype
+    /// is the single free variable (the same convention as constructor
+    /// types).
+    pub params: Vec<(Name, Tm)>,
+    pub ctors: Vec<CtorInfo>,
+}
+
+impl IndDef {
+    pub fn num_params(&self) -> usize {
+        self.params.len()
+    }
+}
+
+/// Inductive types are nominal: two declarations are the same type only if
+/// they are the same declaration, so equality is pointer equality of the
+/// definition (the derived structural `PartialEq` would conflate two
+/// identical-but-distinct declarations).
+impl PartialEq for IndDef {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
+impl Eq for IndDef {}
 
 // ---------------------------------------------------------------------------
 // Core syntax
@@ -162,10 +225,12 @@ pub enum Tm {
     App(Box<Tm>, Box<Tm>),
     Id(Box<Ty>, Box<Tm>, Box<Tm>),
     Refl,
-    Nat,
-    Zero,
-    Succ(Box<Tm>),
-    Plus(Box<Tm>, Box<Tm>),
+    /// A data type former (`D` itself, awaiting its parameters).
+    Data(Rc<IndDef>),
+    /// Constructor `i` of a data type (awaiting parameters and arguments).
+    Ctor(Rc<IndDef>, usize),
+    /// The eliminator of a data type.
+    Elim(Rc<IndDef>),
     Bot,
 }
 
@@ -300,9 +365,6 @@ pub enum Val {
     Pi(Name, Rc<Val>, Rc<Closure>),
     Id(Rc<Val>, Rc<Val>, Rc<Val>),
     Refl,
-    Nat,
-    Zero,
-    Succ(Rc<Val>),
     /// The value of `Tm::Bot`, i.e. the (unreachable) right hand side of an
     /// absurd pattern.  The original has no value for `Bot` and crashes if an
     /// absurd-pattern lambda is ever forced (see NOTES.md deviation 7).
@@ -333,13 +395,26 @@ impl Val {
     }
 
     #[inline]
-    pub fn succ(v: Val) -> Val {
-        Val::Succ(Rc::new(v))
-    }
-
-    #[inline]
     pub fn id(a: Val, x: Val, y: Val) -> Val {
         Val::Id(Rc::new(a), Rc::new(x), Rc::new(y))
+    }
+
+    /// A data type former applied to no parameters yet.
+    #[inline]
+    pub fn data(def: &Rc<IndDef>) -> Val {
+        Val::ne(Ne::Data(def.clone(), Vec::new()))
+    }
+
+    /// Constructor `i` of `def`, applied to no arguments yet.
+    #[inline]
+    pub fn ctor(def: &Rc<IndDef>, i: usize) -> Val {
+        Val::ne(Ne::Ctor(def.clone(), i, Vec::new()))
+    }
+
+    /// The eliminator of `def`, awaiting its spine.
+    #[inline]
+    pub fn elim(def: &Rc<IndDef>) -> Val {
+        Val::ne(Ne::Elim(def.clone(), Vec::new()))
     }
 }
 
@@ -353,8 +428,16 @@ pub enum Ne {
     /// A lambda that cannot reduce yet, applied to a (too short) spine.
     /// Lambda is *not* stable under substitution, hence the extra spine.
     Lam(Vec<Pn>, Lvl, Closure, Spine),
-    /// A stuck application of `plus`.
-    Plus(Val, Val),
+    /// A data type former applied to (at most) its parameters.  Rigid: it
+    /// never unstuck, it only accumulates parameters.
+    Data(Rc<IndDef>, Spine),
+    /// A constructor applied to parameters and arguments (possibly only some
+    /// of them).  Rigid as well; the eliminator is what consumes it.
+    Ctor(Rc<IndDef>, usize, Spine),
+    /// An eliminator applied to `[params, motive, methods..., target]`.  It
+    /// reduces once the spine is complete *and* the target is a saturated
+    /// constructor; otherwise it stays stuck (see [`crate::eval::elim_step`]).
+    Elim(Rc<IndDef>, Spine),
 }
 
 /// Result of a reduction step: a value plus whether progress was made.
@@ -420,25 +503,25 @@ mod tests {
 
     #[test]
     fn env_is_indexed_from_the_right() {
-        let env = Env(vec![Val::Zero, Val::Nat, Val::U]);
+        let env = Env(vec![Val::Refl, Val::Bot, Val::U]);
         assert_eq!(lookup_env(Ix(0), &env), Val::U);
-        assert_eq!(lookup_env(Ix(1), &env), Val::Nat);
-        assert_eq!(lookup_env(Ix(2), &env), Val::Zero);
+        assert_eq!(lookup_env(Ix(1), &env), Val::Bot);
+        assert_eq!(lookup_env(Ix(2), &env), Val::Refl);
     }
 
     #[test]
     #[should_panic(expected = "out of bounds")]
     fn env_lookup_out_of_bounds_panics() {
-        let _ = lookup_env(Ix(1), &Env(vec![Val::Zero]));
+        let _ = lookup_env(Ix(1), &Env(vec![Val::Refl]));
     }
 
     #[test]
     fn extend_and_push_preserve_the_right_most_binding() {
-        let env = Env(vec![Val::Zero]);
-        assert_eq!(env.push(Val::U).0, vec![Val::Zero, Val::U]);
+        let env = Env(vec![Val::Refl]);
+        assert_eq!(env.push(Val::U).0, vec![Val::Refl, Val::U]);
         assert_eq!(
-            env.extend(&vec![Val::U, Val::Nat]).0,
-            vec![Val::Zero, Val::U, Val::Nat]
+            env.extend(&vec![Val::U, Val::Bot]).0,
+            vec![Val::Refl, Val::U, Val::Bot]
         );
         assert_eq!(env.len(), Lvl(1));
     }

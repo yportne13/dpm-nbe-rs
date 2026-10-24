@@ -12,10 +12,11 @@
 //! Note: this is a "with-K" implementation, as in the original.
 
 use crate::context::{subst_ctx, Ctx, M};
-use crate::eval::{conv, eval, frc, subst_cl, subst_sub, subst_val};
+use crate::eval::{conv, eval, frc, quote_val, subst_cl, subst_sub, subst_val};
 use crate::pretty::show_val;
 use crate::subst::{id_sub, insert_sub};
 use crate::syntax::*;
+use std::rc::Rc;
 
 // ---------------------------------------------------------------------------
 // Unification for dependent pattern matching
@@ -40,7 +41,7 @@ pub fn unify(d: Lvl, vs: &[(Val, Val)]) -> UnifyRes {
 /// `unifyS Δ Γ γ vs`.  `Δ` is kept for parity with the original signature; the
 /// running context is `g`.
 fn unify_s(_d: Lvl, g: Lvl, gamma: &Sub, vs: &[(Val, Val)]) -> UnifyRes {
-    let (pair, rest) = match vs.split_first() {
+    let ((v1, v2), rest) = match vs.split_first() {
         None => {
             return UnifyRes::Succ {
                 lvl: g,
@@ -49,8 +50,31 @@ fn unify_s(_d: Lvl, g: Lvl, gamma: &Sub, vs: &[(Val, Val)]) -> UnifyRes {
         }
         Some(x) => x,
     };
-    let (v1, v2) = pair;
-    match unify1(g, v1, v2) {
+    let u = frc(v1);
+    let w = frc(v2);
+    // Constructors of the same data type are injective (unify the spines), and
+    // two *distinct* constructors of the same type are contradictory.
+    if let (Val::Ne(n1), Val::Ne(n2)) = (&u, &w) {
+        if let (Ne::Ctor(d1, i1, sp1), Ne::Ctor(d2, i2, sp2)) = (&**n1, &**n2) {
+            if Rc::ptr_eq(d1, d2) {
+                if i1 != i2 {
+                    return UnifyRes::Abs;
+                }
+                if sp1.len() != sp2.len() {
+                    // Ill-typed input; refuse to guess.
+                    return UnifyRes::Idk;
+                }
+                let mut eqs: Vec<(Val, Val)> = sp1
+                    .iter()
+                    .zip(sp2.iter())
+                    .map(|(x, y)| (x.clone(), y.clone()))
+                    .collect();
+                eqs.extend(rest.iter().cloned());
+                return unify_s(_d, g, gamma, &eqs);
+            }
+        }
+    }
+    match unify1(g, &u, &w) {
         UnifyRes::Succ { lvl: s, sub: a } => {
             let gamma2 = subst_sub(&a, gamma);
             let vs2: Vec<(Val, Val)> = rest
@@ -82,13 +106,13 @@ pub fn unify1(g: Lvl, u: &Val, v: &Val) -> UnifyRes {
     if let Some(x) = as_var(&u) {
         return UnifyRes::Succ {
             lvl: g.pred(),
-            sub: insert_sub(g, x, v),
+            sub: insert_sub(g, x, v.clone()),
         };
     }
     if let Some(x) = as_var(&v) {
         return UnifyRes::Succ {
             lvl: g.pred(),
-            sub: insert_sub(g, x, u),
+            sub: insert_sub(g, x, u.clone()),
         };
     }
 
@@ -97,13 +121,7 @@ pub fn unify1(g: Lvl, u: &Val, v: &Val) -> UnifyRes {
             lvl: g,
             sub: id_sub(g),
         },
-        (Val::Zero, Val::Zero) => UnifyRes::Succ {
-            lvl: g,
-            sub: id_sub(g),
-        },
-        // `suc` is injective.
-        (Val::Succ(m), Val::Succ(n)) => unify1(g, m, n),
-        (Val::Zero, Val::Succ(_)) | (Val::Succ(_), Val::Zero) => UnifyRes::Abs,
+        // Constructors are decomposed by `unify_s` before `unify1` runs.
         _ if conv(g, &u, &v) => UnifyRes::Succ {
             lvl: g,
             sub: id_sub(g),
@@ -358,17 +376,35 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
             Ok((Tm::Id(Box::new(a), Box::new(x), Box::new(y)), Val::U))
         }
 
-        Raw::Nat => Ok((Tm::Nat, Val::U)),
-        Raw::Zero => Ok((Tm::Zero, Val::Nat)),
-        Raw::Succ(n) => {
-            let n = check(ctx, n, &Val::Nat)?;
-            Ok((Tm::Succ(Box::new(n)), Val::Nat))
+        Raw::Data(..) => {
+            let (x, params, ty, ctors, body) = match r {
+                Raw::Data(x, ps, ty, cs, b) => (x, ps, ty, cs, b),
+                _ => unreachable!("guarded by the match arm"),
+            };
+            elab_data(ctx, x, params, ty, ctors, body)
         }
-        Raw::Plus(m, n) => {
-            let m = check(ctx, m, &Val::Nat)?;
-            let n = check(ctx, n, &Val::Nat)?;
-            Ok((Tm::Plus(Box::new(m), Box::new(n)), Val::Nat))
+
+        Raw::Elim(a) => {
+            let (t, _) = infer(ctx, a)?;
+            let v = frc(&eval(&ctx.env, &t));
+            let def = match &v {
+                Val::Ne(n) => match &**n {
+                    Ne::Data(d, sp) if sp.is_empty() => d.clone(),
+                    Ne::Data(..) => {
+                        return report(
+                            ctx,
+                            "elim expects the data type itself, not an instance of it"
+                                .to_string(),
+                        )
+                    }
+                    _ => return report(ctx, "elim expects a data type".to_string()),
+                },
+                _ => return report(ctx, "elim expects a data type".to_string()),
+            };
+            let ty = eval(&Env::empty(), &elim_ty(&def));
+            Ok((Tm::Elim(def), ty))
         }
+
         Raw::Bot => panic!("infer: impossible (Bot)"),
     }
 }
@@ -379,13 +415,606 @@ fn fmt(template: &str, args: &[&str]) -> String {
         .fold(template.to_string(), |s, a| s.replacen("{}", a, 1))
 }
 
+// ---------------------------------------------------------------------------
+// Inductive declarations
+// ---------------------------------------------------------------------------
+
+/// Elaborate `data D params : ty where c1 : t1; ... ; body`.
+///
+/// The declaration becomes a chain of transparent `let`s:
+///
+/// ```text
+/// let D   : Pi params U        = Data;
+/// let c_1 : close(t_1)         = Ctor D 1;
+/// ...
+/// body
+/// ```
+///
+/// The eliminator is *not* a binding: `elim D` is a core term whose type is
+/// generated on demand by [`elim_ty`].
+pub fn elab_data(
+    ctx: &Ctx,
+    name: &Name,
+    params: &[(Name, Raw)],
+    ty_raw: &Raw,
+    ctors: &[(Name, Raw)],
+    body: &Raw,
+) -> M<(Tm, Val)> {
+    let k = params.len();
+
+    // 1. Parameters, elaborated in the ambient context: the datatype being
+    //    declared does not exist yet, so a parameter type cannot mention it.
+    let mut pctx = ctx.clone();
+    let mut ptys: Vec<(Name, Tm)> = Vec::with_capacity(k);
+    for (x, a_raw) in params {
+        let a = check(&pctx, a_raw, &Val::U)?;
+        let va = eval(&pctx.env, &a);
+        ptys.push((x.clone(), a));
+        pctx = pctx.bind(x.clone(), va);
+    }
+    // Parameter p_i lives at level ctx.lvl + i.
+
+    // 2. The type after the parameters must be `U` (no indexed families).
+    let ty = check(&pctx, ty_raw, &Val::U)?;
+    if !conv(pctx.lvl, &eval(&pctx.env, &ty), &Val::U) {
+        return report(
+            ctx,
+            format!(
+                "an inductive type must be declared in U, but {}'s type is\n\n  {}",
+                name,
+                show_val(&pctx, &frc(&eval(&pctx.env, &ty)))
+            ),
+        );
+    }
+
+    // 3. The datatype's own type `Pi params U`, and a definition skeleton
+    //    (parameters and constructors are committed once checking is done).
+    let mut d_ty = ty;
+    for (x, a) in ptys.iter().rev() {
+        d_ty = Tm::Pi(x.clone(), Box::new(a.clone()), Box::new(d_ty));
+    }
+    let d_ty_val = eval(&ctx.env, &d_ty);
+    let mut def = Rc::new(IndDef {
+        name: name.clone(),
+        params: Vec::new(),
+        ctors: Vec::new(),
+    });
+
+    // 4. Constructors, checked in `[ambient, D, params]`: the datatype is
+    //    bound *outside* the parameters, so wrapping the parameter Pis around
+    //    a checked constructor type moves no variable -- from inside the
+    //    constructor the parameters are the innermost binders, the datatype
+    //    the next one out, exactly as in the wrapped term.  Everything that
+    //    can hold a clone of `def` lives inside this block, so that the `Rc`
+    //    is uniquely owned again when the definition is committed.
+    let (stored_params, infos): (Vec<(Name, Tm)>, Vec<CtorInfo>) = {
+        let mut ctx_d = ctx.define(name.clone(), Val::data(&def), d_ty_val.clone());
+        let mut cps: Vec<(Name, Tm)> = Vec::with_capacity(k);
+        for (x, a_raw) in params {
+            let a = check(&ctx_d, a_raw, &Val::U)?;
+            let va = eval(&ctx_d.env, &a);
+            cps.push((x.clone(), a));
+            ctx_d = ctx_d.bind(x.clone(), va);
+        }
+        // The datatype lives at level ctx.lvl and parameter p_i at
+        // ctx.lvl + 1 + i.
+        let pvs: Spine = (0..k).map(|i| Val::vvar(Lvl(ctx.lvl.0 + 1 + i))).collect();
+        let mut infos = Vec::with_capacity(ctors.len());
+        for (cname, craw) in ctors {
+            let tm = check(&ctx_d, craw, &Val::U)?;
+
+            // Walk the constructor's telescope on values: collect the argument
+            // domains and the result.
+            let mut lvl = ctx_d.lvl;
+            let mut tyv = eval(&ctx_d.env, &tm);
+            let mut argdoms: Vec<Val> = Vec::new();
+            loop {
+                match frc(&tyv) {
+                    Val::Pi(_, a, cl) => {
+                        argdoms.push((*a).clone());
+                        tyv = cl.apply(Val::vvar(lvl));
+                        lvl = lvl.inc();
+                    }
+                    result => {
+                        tyv = result;
+                        break;
+                    }
+                }
+            }
+
+            // The result must be `D p_0 .. p_{k-1}` with the parameters in
+            // order.
+            let well_formed_result = match &frc(&tyv) {
+                Val::Ne(n) => match &**n {
+                    Ne::Data(d2, sp) => Rc::ptr_eq(d2, &def) && *sp == pvs,
+                    _ => false,
+                },
+                _ => false,
+            };
+            if !well_formed_result {
+                return report(
+                    ctx,
+                    format!(
+                        "constructor {} must return {}{}",
+                        cname,
+                        name,
+                        if k == 0 {
+                            String::new()
+                        } else {
+                            format!(
+                                " {}",
+                                (0..k)
+                                    .map(|i| ptys[i].0.clone())
+                                    .collect::<Vec<_>>()
+                                    .join(" ")
+                            )
+                        }
+                    ),
+                );
+            }
+
+            // Strict positivity, and which arguments are recursive.  An
+            // argument of type `D params` is recursive; otherwise `D` may
+            // still occur strictly positively as the final codomain of a
+            // chain of function types (`Nat -> D` is fine, it just gets no
+            // induction hypothesis), as long as it never occurs in a domain.
+            // Any other occurrence is rejected.
+            let mut recursive = Vec::with_capacity(argdoms.len());
+            for a in &argdoms {
+                match classify_arg(&frc(a), &def, &pvs, lvl) {
+                    Some(is_rec) => recursive.push(is_rec),
+                    None => {
+                        return report(
+                            ctx,
+                            format!(
+                                "constructor {} of {} is not strictly positive: {} may only occur as the whole type of an argument, or as the result of a function type",
+                                cname, name, name
+                            ),
+                        )
+                    }
+                }
+            }
+
+            // The stored public type.  First, references to enclosing
+            // bindings are replaced by their (closed) values, so the stored
+            // type only ever mentions the datatype itself; then the
+            // parameter Pis are re-bound around the term.  Their domains
+            // (`cps`) are valid in `[ambient, D, p_0 .. p_{j-1}]`, exactly the
+            // context the wrapped term gives them, and the constructor term
+            // itself needs no adjustment (the datatype is bound outside the
+            // parameters while checking).
+            let tm = subst_outer(&tm, 0, k, ctx);
+            let mut w = tm;
+            for (x, a) in cps.iter().rev() {
+                w = Tm::Pi(x.clone(), Box::new(a.clone()), Box::new(w));
+            }
+            // The only free variable of the stored type may now be the
+            // datatype itself: a reference that survived `subst_outer` points
+            // at a binder (e.g. an enclosing lambda's), which cannot be
+            // closed later.
+            if !free_vars_only_d(&w, 0) {
+                return report(
+                    ctx,
+                    format!(
+                        "constructor {} of {} must not depend on enclosing bindings",
+                        cname, name
+                    ),
+                );
+            }
+
+            infos.push(CtorInfo {
+                name: cname.clone(),
+                ty: w,
+                num_args: argdoms.len(),
+                recursive,
+            });
+        }
+        (cps, infos)
+    };
+    {
+        let def = Rc::get_mut(&mut def)
+            .expect("data declaration: the definition is uniquely owned");
+        def.params = stored_params;
+        def.ctors = infos;
+    }
+
+    // 5. The body, under the bindings of the datatype and its constructors.
+    let mut ctx2 = ctx.define(name.clone(), Val::data(&def), d_ty_val);
+    let mut binds: Vec<(Name, Tm, Tm)> = vec![(name.clone(), d_ty, Tm::Data(def.clone()))];
+    for (i, ci) in def.ctors.iter().enumerate() {
+        let cty = close_data(&ci.ty, &def);
+        let cty_val = eval(&ctx2.env, &cty);
+        ctx2 = ctx2.define(ci.name.clone(), Val::ctor(&def, i), cty_val);
+        binds.push((ci.name.clone(), cty, Tm::Ctor(def.clone(), i)));
+    }
+    let (body_tm, body_ty) = infer(&ctx2, body)?;
+    let tm = binds.into_iter().rev().fold(body_tm, |acc, (x, a, t)| {
+        Tm::Let(x, Box::new(a), Box::new(t), Box::new(acc))
+    });
+    Ok((tm, body_ty))
+}
+
+/// Replace every reference to an enclosing binding in a checked constructor
+/// type (valid in `[ambient, D, params]`) with that binding's closed value,
+/// so that the stored type only ever mentions the datatype and the
+/// parameters.  References to *binders* (whose values are fresh variables)
+/// stay free, and are rejected later by the `free_vars_only_d` invariant.
+///
+/// The datatype itself and the parameters are at slots `k` and `k-1 .. 0`
+/// from any constructor-type position; anything further out is ambient and
+/// addressed by its [`Env`] index there.
+fn subst_outer(t: &Tm, d: usize, k: usize, ctx: &Ctx) -> Tm {
+    match t {
+        Tm::Var(i) => {
+            if i.0 < d || i.0 - d <= k {
+                // bound inside the term, a parameter, or the datatype
+                t.clone()
+            } else {
+                let v = lookup_env(Ix(i.0 - d - k - 1), &ctx.env);
+                // The value is closed, but it is spliced into a context with
+                // the datatype (and, after wrapping, the parameters) inside
+                // it, so its free variables -- if it has any, i.e. if the
+                // binding was really a binder -- shift by one.
+                crate::subst::lift(&quote_val(ctx.lvl, &v), 0, 1)
+            }
+        }
+        Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+        Tm::App(f, a) => Tm::App(
+            Box::new(subst_outer(f, d, k, ctx)),
+            Box::new(subst_outer(a, d, k, ctx)),
+        ),
+        Tm::Id(a, x, y) => Tm::Id(
+            Box::new(subst_outer(a, d, k, ctx)),
+            Box::new(subst_outer(x, d, k, ctx)),
+            Box::new(subst_outer(y, d, k, ctx)),
+        ),
+        Tm::Pi(x, a, b) => Tm::Pi(
+            x.clone(),
+            Box::new(subst_outer(a, d, k, ctx)),
+            Box::new(subst_outer(b, d + 1, k, ctx)),
+        ),
+        Tm::Lam(ps, b) => Tm::Lam(
+            ps.clone(),
+            Box::new(subst_outer(b, d + num_pvars(ps).0, k, ctx)),
+        ),
+        Tm::Let(x, a, v, b) => Tm::Let(
+            x.clone(),
+            Box::new(subst_outer(a, d, k, ctx)),
+            Box::new(subst_outer(v, d, k, ctx)),
+            Box::new(subst_outer(b, d + 1, k, ctx)),
+        ),
+    }
+}
+
+/// Whether `D` occurs in a (quoted) term.  Constructor and eliminator heads of
+/// *other* datatypes are opaque atoms here: their arguments appear in the
+/// surrounding application spine and are visited as ordinary subterms.
+fn occurs_data(t: &Tm, def: &Rc<IndDef>) -> bool {
+    match t {
+        Tm::Data(d) => Rc::ptr_eq(d, def),
+        Tm::Var(_) | Tm::U | Tm::Refl | Tm::Bot | Tm::Ctor(..) | Tm::Elim(_) => false,
+        Tm::App(f, a) => occurs_data(f, def) || occurs_data(a, def),
+        Tm::Id(a, x, y) => {
+            occurs_data(a, def) || occurs_data(x, def) || occurs_data(y, def)
+        }
+        Tm::Pi(_, a, b) => occurs_data(a, def) || occurs_data(b, def),
+        Tm::Lam(_, b) => occurs_data(b, def),
+        Tm::Let(_, a, v, b) => {
+            occurs_data(a, def) || occurs_data(v, def) || occurs_data(b, def)
+        }
+    }
+}
+
+/// Classify a (forced) constructor argument type for strict positivity.
+///
+/// * `Some(true)`  -- the argument is `D params`, a recursive argument.
+/// * `Some(false)` -- `D` does not occur, or occurs only as the final
+///   codomain of a chain of function types (`Nat -> D`): a legal but
+///   non-recursive argument, which the eliminator gives no hypothesis for.
+/// * `None`        -- `D` occurs in a domain (or anywhere else it may not),
+///   so the constructor is not strictly positive.
+///
+/// `l` is the level to quote at (one past the argument telescope walked so
+/// far, so the domain values stay in scope).
+fn classify_arg(v: &Val, def: &Rc<IndDef>, pvs: &Spine, l: Lvl) -> Option<bool> {
+    match v {
+        Val::Ne(n) => match &**n {
+            // `D params` is recursive; `D` applied to anything else is a
+            // non-uniform occurrence and falls through to the occurs check.
+            Ne::Data(d2, sp) if Rc::ptr_eq(d2, def) && *sp == *pvs => Some(true),
+            _ => {
+                if occurs_data(&quote_val(l, v), def) {
+                    None
+                } else {
+                    Some(false)
+                }
+            }
+        },
+        Val::Pi(_, a, cl) => {
+            if occurs_data(&quote_val(l, a), def) {
+                return None;
+            }
+            classify_arg(&frc(&cl.apply(Val::vvar(l))), def, pvs, l.inc())
+        }
+        _ => {
+            if occurs_data(&quote_val(l, v), def) {
+                None
+            } else {
+                Some(false)
+            }
+        }
+    }
+}
+
+/// Whether every free variable of a stored (parameter-abstracted) constructor
+/// type is the datatype itself.  At local depth `d` the datatype is `Var d`
+/// and the binders of the stored type occupy the slots below, so any `Var i`
+/// with `i > d` escapes to an ambient binding.
+fn free_vars_only_d(t: &Tm, d: usize) -> bool {
+    match t {
+        Tm::Var(i) => i.0 <= d,
+        Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => true,
+        Tm::App(f, a) => free_vars_only_d(f, d) && free_vars_only_d(a, d),
+        Tm::Id(a, x, y) => free_vars_only_d(a, d) && free_vars_only_d(x, d) && free_vars_only_d(y, d),
+        Tm::Pi(_, a, b) => free_vars_only_d(a, d) && free_vars_only_d(b, d + 1),
+        Tm::Lam(ps, b) => free_vars_only_d(b, d + num_pvars(ps).0),
+        Tm::Let(_, a, v, b) => {
+            free_vars_only_d(a, d) && free_vars_only_d(v, d) && free_vars_only_d(b, d + 1)
+        }
+    }
+}
+
+/// Close a stored constructor type by replacing the datatype (its only free
+/// variable) with the data type constant.  The result is valid wherever the
+/// declaration itself is in scope.
+pub fn close_data(t: &Tm, def: &Rc<IndDef>) -> Tm {
+    fn go(t: &Tm, d: usize, def: &Rc<IndDef>) -> Tm {
+        match t {
+            Tm::Var(i) if i.0 >= d => Tm::Data(def.clone()),
+            Tm::Var(i) => Tm::Var(*i),
+            Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+            Tm::App(f, a) => Tm::App(Box::new(go(f, d, def)), Box::new(go(a, d, def))),
+            Tm::Id(a, x, y) => Tm::Id(
+                Box::new(go(a, d, def)),
+                Box::new(go(x, d, def)),
+                Box::new(go(y, d, def)),
+            ),
+            Tm::Pi(x, a, b) => Tm::Pi(
+                x.clone(),
+                Box::new(go(a, d, def)),
+                Box::new(go(b, d + 1, def)),
+            ),
+            Tm::Lam(ps, b) => Tm::Lam(ps.clone(), Box::new(go(b, d + num_pvars(ps).0, def))),
+            Tm::Let(x, a, v, b) => Tm::Let(
+                x.clone(),
+                Box::new(go(a, d, def)),
+                Box::new(go(v, d, def)),
+                Box::new(go(b, d + 1, def)),
+            ),
+        }
+    }
+    go(t, 0, def)
+}
+
+/// `head arg1 .. argn`, left-associated.
+fn app(head: Tm, args: Vec<Tm>) -> Tm {
+    args.into_iter().fold(head, |f, a| {
+        Tm::App(Box::new(f), Box::new(a))
+    })
+}
+
+/// `p_{k-1} .. p_0` as variables, with `p_t` at index `off + (k - 1 - t)`.
+fn p_vars(k: usize, off: usize) -> Vec<Tm> {
+    (0..k).map(|t| Tm::Var(Ix(off + (k - 1 - t)))).collect()
+}
+
+/// The consecutive leading `Pi` binders of a term, outermost first.
+fn split_pis(t: &Tm) -> Vec<(&Name, &Tm)> {
+    let mut out = Vec::new();
+    let mut cur = t;
+    while let Tm::Pi(x, a, b) = cur {
+        out.push((x, a.as_ref()));
+        cur = b;
+    }
+    out
+}
+
+/// The type of the eliminator generated for `def`, as a closed term:
+///
+/// ```text
+/// elim D : (p_0 : P_0) .. (p_{k-1} : P_{k-1})
+///         (P : D ps -> U)
+///         (m_0 : Method_0) .. (m_{n-1} : Method_{n-1})
+///         (x : D ps) -> P ps x
+/// ```
+///
+/// where the method for constructor `c_i : Pi params Pi args. D params` is
+///
+/// ```text
+/// (a_1 : A_1) (r_1 : P ps a_1)? .. (a_m : A_m) (r_m : P ps a_m)? -> P ps (c_i ps as)
+/// ```
+///
+/// with an induction hypothesis `r_j` after every recursive argument `a_j`.
+/// The argument domains are relocated from the stored constructor type with
+/// [`remap_free`]; the bookkeeping says how many extra binders (the motive, the
+/// earlier methods, and the earlier induction hypotheses) sit between a domain
+/// and the parameters it mentions.
+pub fn elim_ty(def: &Rc<IndDef>) -> Tm {
+    let k = def.num_params();
+    let n = def.ctors.len();
+
+    // The eliminator's own parameter binders.  The stored parameter domains
+    // live in `[.., D, p_0 .. p_{j-1}]`; here the same Pis re-bind those
+    // parameters, so each keeps its index and `D` becomes the constant.
+    let top_params: Vec<(Name, Tm)> = def
+        .params
+        .iter()
+        .enumerate()
+        .map(|(j, (x, a))| {
+            let map: Vec<Option<usize>> = (0..j)
+                .map(Some)
+                .chain(std::iter::once(None))
+                .collect();
+            (x.clone(), remap_free(a, &map, def))
+        })
+        .collect();
+
+    // The motive's type `(x : D ps) -> U` in the context `[ps]`: the motive
+    // does *not* abstract the parameters again, they are the eliminator's own
+    // leading arguments.  `D` becomes the constant; the stored parameter
+    // domains are not needed here.
+    let motive_ty = Tm::Pi(
+        "_".to_string(),
+        Box::new(app(Tm::Data(def.clone()), p_vars(k, 0))),
+        Box::new(Tm::U),
+    );
+
+    // The methods, each in the context `[ps, P, m_0 .. m_{i-1}]`.
+    let methods: Vec<Tm> = def
+        .ctors
+        .iter()
+        .enumerate()
+        .map(|(i, ci)| {
+            let args = &split_pis(&ci.ty)[k..];
+            let m = args.len();
+            // r[x] = number of recursive arguments among the first x.
+            let mut r = vec![0usize; m + 1];
+            for x in 1..=m {
+                r[x] = r[x - 1] + usize::from(ci.recursive[x - 1]);
+            }
+            // The result `P (c_i ps as)`.  Under all of the method's own
+            // binders, the motive is `m + r[m] + i` slots out.
+            let result = {
+                let base = m + r[m] + i;
+                let mut ctor_args = p_vars(k, base + 1);
+                for l in 1..=m {
+                    ctor_args.push(Tm::Var(Ix((m - l) + (r[m] - r[l - 1]))));
+                }
+                app(Tm::Var(Ix(base)), vec![app(Tm::Ctor(def.clone(), i), ctor_args)])
+            };
+            // Assemble the Pi chain inside out.
+            let mut body = result;
+            for j in (1..=m).rev() {
+                if ci.recursive[j - 1] {
+                    // r_j : P a_j, with `a_j` the innermost binder.  A
+                    // wildcard argument keeps a wildcard hypothesis name.
+                    let base = j + r[j - 1] + i;
+                    let rname = if args[j - 1].0 == "_" {
+                        "_".to_string()
+                    } else {
+                        format!("{}'", args[j - 1].0)
+                    };
+                    body = Tm::Pi(
+                        rname,
+                        Box::new(app(Tm::Var(Ix(base)), vec![Tm::Var(Ix(0))])),
+                        Box::new(body),
+                    );
+                }
+                // a_j's domain, relocated: earlier arguments shift by the
+                // induction hypotheses inserted among them, the parameters by
+                // the motive and the earlier methods.
+                let map: Vec<Option<usize>> = (1..j)
+                    .rev()
+                    .map(|l| Some((j - 1 - l) + (r[j - 1] - r[l])))
+                    .chain((0..k).map(|s| Some(j - 1 + r[j - 1] + i + 1 + s)))
+                    .chain(std::iter::once(None))
+                    .collect();
+                let dom = remap_free(args[j - 1].1, &map, def);
+                body = Tm::Pi(args[j - 1].0.clone(), Box::new(dom), Box::new(body));
+            }
+            body
+        })
+        .collect();
+
+    // `(x : D ps) -> P x`, under `[ps, P, ms]`.
+    let tail = Tm::Pi(
+        "x".to_string(),
+        Box::new(app(Tm::Data(def.clone()), p_vars(k, n + 1))),
+        Box::new(app(Tm::Var(Ix(n + 1)), vec![Tm::Var(Ix(0))])),
+    );
+    let mut out = tail;
+    for ty in methods.into_iter().rev() {
+        // The binder is anonymous: the domain (the method's result type)
+        // already names the constructor it handles.
+        out = Tm::Pi("_".to_string(), Box::new(ty), Box::new(out));
+    }
+    out = Tm::Pi("P".to_string(), Box::new(motive_ty), Box::new(out));
+    for (x, a) in top_params.into_iter().rev() {
+        out = Tm::Pi(x, Box::new(a), Box::new(out));
+    }
+    out
+}
+
+/// Rewrite the free variables of a stored-constructor-type fragment according
+/// to `map`: slot `q` (counting the fragment's context from the innermost)
+/// becomes `Some(target index above the local binders)` or `None` for the
+/// datatype, which becomes the constant.  Local binders are left alone.
+fn remap_free(t: &Tm, map: &[Option<usize>], def: &Rc<IndDef>) -> Tm {
+    fn go(t: &Tm, d: usize, map: &[Option<usize>], def: &Rc<IndDef>) -> Tm {
+        match t {
+            Tm::Var(i) => {
+                if i.0 < d {
+                    Tm::Var(*i)
+                } else {
+                    match map[i.0 - d] {
+                        Some(p) => Tm::Var(Ix(d + p)),
+                        None => Tm::Data(def.clone()),
+                    }
+                }
+            }
+            Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+            Tm::App(f, a) => Tm::App(Box::new(go(f, d, map, def)), Box::new(go(a, d, map, def))),
+            Tm::Id(a, x, y) => Tm::Id(
+                Box::new(go(a, d, map, def)),
+                Box::new(go(x, d, map, def)),
+                Box::new(go(y, d, map, def)),
+            ),
+            Tm::Pi(x, a, b) => Tm::Pi(
+                x.clone(),
+                Box::new(go(a, d, map, def)),
+                Box::new(go(b, d + 1, map, def)),
+            ),
+            Tm::Lam(ps, b) => Tm::Lam(
+                ps.clone(),
+                Box::new(go(b, d + num_pvars(ps).0, map, def)),
+            ),
+            Tm::Let(x, a, v, b) => Tm::Let(
+                x.clone(),
+                Box::new(go(a, d, map, def)),
+                Box::new(go(v, d, map, def)),
+                Box::new(go(b, d + 1, map, def)),
+            ),
+        }
+    }
+    go(t, 0, map, def)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testdata::{list_def, nat_def};
     use crate::syntax::Ne;
 
-    fn plus_val(a: Val, b: Val) -> Val {
-        Val::ne(Ne::Plus(a, b))
+    fn num(def: &Rc<IndDef>, k: usize) -> Val {
+        let mut v = Val::ctor(def, 0);
+        for _ in 0..k {
+            v = frc(&Val::ne(Ne::Ctor(def.clone(), 1, vec![v])));
+        }
+        v
+    }
+
+    /// `λ n r . suc r` as a value.
+    fn suc_case(def: &Rc<IndDef>) -> Val {
+        eval(
+            &Env::empty(),
+            &Tm::Lam(
+                vec![Pn::Var("n".into()), Pn::Var("r".into())],
+                Box::new(Tm::App(
+                    Box::new(Tm::Ctor(def.clone(), 1)),
+                    Box::new(Tm::Var(Ix(0))),
+                )),
+            ),
+        )
     }
 
     #[test]
@@ -410,35 +1039,40 @@ mod tests {
     #[test]
     fn unifying_a_variable_with_a_value_solves_it() {
         // `VVar 1 = zero` in a context of size 2
-        let r = unify1(Lvl(2), &Val::vvar(Lvl(1)), &Val::Zero);
+        let def = nat_def();
+        let r = unify1(Lvl(2), &Val::vvar(Lvl(1)), &num(&def, 0));
         match r {
             UnifyRes::Succ { lvl, sub } => {
                 assert_eq!(lvl, Lvl(1));
-                assert_eq!(crate::subst::lookup_sub(&sub, Lvl(1)), Val::Zero);
+                assert_eq!(crate::subst::lookup_sub(&sub, Lvl(1)), num(&def, 0));
             }
             other => panic!("expected Succ, got {other:?}"),
         }
     }
 
     #[test]
-    fn zero_and_succ_are_contradictory() {
+    fn distinct_constructors_are_contradictory() {
+        let def = nat_def();
         assert!(matches!(
-            unify1(Lvl(1), &Val::Zero, &Val::succ(Val::Zero)),
+            unify(Lvl(1), &[(num(&def, 0), num(&def, 1))]),
             UnifyRes::Abs
         ));
         assert!(matches!(
-            unify1(Lvl(1), &Val::succ(Val::Zero), &Val::Zero),
+            unify(Lvl(1), &[(num(&def, 1), num(&def, 0))]),
             UnifyRes::Abs
         ));
     }
 
     #[test]
-    fn suc_is_injective() {
+    fn constructors_are_injective() {
         // `suc x = suc zero` reduces to `x = zero`
-        let r = unify1(Lvl(2), &Val::succ(Val::vvar(Lvl(1))), &Val::succ(Val::Zero));
+        let def = nat_def();
+        let suc_x = frc(&Val::ne(Ne::Ctor(def.clone(), 1, vec![Val::vvar(Lvl(1))])));
+        let suc_zero = num(&def, 1);
+        let r = unify(Lvl(2), &[(suc_x, suc_zero)]);
         match r {
             UnifyRes::Succ { sub, .. } => {
-                assert_eq!(crate::subst::lookup_sub(&sub, Lvl(1)), Val::Zero)
+                assert_eq!(crate::subst::lookup_sub(&sub, Lvl(1)), num(&def, 0))
             }
             other => panic!("expected Succ, got {other:?}"),
         }
@@ -458,19 +1092,31 @@ mod tests {
 
     #[test]
     fn stuck_equations_are_not_sure() {
-        // `plus x zero` vs `plus y zero` for distinct variables cannot be
+        // `elim Nat .. x` vs `elim Nat .. y` for distinct variables cannot be
         // decided by first-order unification.
-        let a = plus_val(Val::vvar(Lvl(1)), Val::Zero);
-        let b = plus_val(Val::vvar(Lvl(0)), Val::Zero);
-        assert!(matches!(unify1(Lvl(2), &a, &b), UnifyRes::Idk));
+        let def = nat_def();
+        let stuck_elim = |x: Lvl| {
+            Val::ne(Ne::Elim(
+                def.clone(),
+                vec![Val::U, num(&def, 0), suc_case(&def), Val::vvar(x)],
+            ))
+        };
+        assert!(matches!(
+            unify1(Lvl(2), &stuck_elim(Lvl(1)), &stuck_elim(Lvl(0))),
+            UnifyRes::Idk
+        ));
     }
 
     #[test]
     fn convertible_equations_succeed() {
-        // `plus zero zero` is convertible with `zero`
-        let a = plus_val(Val::Zero, Val::Zero);
+        // `elim Nat .. zero` reduces to `zero`
+        let def = nat_def();
+        let a = Val::ne(Ne::Elim(
+            def.clone(),
+            vec![Val::U, num(&def, 0), suc_case(&def), num(&def, 0)],
+        ));
         assert!(matches!(
-            unify1(Lvl(0), &a, &Val::Zero),
+            unify1(Lvl(0), &a, &num(&def, 0)),
             UnifyRes::Succ { .. }
         ));
     }
@@ -478,18 +1124,22 @@ mod tests {
     #[test]
     fn unify_threads_the_substitution_through_the_equations() {
         // [(x, zero), (y, suc x)]  ==>  y := suc zero
+        let def = nat_def();
         let r = unify(
             Lvl(2),
             &[
-                (Val::vvar(Lvl(1)), Val::Zero),
-                (Val::vvar(Lvl(0)), Val::succ(Val::vvar(Lvl(1)))),
+                (Val::vvar(Lvl(1)), num(&def, 0)),
+                (
+                    Val::vvar(Lvl(0)),
+                    frc(&Val::ne(Ne::Ctor(def.clone(), 1, vec![Val::vvar(Lvl(1))]))),
+                ),
             ],
         );
         match r {
             UnifyRes::Succ { lvl, sub } => {
                 assert_eq!(lvl, Lvl(0));
                 let y = crate::subst::lookup_sub(&sub, Lvl(0));
-                assert!(conv(Lvl(0), &frc(&y), &Val::succ(Val::Zero)));
+                assert!(conv(Lvl(0), &frc(&y), &num(&def, 1)));
             }
             other => panic!("expected Succ, got {other:?}"),
         }
@@ -504,7 +1154,8 @@ mod tests {
     /// Build the type `(x : Id U zero (suc zero)) -> U` for pattern-matching
     /// tests.  The indices are arbitrary; only their unifiability matters.
     fn absurd_pi() -> Val {
-        let id = Val::id(Val::U, Val::Zero, Val::succ(Val::Zero));
+        let def = nat_def();
+        let id = Val::id(Val::U, num(&def, 0), num(&def, 1));
         Val::pi("_", id, Closure::new(Env::empty(), Tm::U))
     }
 
@@ -520,7 +1171,7 @@ mod tests {
         // Unreachable from the parser (an absurd lambda always ends in `Bot`),
         // but part of the checker's contract.
         let ctx = crate::context::Ctx::empty(crate::syntax::Pos::initial("<test>"));
-        let err = check_pm(&ctx, &[Pn::Abs], &Raw::Nat, &absurd_pi());
+        let err = check_pm(&ctx, &[Pn::Abs], &Raw::U, &absurd_pi());
         match err {
             Err(e) => assert!(e.msg.contains("absurd pattern"), "unexpected: {}", e.msg),
             Ok(t) => panic!("expected an error, got {t:?}"),
@@ -530,7 +1181,8 @@ mod tests {
     #[test]
     fn absurd_pattern_is_rejected_on_a_reflexivity_equation() {
         let ctx = crate::context::Ctx::empty(crate::syntax::Pos::initial("<test>"));
-        let id = Val::id(Val::U, Val::Zero, Val::Zero);
+        let def = nat_def();
+        let id = Val::id(Val::U, num(&def, 0), num(&def, 0));
         let ty = Val::pi("_", id, Closure::new(Env::empty(), Tm::U));
         match check_pm(&ctx, &[Pn::Abs], &Raw::Bot, &ty) {
             Err(e) => assert!(
@@ -540,5 +1192,54 @@ mod tests {
             ),
             Ok(t) => panic!("expected an error, got {t:?}"),
         }
+    }
+
+    // -- the generated eliminator types -------------------------------------
+
+    #[test]
+    fn elim_ty_of_nat() {
+        assert_eq!(
+            crate::pretty::show_tm(&elim_ty(&nat_def())),
+            "(P : Nat → U) → P zero → ((n : Nat)(n' : P n) → P (suc n)) → (x : Nat) → P x"
+        );
+    }
+
+    #[test]
+    fn elim_ty_of_list() {
+        assert_eq!(
+            crate::pretty::show_tm(&elim_ty(&list_def())),
+            "(A : U)(P : List A → U) → P (nil A) → ((a : A)(as : List A)(as' : P as) \
+             → P (cons A a as)) → (x : List A) → P x"
+        );
+    }
+
+    #[test]
+    fn elim_ty_of_an_empty_type() {
+        let def = Rc::new(IndDef {
+            name: "Empty".into(),
+            params: vec![],
+            ctors: vec![],
+        });
+        assert_eq!(
+            crate::pretty::show_tm(&elim_ty(&def)),
+            "(P : Empty → U)(x : Empty) → P x"
+        );
+    }
+
+    // -- closing stored constructor types -----------------------------------
+
+    #[test]
+    fn close_data_replaces_the_datatype_with_the_constant() {
+        // suc : Pi(n : #0) #1  closes to  Pi(n : Nat) Nat
+        let def = nat_def();
+        let suc = &def.ctors[1].ty;
+        assert_eq!(
+            close_data(suc, &def),
+            Tm::Pi(
+                "n".into(),
+                Box::new(Tm::Data(def.clone())),
+                Box::new(Tm::Data(def.clone())),
+            )
+        );
     }
 }

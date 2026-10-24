@@ -1,17 +1,24 @@
 //! A hand-written recursive-descent parser for the surface syntax.
 //!
-//! The grammar is the one of `Parse.hs` (originally written with megaparsec):
+//! The grammar extends the one of `Parse.hs` (originally written with
+//! megaparsec) with inductive declarations and their eliminators:
 //!
 //! ```text
-//! Raw     ::= Lam | Let | Pi | Spine [-> Raw]
+//! Raw     ::= Lam | Let | Data | Pi | Spine [-> Raw]
 //! Lam     ::= ('λ' | '\') Pn+ ('.' Raw | '(!)')
 //! Pn      ::= 'refl' | ident
 //! Let     ::= 'let' binder ':' Raw '=' Raw ';' Raw
-//! Pi      ::= ('(' binder+ ':' Raw ')')+ '->' Raw
+//! Data    ::= 'data' Ident Group* ':' Raw 'where' Ctor* Raw
+//! Group   ::= '(' binder+ ':' Raw ')'
+//! Ctor    ::= Ident ':' Raw ';'
+//! Pi      ::= Group+ '->' Raw
 //! Spine   ::= Atom+
-//! Atom    ::= ident | U | refl | Nat | zero | suc Atom
-//!           | plus Atom Atom | Id Atom Atom Atom | '(' Raw ')'
+//! Atom    ::= ident | U | refl | 'elim' Atom | Id Atom Atom Atom
+//!           | '(' Raw ')'
 //! ```
+//!
+//! There are no built-in data types: `Nat` and friends are ordinary
+//! declarations (`data Nat : U where zero : Nat; suc : Nat -> Nat;`).
 //!
 //! One deliberate change with respect to the original: alternatives backtrack
 //! unconditionally, so an identifier such as `letx` parses as a variable
@@ -67,7 +74,7 @@ fn is_keyword(s: &str) -> bool {
     // accepts it; keeping it here means `in` is rejected as a variable too.
     matches!(
         s,
-        "let" | "in" | "λ" | "U" | "refl" | "Nat" | "zero" | "suc" | "succ" | "plus" | "Id"
+        "let" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "where" | "elim"
     )
 }
 
@@ -348,12 +355,84 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Some('λ') | Some('\\') => self.lam(),
             _ if self.peek_word_is("let") => self.let_expr(),
+            _ if self.peek_word_is("data") => self.data_decl(),
             Some('(') => match self.alt(Self::pi) {
                 Ok(x) => Ok(x),
                 Err(()) => self.fun_or_spine(),
             },
             _ => self.fun_or_spine(),
         }
+    }
+
+    /// `data D groups* : Raw where Ctor* Raw`.
+    fn data_decl(&mut self) -> PResult<Raw> {
+        self.skip_ws();
+        self.word()?; // "data"
+        let name = self.ident()?;
+        let mut params: Vec<(Name, Raw)> = Vec::new();
+        while self
+            .alt(|p| p.param_group(&mut params))
+            .is_ok()
+        {
+            if params.len() > MAX_DEPTH {
+                return self.too_deep();
+            }
+        }
+        self.expect_char(':')?;
+        let ty = self.raw()?;
+        self.sym("where")?;
+        let mut ctors: Vec<(Name, Raw)> = Vec::new();
+        loop {
+            let s = self.save();
+            match self.ctor() {
+                Ok(c) => {
+                    ctors.push(c);
+                    if ctors.len() > MAX_DEPTH {
+                        return self.too_deep();
+                    }
+                }
+                Err(()) => {
+                    self.restore(s);
+                    break;
+                }
+            }
+        }
+        // Zero constructors is allowed: it declares the empty type.
+        let body = self.raw()?;
+        Ok(Raw::Data(name, params, Box::new(ty), ctors, Box::new(body)))
+    }
+
+    /// `'(' binder+ ':' Raw ')'`, appending `(name, type)` pairs to `out`.
+    fn param_group(&mut self, out: &mut Vec<(Name, Raw)>) -> PResult<()> {
+        self.expect_char('(')?;
+        let mut binders: Vec<Name> = Vec::new();
+        while let Ok(b) = self.alt(Self::binder) {
+            binders.push(b);
+            if binders.len() > MAX_DEPTH {
+                return self.too_deep();
+            }
+        }
+        if binders.is_empty() {
+            return self.fail("expected a binder");
+        }
+        self.expect_char(':')?;
+        let ty = self.raw()?;
+        self.expect_char(')')?;
+        for x in binders {
+            out.push((x, ty.clone()));
+        }
+        Ok(())
+    }
+
+    /// `Ident ':' Raw ';'`.  A body expression can never begin with this shape
+    /// (a bare `x :` is not an expression), so constructor lists need no
+    /// terminator: parsing stops at the first item without a trailing `;`.
+    fn ctor(&mut self) -> PResult<(Name, Raw)> {
+        let name = self.ident()?;
+        self.expect_char(':')?;
+        let ty = self.raw()?;
+        self.expect_char(';')?;
+        Ok((name, ty))
     }
 
     fn lam(&mut self) -> PResult<Raw> {
@@ -392,6 +471,12 @@ impl<'a> Parser<'a> {
             self.word()?;
             return Ok(Pn::Refl);
         }
+        // `_` is a wildcard: a variable pattern that is never used.
+        let s = self.save();
+        if self.sym("_").is_ok() {
+            return Ok(Pn::Var("_".to_string()));
+        }
+        self.restore(s);
         Ok(Pn::Var(self.ident()?))
     }
 
@@ -496,14 +581,10 @@ impl<'a> Parser<'a> {
                 match name.as_str() {
                     "U" => Raw::U,
                     "refl" => Raw::Refl,
-                    "Nat" => Raw::Nat,
-                    "zero" => Raw::Zero,
-                    // `succ` is accepted as a synonym for `suc` so that the
-                    // pretty printer's output (which says `succ`, as the
-                    // original does) can be fed back in.  The cost is that
-                    // `succ` is no longer usable as an identifier.
-                    "suc" | "succ" => Raw::Succ(Box::new(self.atom()?)),
-                    "plus" => Raw::Plus(Box::new(self.atom()?), Box::new(self.atom()?)),
+                    // `elim D` takes the data type itself as an atom; the
+                    // spine it is applied to (motive, methods, target) is
+                    // ordinary application.
+                    "elim" => Raw::Elim(Box::new(self.atom()?)),
                     "Id" => Raw::Id(
                         Box::new(self.atom()?),
                         Box::new(self.atom()?),
@@ -563,17 +644,13 @@ mod tests {
     #[test]
     fn parses_atoms() {
         assert_eq!(strip("U"), Raw::U);
-        assert_eq!(strip("Nat"), Raw::Nat);
-        assert_eq!(strip("zero"), Raw::Zero);
         assert_eq!(strip("refl"), Raw::Refl);
-        assert_eq!(strip("suc zero"), Raw::Succ(Box::new(Raw::Zero)));
-        assert_eq!(
-            strip("plus zero zero"),
-            Raw::Plus(Box::new(Raw::Zero), Box::new(Raw::Zero))
-        );
+        assert_eq!(strip("zero"), *var("zero"));
+        assert_eq!(strip("Nat"), *var("Nat"));
+        assert_eq!(strip("elim Nat"), Raw::Elim(var("Nat")));
         assert_eq!(
             strip("Id Nat zero zero"),
-            Raw::Id(Box::new(Raw::Nat), Box::new(Raw::Zero), Box::new(Raw::Zero))
+            Raw::Id(var("Nat"), var("zero"), var("zero"))
         );
     }
 
@@ -598,7 +675,7 @@ mod tests {
         // anonymous domain
         assert_eq!(
             strip("Nat -> Nat"),
-            Raw::Pi("_".into(), Box::new(Raw::Nat), Box::new(Raw::Nat))
+            Raw::Pi("_".into(), var("Nat"), var("Nat"))
         );
     }
 
@@ -608,8 +685,8 @@ mod tests {
             strip("(a b : Nat) -> Nat"),
             Raw::Pi(
                 "a".into(),
-                Box::new(Raw::Nat),
-                Box::new(Raw::Pi("b".into(), Box::new(Raw::Nat), Box::new(Raw::Nat)))
+                var("Nat"),
+                Box::new(Raw::Pi("b".into(), var("Nat"), var("Nat")))
             )
         );
     }
@@ -650,19 +727,69 @@ mod tests {
     fn parses_let_expressions() {
         assert_eq!(
             strip("let x : Nat = zero; x"),
-            Raw::Let(
-                "x".into(),
-                Box::new(Raw::Nat),
-                Box::new(Raw::Zero),
-                var("x")
-            )
+            Raw::Let("x".into(), var("Nat"), var("zero"), var("x"))
         );
         assert_eq!(
             strip("let _ : Nat = zero; U"),
-            Raw::Let(
-                "_".into(),
-                Box::new(Raw::Nat),
-                Box::new(Raw::Zero),
+            Raw::Let("_".into(), var("Nat"), var("zero"), Box::new(Raw::U))
+        );
+    }
+
+    #[test]
+    fn parses_data_declarations() {
+        assert_eq!(
+            strip("data Nat : U where zero : Nat; suc : Nat -> Nat; zero"),
+            Raw::Data(
+                "Nat".into(),
+                vec![],
+                Box::new(Raw::U),
+                vec![
+                    ("zero".into(), *var("Nat")),
+                    (
+                        "suc".into(),
+                        Raw::Pi("_".into(), var("Nat"), var("Nat"))
+                    )
+                ],
+                var("zero")
+            )
+        );
+        // parameterised, and a body that starts with a constructor-shaped
+        // word (it must not be eaten as one more constructor)
+        assert_eq!(
+            strip(
+                "data List (A : U) : U where nil : List A; \
+                 cons : A -> List A -> List A; nil A"
+            ),
+            Raw::Data(
+                "List".into(),
+                vec![("A".into(), Raw::U)],
+                Box::new(Raw::U),
+                vec![
+                    ("nil".into(), Raw::App(var("List"), var("A"))),
+                    (
+                        "cons".into(),
+                        Raw::Pi(
+                            "_".into(),
+                            var("A"),
+                            Box::new(Raw::Pi(
+                                "_".into(),
+                                Box::new(Raw::App(var("List"), var("A"))),
+                                Box::new(Raw::App(var("List"), var("A")))
+                            ))
+                        )
+                    )
+                ],
+                Box::new(Raw::App(var("nil"), var("A")))
+            )
+        );
+        // the empty type: no constructors at all
+        assert_eq!(
+            strip("data Empty : U where U"),
+            Raw::Data(
+                "Empty".into(),
+                vec![],
+                Box::new(Raw::U),
+                vec![],
                 Box::new(Raw::U)
             )
         );
@@ -670,32 +797,37 @@ mod tests {
 
     #[test]
     fn skips_comments_and_unicode_arrows() {
-        assert_eq!(strip("{- block -} Nat -- line\n"), Raw::Nat);
+        assert_eq!(strip("{- block -} Nat -- line\n"), *var("Nat"));
         assert_eq!(
             strip("Nat → Nat"),
-            Raw::Pi("_".into(), Box::new(Raw::Nat), Box::new(Raw::Nat))
+            Raw::Pi("_".into(), var("Nat"), var("Nat"))
         );
         assert_eq!(strip("-- only a comment\nU"), Raw::U);
     }
 
     #[test]
     fn parenthesised_expressions_are_just_expressions() {
-        assert_eq!(strip("(Nat)"), Raw::Nat);
+        assert_eq!(strip("(Nat)"), *var("Nat"));
         assert_eq!(strip("(f x)"), Raw::App(var("f"), var("x")));
     }
 
     #[test]
     fn keywords_are_not_identifiers() {
-        // `suc` needs an argument, so this is a parse error
-        assert!(parse("suc").is_err());
-        // ... but an identifier that merely starts like a keyword is fine
-        assert_eq!(strip("sucx"), Raw::Var("sucx".into()));
-        assert_eq!(strip("letx"), Raw::Var("letx".into()));
+        // `elim` needs its data-type atom, so this is a parse error
+        assert!(parse("elim").is_err());
+        assert!(parse("data").is_err());
+        assert!(parse("where").is_err());
+        // ... but an identifier that merely starts like a keyword is fine,
+        // and the former built-ins are ordinary identifiers now
+        assert_eq!(strip("sucx"), *var("sucx"));
+        assert_eq!(strip("letx"), *var("letx"));
+        assert_eq!(strip("plus"), *var("plus"));
+        assert_eq!(strip("succ"), *var("succ"));
     }
 
     #[test]
     fn reports_the_furthest_failure_position() {
-        let e = parse("plus zero").unwrap_err();
+        let e = parse("Id Nat zero").unwrap_err();
         assert_eq!(e.pos.line, 1);
         assert!(e.pos.col > 1, "column should point past the parsed prefix");
 
@@ -712,10 +844,10 @@ mod tests {
 
     #[test]
     fn every_nesting_path_is_bounded() {
-        // These inputs used to bypass `MAX_DEPTH` (only `raw` checked it) and
+        // These inputs used to bypass MAX_DEPTH (only raw checked it) and
         // abort the process with a stack overflow.
         let cases = [
-            format!("{}zero", "suc ".repeat(5000)),
+            format!("{}zero", "elim ".repeat(5000)),
             "zero ".repeat(5000),
             format!("{}-> U", "(a : U) ".repeat(5000)),
             format!("({} : U) -> U", "a ".repeat(5000)),
@@ -729,24 +861,20 @@ mod tests {
 
     #[test]
     fn nesting_below_the_limit_is_accepted() {
-        assert!(parse(&format!("{}zero", "suc ".repeat(400))).is_ok());
+        assert!(parse(&format!("{}zero", "elim ".repeat(400))).is_ok());
         assert!(parse(&format!("{}zero{}", "suc (".repeat(150), ")".repeat(150))).is_ok());
         assert!(parse(&format!("{}-> U", "(a : U) ".repeat(400))).is_ok());
     }
 
     #[test]
     fn parses_the_readme_program() {
-        let src = "\
-let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
-  λ A a b c refl refl . refl;
-let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
-  λ A B f a b refl . refl;
-let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
-  λ m n refl refl . refl;
-let C : (A : U) -> Id Nat (suc zero) zero -> A =
-  λ A (!);
-U
-";
+        let src = "data Nat : U where\n  zero : Nat;\n  suc : Nat -> Nat;\n\
+let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =\n  λ A a b c refl refl . refl;\n\
+let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =\n  λ A B f a b refl . refl;\n\
+let plus : Nat -> Nat -> Nat =\n  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n\
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =\n  λ m n refl refl . refl;\n\
+let C : (A : U) -> Id Nat (suc zero) zero -> A =\n  λ A (!);\n\
+U\n";
         assert!(
             parse(src).is_ok(),
             "the README example program should parse"
@@ -755,7 +883,7 @@ U
 
     #[test]
     fn positions_are_attached_to_atoms() {
-        match parse("Nat").unwrap() {
+        match parse("zero").unwrap() {
             Raw::SrcPos(pos, _) => assert_eq!((pos.line, pos.col), (1, 1)),
             other => panic!("expected a position wrapper, got {other:?}"),
         }

@@ -122,15 +122,13 @@ pub fn frc_s(s: &Sub, v: &Val) -> Val {
             Rc::new(subst_val(s, y)),
         ),
         Val::Refl => Val::Refl,
-        Val::Nat => Val::Nat,
-        Val::Zero => Val::Zero,
-        Val::Succ(n) => Val::Succ(Rc::new(subst_val(s, n))),
         Val::Bot => Val::Bot,
     }
 }
 
-/// Force a neutral term: a stuck lambda is applied to its spine, `plus` is
-/// reduced.  Precondition: `n` is not a delayed substitution.
+/// Force a neutral term: a stuck lambda is applied to its spine, the
+/// eliminator is given a chance to fire.  Precondition: `n` is not a delayed
+/// substitution.
 pub fn frc_ne(n: &Ne) -> Val {
     match n {
         Ne::Sub(n2, s) => frc_ne_s(s, n2),
@@ -146,7 +144,9 @@ pub fn frc_ne(n: &Ne) -> Val {
             let lam = Val::ne(Ne::Lam(ps.clone(), *k, cl.clone(), Vec::new()));
             frc_res(&napp(&lam, &frc_sp(sp)))
         }
-        Ne::Plus(u, v) => frc_res(&plus(&frc(u), &frc(v))),
+        Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), frc_sp(sp))),
+        Ne::Ctor(d, i, sp) => Val::ne(Ne::Ctor(d.clone(), *i, frc_sp(sp))),
+        Ne::Elim(d, sp) => frc_res(&elim_step(d, &frc_sp(sp))),
     }
 }
 
@@ -156,7 +156,9 @@ pub fn frc_ne_s(s: &Sub, n: &Ne) -> Val {
         Ne::Sub(n2, s2) => frc_ne_s(&subst_sub(s, s2), n2),
         Ne::Var(v, sp) => frc_res(&napp(&lookup_sub(s, *v), &frc_sp_s(s, sp))),
         Ne::Lam(ps, k, cl, sp) => frc_res(&match_(ps, *k, &subst_cl(s, cl), &frc_sp_s(s, sp))),
-        Ne::Plus(u, v) => frc_res(&plus(&frc_s(s, u), &frc_s(s, v))),
+        Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), subst_sp(s, sp))),
+        Ne::Ctor(d, i, sp) => Val::ne(Ne::Ctor(d.clone(), *i, subst_sp(s, sp))),
+        Ne::Elim(d, sp) => frc_res(&elim_step(d, &subst_sp(s, sp))),
     }
 }
 
@@ -171,16 +173,69 @@ pub fn frc_sp_s(s: &Sub, sp: &Spine) -> Spine {
 }
 
 // ---------------------------------------------------------------------------
-// Reduction of primitive operations
+// Reduction of the eliminators
 // ---------------------------------------------------------------------------
 
-/// `plus m n`, reducing on the first argument only.
-pub fn plus(m: &Val, n: &Val) -> Res {
-    match m {
-        Val::Zero => progress(n.clone()),
-        Val::Succ(m) => progress(Val::succ(frc_res(&plus(m, n)))),
-        _ => block(Val::ne(Ne::Plus(m.clone(), n.clone()))),
+/// Try to fire the eliminator of `def` on the spine it has collected,
+/// `[params.., motive, methods.., target, extra..]`.
+///
+/// It reduces when the spine is complete and the target is a saturated
+/// constructor of the very same type:
+///
+/// ```text
+/// elim D ps P ms.. (c_i ps as..)  ↦  m_i a_1 r_1 .. a_j r_j
+/// ```
+///
+/// where each `r_j` (only for a recursive argument `a_j`) is the eliminator
+/// re-applied to `a_j`.  Anything else -- a short spine, a neutral target, a
+/// foreign or unsaturated constructor -- stays a stuck neutral.
+pub fn elim_step(def: &Rc<IndDef>, sp: &Spine) -> Res {
+    let k = def.num_params();
+    let n = def.ctors.len();
+    let arity = k + n + 2;
+    let stuck = || block(Val::ne(Ne::Elim(def.clone(), sp.to_vec())));
+    if sp.len() < arity {
+        return stuck();
     }
+    let target = frc(&sp[k + n + 1]);
+    let (i, cargs) = match &target {
+        Val::Ne(ne) => match &**ne {
+            Ne::Ctor(d2, i, cargs) if Rc::ptr_eq(d2, def) => (*i, cargs.clone()),
+            _ => return stuck(),
+        },
+        _ => return stuck(),
+    };
+    let ci = &def.ctors[i];
+    if cargs.len() != k + ci.num_args {
+        return stuck();
+    }
+    // The method, applied to the constructor's arguments in the order the
+    // method type binds them: each argument, followed (for a recursive one) by
+    // the eliminator re-applied to it, i.e. `a_1 r_1 .. a_j r_j`.
+    let method = sp[k + 1 + i].clone();
+    let mut margs: Spine = Vec::with_capacity(2 * ci.num_args);
+    for j in 0..ci.num_args {
+        let a = cargs[k + j].clone();
+        margs.push(a.clone());
+        if ci.recursive[j] {
+            let mut rec_sp: Spine = sp[..k + n + 1].to_vec();
+            rec_sp.push(a);
+            let r = elim_step(def, &rec_sp);
+            margs.push(frc_res(&r));
+        }
+    }
+    let mut res = napp(&method, &margs);
+    if sp.len() > arity {
+        // Over-application: the arguments beyond the eliminator's own arity
+        // were waiting for the reduced result.
+        let extra: Spine = sp[arity..].to_vec();
+        let over = napp(&frc_res(&res), &extra);
+        res = Res {
+            val: over.val,
+            progressed: true,
+        };
+    }
+    progress(frc_res(&res))
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +255,16 @@ pub fn napp(v: &Val, sp: &Spine) -> Res {
                 args.extend_from_slice(sp);
                 block(Val::ne(Ne::Var(*x, args)))
             }
+            Ne::Data(d, sp0) => {
+                let mut args = sp0.clone();
+                args.extend_from_slice(sp);
+                block(Val::ne(Ne::Data(d.clone(), args)))
+            }
+            Ne::Ctor(d, i, sp0) => {
+                let mut args = sp0.clone();
+                args.extend_from_slice(sp);
+                block(Val::ne(Ne::Ctor(d.clone(), *i, args)))
+            }
             Ne::Lam(ps, k, cl, sp0) => {
                 let mut args = sp0.clone();
                 args.extend_from_slice(sp);
@@ -209,7 +274,11 @@ pub fn napp(v: &Val, sp: &Spine) -> Res {
                     block(Val::ne(Ne::Lam(ps.clone(), *k, cl.clone(), args)))
                 }
             }
-            Ne::Plus(..) => panic!("napp: impossible (plus is not a function)"),
+            Ne::Elim(d, sp0) => {
+                let mut args = sp0.clone();
+                args.extend_from_slice(sp);
+                elim_step(d, &args)
+            }
             Ne::Sub(..) => panic!("napp: impossible (unforced neutral)"),
         },
         _ => panic!("napp: impossible (applying a non-neutral value)"),
@@ -296,10 +365,9 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
         Tm::U => Val::U,
         Tm::Id(a, x, y) => Val::id(eval(env, a), eval(env, x), eval(env, y)),
         Tm::Refl => Val::Refl,
-        Tm::Nat => Val::Nat,
-        Tm::Zero => Val::Zero,
-        Tm::Succ(n) => Val::succ(eval(env, n)),
-        Tm::Plus(m, n) => plus(&eval(env, m), &eval(env, n)).val,
+        Tm::Data(def) => Val::data(def),
+        Tm::Ctor(def, i) => Val::ctor(def, *i),
+        Tm::Elim(def) => Val::elim(def),
         // DEVIATION 7: `Bot` is the (unreachable) body of an absurd pattern.
         // The original panics here, which makes an absurd-pattern lambda crash
         // as soon as it is evaluated, e.g. `let C : ... = λ A (!); C`.
@@ -328,9 +396,6 @@ pub fn conv(l: Lvl, t: &Val, u: &Val) -> bool {
         (Val::Sub(..), _) | (_, Val::Sub(..)) => {
             panic!("conv: impossible (unforced substitution)")
         }
-        (Val::Zero, Val::Zero) => true,
-        (Val::Succ(n), Val::Succ(n2)) => conv(l, n, n2),
-        (Val::Nat, Val::Nat) => true,
         (Val::Bot, Val::Bot) => true,
         _ => false,
     }
@@ -350,12 +415,16 @@ pub fn conv_ne(l: Lvl, n: &Ne, n2: &Ne) -> bool {
         (Ne::Lam(_, k, cl, sp), Ne::Lam(_, _, cl2, sp2)) => {
             conv_cl(l, *k, cl, cl2) && conv_sp(l, sp, sp2)
         }
-        // DEVIATION 13: a stuck `plus` is a neutral, so two of them are
-        // convertible exactly when their arguments are.  The original has no
-        // case for `NPlus` here, which makes conversion non-reflexive:
-        // `Id Nat (plus n m) (plus n m)` is rejected with the self-contradictory
-        // "expecting plus n m equals to plus n m, but it is not".
-        (Ne::Plus(u, v), Ne::Plus(u2, v2)) => conv(l, u, u2) && conv(l, v, v2),
+        // Data types, constructors and stuck eliminators are rigid heads:
+        // two of them are convertible when they are the same head applied to
+        // convertible spines.  (For stuck `elim` this mirrors the original's
+        // `plus` case, which the Haskell `convNe` was missing -- NOTES.md
+        // deviation 13: conversion must at least be reflexive.)
+        (Ne::Data(d, sp), Ne::Data(d2, sp2)) => d == d2 && conv_sp(l, sp, sp2),
+        (Ne::Ctor(d, i, sp), Ne::Ctor(d2, i2, sp2)) => {
+            d == d2 && i == i2 && conv_sp(l, sp, sp2)
+        }
+        (Ne::Elim(d, sp), Ne::Elim(d2, sp2)) => d == d2 && conv_sp(l, sp, sp2),
         _ => false,
     }
 }
@@ -394,7 +463,9 @@ pub fn un_sub_ne_s(sub: &Sub, n: &Ne) -> Ne {
         Ne::Sub(n2, s2) => un_sub_ne_s(&subst_sub(sub, s2), n2),
         Ne::Var(x, sp) => Ne::Var(*x, subst_sp(sub, sp)),
         Ne::Lam(ps, k, cl, sp) => Ne::Lam(ps.clone(), *k, subst_cl(sub, cl), subst_sp(sub, sp)),
-        Ne::Plus(u, v) => Ne::Plus(subst_val(sub, u), subst_val(sub, v)),
+        Ne::Data(d, sp) => Ne::Data(d.clone(), subst_sp(sub, sp)),
+        Ne::Ctor(d, i, sp) => Ne::Ctor(d.clone(), *i, subst_sp(sub, sp)),
+        Ne::Elim(d, sp) => Ne::Elim(d.clone(), subst_sp(sub, sp)),
     }
 }
 
@@ -416,9 +487,6 @@ pub fn quote_val(l: Lvl, v: &Val) -> Tm {
             Box::new(quote_val(l, &y)),
         ),
         Val::Refl => Tm::Refl,
-        Val::Nat => Tm::Nat,
-        Val::Zero => Tm::Zero,
-        Val::Succ(n) => Tm::Succ(Box::new(quote_val(l, &n))),
         Val::Bot => Tm::Bot,
     }
 }
@@ -496,8 +564,19 @@ pub fn quote_ne(l: Lvl, n: &Ne) -> Tm {
                 Box::new(quote_val(l.plus(n.0), &capp(&cl, &new_vars(l, n)))),
             )
         }
-        Ne::Plus(u, v) => Tm::Plus(Box::new(quote_val(l, &u)), Box::new(quote_val(l, &v))),
+        Ne::Data(d, sp) => quote_app(l, Tm::Data(d), &sp),
+        Ne::Ctor(d, i, sp) => quote_app(l, Tm::Ctor(d, i), &sp),
+        Ne::Elim(d, sp) => quote_app(l, Tm::Elim(d), &sp),
     }
+}
+
+/// A rigid head applied to a quoted spine.
+fn quote_app(l: Lvl, head: Tm, sp: &Spine) -> Tm {
+    let mut acc = head;
+    for arg in sp {
+        acc = Tm::App(Box::new(acc), Box::new(quote_val(l, arg)));
+    }
+    acc
 }
 
 /// Normalize a core term in an environment.
@@ -509,12 +588,22 @@ pub fn nf(env: &Env, t: &Tm) -> Tm {
 mod tests {
     use super::*;
     use crate::subst::{id_sub, insert_sub};
+    use crate::testdata::nat_def;
 
-    /// The numeral `k` as a value.
+    /// The numeral `k` as a saturated constructor value.
+    ///
+    /// Every call allocates a fresh `Nat` definition on purpose: values built
+    /// from distinct declarations are compared by pointer, so tests that need
+    /// one shared `Nat` bind their own `def` and use [`num_with`].
     fn num(k: usize) -> Val {
-        let mut v = Val::Zero;
+        let def = nat_def();
+        num_with(&def, k)
+    }
+
+    fn num_with(def: &Rc<IndDef>, k: usize) -> Val {
+        let mut v = Val::ctor(def, 0);
         for _ in 0..k {
-            v = Val::succ(v);
+            v = frc(&Val::ne(Ne::Ctor(def.clone(), 1, vec![v])));
         }
         v
     }
@@ -533,9 +622,10 @@ mod tests {
 
     #[test]
     fn forcing_identity_substitution_preserves_the_value() {
-        // Substitution is applied lazily: `frcS` on `Succ` only delays the
-        // substitution on the child, so equality is up to conversion.
-        for v in [Val::U, Val::Zero, num(3), Val::vvar(Lvl(0))] {
+        // Substitution is applied lazily: `frcS` on a constructor only delays
+        // the substitution on the spine, so equality is up to conversion.
+        let def = nat_def();
+        for v in [Val::U, num_with(&def, 0), num_with(&def, 3), Val::vvar(Lvl(0))] {
             assert!(conv(
                 Lvl(1),
                 &frc(&Val::vsub(v.clone(), id_sub(Lvl(1)))),
@@ -543,9 +633,11 @@ mod tests {
             ));
         }
         // Atoms come back exactly.
-        assert_eq!(frc(&Val::vsub(Val::Zero, id_sub(Lvl(1)))), Val::Zero);
+        let z = num_with(&def, 0);
+        assert_eq!(frc(&Val::vsub(z.clone(), id_sub(Lvl(1)))), z);
         assert_eq!(frc(&Val::vsub(Val::U, id_sub(Lvl(1)))), Val::U);
-        assert_eq!(frc(&Val::vsub(Val::Nat, id_sub(Lvl(1)))), Val::Nat);
+        let d = Val::data(&def);
+        assert_eq!(frc(&Val::vsub(d.clone(), id_sub(Lvl(1)))), d);
     }
 
     #[test]
@@ -553,7 +645,7 @@ mod tests {
         let s = insert_sub(Lvl(1), Lvl(0), num(2));
         assert_eq!(
             closed(&frc(&Val::vsub(Val::vvar(Lvl(0)), s))),
-            "succ (succ zero)"
+            "suc (suc zero)"
         );
     }
 
@@ -567,25 +659,80 @@ mod tests {
         assert_eq!(frc(&frc(&lam)), lam);
     }
 
-    // -- primitives --------------------------------------------------------
+    // -- the eliminator ----------------------------------------------------
+
+    /// The spine `[motive, zero-case, suc-case, target]` for `Nat`, with a
+    /// constant motive (its value is irrelevant to reduction).
+    fn nat_elim_spine(mz: Val, ms: Val, target: Val) -> Spine {
+        vec![Val::U, mz, ms, target]
+    }
+
+    /// `λ n r . suc r` as a value (the `suc` case of addition-like recursors).
+    fn suc_case(def: &Rc<IndDef>) -> Val {
+        let body = Tm::Ctor(def.clone(), 1);
+        // λ n r . body (Var 0)
+        let tm = Tm::Lam(
+            vec![Pn::Var("n".into()), Pn::Var("r".into())],
+            Box::new(Tm::App(Box::new(body), Box::new(Tm::Var(Ix(0))))),
+        );
+        eval(&Env::empty(), &tm)
+    }
 
     #[test]
-    fn plus_reduces_on_its_first_argument() {
+    fn elim_reduces_on_a_constructor_target() {
+        let def = nat_def();
+        // elim Nat U mz ms target  with  mz = 3,  ms = λ n r . suc r
+        // computes  target + 3.
+        let mz = num_with(&def, 3);
+        for (target, expect) in [(0usize, 3usize), (2, 5), (4, 7)] {
+            let sp = nat_elim_spine(mz.clone(), suc_case(&def), num_with(&def, target));
+            let r = elim_step(&def, &sp);
+            assert!(r.progressed, "should reduce for target = {target}");
+            assert_eq!(
+                closed(&frc_res(&r)),
+                at(Lvl::ZERO, &[], &num_with(&def, expect)),
+                "wrong result for {target} + 3"
+            );
+        }
+    }
+
+    #[test]
+    fn elim_is_stuck_on_a_variable() {
+        let def = nat_def();
+        let sp = nat_elim_spine(num(0), suc_case(&def), Val::vvar(Lvl(0)));
+        let r = elim_step(&def, &sp);
+        assert!(!r.progressed);
         assert_eq!(
-            closed(&frc_res(&plus(&num(0), &num(3)))),
-            "succ (succ (succ zero))"
-        );
-        assert_eq!(
-            closed(&frc_res(&plus(&num(2), &num(3)))),
-            "succ (succ (succ (succ (succ zero))))"
+            at(Lvl(1), &["x"], &r.val),
+            "elim Nat U zero (λ n r . suc r) x"
         );
     }
 
     #[test]
-    fn plus_is_stuck_on_a_variable() {
-        let r = plus(&Val::vvar(Lvl(0)), &num(1));
+    fn elim_is_blocked_on_a_short_spine() {
+        let def = nat_def();
+        // A spine without the target argument is a partial application.
+        let sp: Spine = nat_elim_spine(num(0), suc_case(&def), num(1))[..3].to_vec();
+        let r = elim_step(&def, &sp);
         assert!(!r.progressed);
-        assert_eq!(at(Lvl(1), &["x"], &r.val), "plus x (succ zero)");
+        match &r.val {
+            Val::Ne(n) => assert!(matches!(&**n, Ne::Elim(..)), "got {n:?}"),
+            other => panic!("expected a stuck elim, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn elim_fires_through_napp_on_the_last_argument() {
+        let def = nat_def();
+        let head = Val::elim(&def);
+        let sp3 = nat_elim_spine(num_with(&def, 1), suc_case(&def), num_with(&def, 2))[..3]
+            .to_vec();
+        // Partially apply, then deliver the target.
+        let partial = napp(&head, &sp3);
+        assert!(!partial.progressed);
+        let full = napp(&partial.val, &vec![num_with(&def, 1)]);
+        assert!(full.progressed);
+        assert_eq!(closed(&frc_res(&full)), "suc (suc zero)");
     }
 
     // -- application and pattern matching ----------------------------------
@@ -599,25 +746,38 @@ mod tests {
         );
         let r = napp(&lam, &vec![num(2)]);
         assert!(r.progressed);
-        assert_eq!(closed(&frc_res(&r)), "succ (succ zero)");
+        assert_eq!(closed(&frc_res(&r)), "suc (suc zero)");
     }
 
     #[test]
     fn partial_application_is_eta_expanded() {
-        // \x y. plus x y  applied to (suc zero)
-        let body = Tm::Plus(Box::new(Tm::Var(Ix(1))), Box::new(Tm::Var(Ix(0))));
+        // \x y. elim Nat x zero y  applied to (suc zero): the eliminator is
+        // stuck on the variable `y` and quotes as a stuck application, so the
+        // value is the eta-expanded lambda keeping its source pattern name.
+        let def = nat_def();
         let lam = eval(
             &Env::empty(),
             &Tm::Lam(
                 vec![Pn::Var("x".into()), Pn::Var("y".into())],
-                Box::new(body),
+                Box::new(Tm::App(
+                    Box::new(Tm::App(
+                        Box::new(Tm::App(
+                            Box::new(Tm::Elim(def.clone())),
+                            Box::new(Tm::Var(Ix(1))),
+                        )),
+                        Box::new(Tm::Ctor(def.clone(), 0)),
+                    )),
+                    Box::new(Tm::Var(Ix(0))),
+                )),
             ),
         );
         let r = napp(&lam, &vec![num(1)]);
-        assert!(!r.progressed);
-        // The value is the eta-expanded `λ y . succ y` (the remaining pattern
-        // keeps its source name).
-        assert_eq!(at(Lvl(1), &[], &r.val), "λ y . succ y");
+        assert!(!r.progressed, "the eliminator is stuck on the variable y");
+        let printed = at(Lvl(1), &[], &r.val);
+        assert!(
+            printed.starts_with("λ y . elim Nat (suc zero) zero y"),
+            "unexpected normal form: {printed}"
+        );
     }
 
     #[test]
@@ -631,14 +791,14 @@ mod tests {
 
     #[test]
     fn match_consumes_one_argument_per_pattern() {
-        let cl = Closure::new(Env::empty(), Tm::Zero);
-        // `zero` ignores its arguments, so matching always succeeds
+        let cl = Closure::new(Env::empty(), Tm::Bot);
+        // the body is unreachable, so matching always succeeds structurally
         assert!(
             match_(
                 &[Pn::Var("a".into()), Pn::Refl],
                 Lvl(1),
                 &cl,
-                &vec![Val::Zero, Val::Refl]
+                &vec![Val::Bot, Val::Refl]
             )
             .progressed
         );
@@ -648,22 +808,24 @@ mod tests {
 
     #[test]
     fn conv_is_reflexive() {
-        for v in [Val::U, Val::Nat, Val::Zero, num(4), Val::Refl] {
+        for v in [Val::U, num(0), num(4), Val::Refl, Val::data(&nat_def())] {
             assert!(conv(Lvl::ZERO, &v, &v));
         }
     }
 
     #[test]
     fn conv_reduces_before_comparing() {
-        let s = insert_sub(Lvl(1), Lvl(0), num(2));
-        let a = Val::vsub(Val::vvar(Lvl(0)), s.clone());
-        assert!(conv(Lvl(1), &a, &num(2)));
+        let def = nat_def();
+        let two = num_with(&def, 2);
+        let s = insert_sub(Lvl(1), Lvl(0), two.clone());
+        let a = Val::vsub(Val::vvar(Lvl(0)), s);
+        assert!(conv(Lvl(1), &a, &two));
     }
 
     #[test]
     fn conv_distinguishes_different_values() {
         assert!(!conv(Lvl::ZERO, &num(1), &num(2)));
-        assert!(!conv(Lvl::ZERO, &Val::Nat, &Val::U));
+        assert!(!conv(Lvl::ZERO, &Val::data(&nat_def()), &Val::U));
     }
 
     #[test]
@@ -678,24 +840,40 @@ mod tests {
         assert!(conv(Lvl::ZERO, &id(), &id()));
     }
 
+    #[test]
+    fn two_declarations_of_the_same_shape_are_distinct_types() {
+        // `data Nat` twice: structurally identical definitions, but nominal
+        // typing says `Nat1` and `Nat2` are different types.
+        assert_ne!(nat_def(), nat_def());
+        assert!(!conv(Lvl::ZERO, &Val::data(&nat_def()), &Val::data(&nat_def())));
+    }
+
     // -- quotation ---------------------------------------------------------
 
     #[test]
     fn quote_reads_back_normal_forms() {
-        for t in [Tm::U, Tm::Nat, Tm::Zero, Tm::Refl] {
+        for t in [Tm::U, Tm::Refl, Tm::Bot] {
             assert_eq!(nf(&Env::empty(), &t), t);
         }
-        // plus (suc zero) (suc zero)
-        let t = Tm::Plus(
-            Box::new(Tm::Succ(Box::new(Tm::Zero))),
-            Box::new(Tm::Succ(Box::new(Tm::Zero))),
+        // suc (suc zero) evaluates and quotes back
+        let def = nat_def();
+        let t = Tm::App(
+            Box::new(Tm::Ctor(def.clone(), 1)),
+            Box::new(Tm::App(
+                Box::new(Tm::Ctor(def.clone(), 1)),
+                Box::new(Tm::Ctor(def.clone(), 0)),
+            )),
         );
-        assert_eq!(closed(&eval(&Env::empty(), &t)), "succ (succ zero)");
+        assert_eq!(closed(&eval(&Env::empty(), &t)), "suc (suc zero)");
     }
 
     #[test]
     fn quote_is_stable_under_re_evaluation() {
-        let t = Tm::Plus(Box::new(Tm::Succ(Box::new(Tm::Zero))), Box::new(Tm::Zero));
+        let def = nat_def();
+        let t = Tm::App(
+            Box::new(Tm::Ctor(def.clone(), 1)),
+            Box::new(Tm::Ctor(def.clone(), 0)),
+        );
         let once = nf(&Env::empty(), &t);
         let twice = nf(&Env::empty(), &once);
         assert_eq!(once, twice);
@@ -718,29 +896,38 @@ mod tests {
     #[test]
     fn composing_after_solving_a_variable_narrows_the_domain() {
         // Mirrors `unifyS`: ɑ : Sub (g-1) g  composed with  γ : Sub g d
+        let def = nat_def();
         let g = Lvl(2);
         let d = Lvl(2);
-        let alpha = insert_sub(g, Lvl(1), num(1));
+        let one = num_with(&def, 1);
+        let alpha = insert_sub(g, Lvl(1), one.clone());
         let comp = subst_sub(&alpha, &id_sub(d));
         assert_eq!((comp.dom, comp.cod), (Lvl(1), d));
         let v = crate::subst::lookup_sub(&comp, Lvl(1));
-        assert!(conv(g, &frc(&v), &num(1)));
+        assert!(conv(g, &frc(&v), &one));
 
         // A second equation narrows the context again (this is what the
         // original's `dom = dom s1` got wrong).
-        let alpha2 = insert_sub(Lvl(1), Lvl(0), num(2));
+        let alpha2 = insert_sub(Lvl(1), Lvl(0), num_with(&def, 2));
         let comp2 = subst_sub(&alpha2, &comp);
         assert_eq!((comp2.dom, comp2.cod), (Lvl(0), d));
     }
 
     #[test]
     fn substitution_is_delayed_then_forced() {
+        let def = nat_def();
         let t = Tm::Var(Ix(0));
-        let env = Env(vec![num(2)]);
+        let env = Env(vec![num_with(&def, 2)]);
         // Evaluating under the identity substitution changes nothing.
         assert_eq!(
             nf(&env, &t),
-            Tm::Succ(Box::new(Tm::Succ(Box::new(Tm::Zero))))
+            Tm::App(
+                Box::new(Tm::Ctor(def.clone(), 1)),
+                Box::new(Tm::App(
+                    Box::new(Tm::Ctor(def.clone(), 1)),
+                    Box::new(Tm::Ctor(def, 0)),
+                )),
+            )
         );
     }
 }

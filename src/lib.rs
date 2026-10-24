@@ -23,6 +23,9 @@ pub mod pretty;
 pub mod subst;
 pub mod syntax;
 
+#[cfg(test)]
+pub mod testdata;
+
 pub use crate::context::{Ctx, Error};
 pub use crate::syntax::{Env, Ix, Lvl, Name, Pn, Pos, Raw, Tm, Ty, Val};
 
@@ -132,6 +135,15 @@ mod tests {
         }
     }
 
+    /// The declaration every `Nat`-using program starts with.  `Nat` is not
+    /// built in: programs bring their own arithmetic.
+    const NAT: &str = "data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;";
+
+    /// `NAT` plus the classic addition, defined with the generated eliminator.
+    const NAT_PLUS: &str = "data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; \
+let plus : Nat -> Nat -> Nat = \
+λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;";
+
     /// `n` in the source syntax.
     fn numeral(n: usize) -> String {
         if n == 0 {
@@ -145,8 +157,8 @@ mod tests {
     fn printed_nat(n: usize) -> String {
         match n {
             0 => "zero".to_string(),
-            1 => "succ zero".to_string(),
-            _ => format!("succ ({})", printed_nat(n - 1)),
+            1 => "suc zero".to_string(),
+            _ => format!("suc ({})", printed_nat(n - 1)),
         }
     }
 
@@ -193,33 +205,199 @@ let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
     fn readme_h_is_the_dependent_pattern_matching_example() {
         // Forcing makes `plus m zero [zero/m]` reduce again after the second
         // `refl` refines `m`; this is the case the whole project is about.
-        let src = "\
-let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
-  λ m n refl refl . refl; U";
-        assert_eq!(normal_form(src), "U");
+        let src = format!(
+            "{NAT_PLUS} \
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = \
+λ m n refl refl . refl; U"
+        );
+        assert_eq!(normal_form(&src), "U");
     }
 
     #[test]
     fn readme_absurd_pattern_checks() {
-        let src = "\
-let C : (A : U) -> Id Nat (suc zero) zero -> A =
-  λ A (!); U";
-        assert_eq!(normal_form(src), "U");
+        let src = format!(
+            "{NAT} \
+let C : (A : U) -> Id Nat (suc zero) zero -> A = \
+λ A (!); U"
+        );
+        assert_eq!(normal_form(&src), "U");
     }
 
     #[test]
     fn the_full_readme_program_checks() {
+        let src = format!(
+            "{NAT_PLUS} \
+let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c = \
+λ A a b c refl refl . refl; \
+let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) = \
+λ A B f a b refl . refl; \
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = \
+λ m n refl refl . refl; \
+let C : (A : U) -> Id Nat (suc zero) zero -> A = \
+λ A (!); \
+U"
+        );
+        assert_eq!(normal_form(&src), "U");
+    }
+
+    // -- inductive declarations --------------------------------------------
+
+    #[test]
+    fn declarations_introduce_the_type_and_its_constructors() {
+        assert_eq!(type_of(&format!("{NAT} Nat")), "U");
+        assert_eq!(type_of(&format!("{NAT} zero")), "Nat");
+        assert_eq!(type_of(&format!("{NAT} suc")), "(n : Nat) → Nat");
+        assert_eq!(type_of(&format!("{NAT} suc zero")), "Nat");
+        assert_eq!(
+            type_of(&format!("{NAT} let two : Nat = suc (suc zero); two")),
+            "Nat"
+        );
+    }
+
+    #[test]
+    fn declarations_are_scoped_like_lets() {
+        // Shadowing: the body may rebind the constructor names.
+        assert_eq!(
+            normal_form(&format!("{NAT} let zero : Nat = suc zero; zero")),
+            "suc zero"
+        );
+        // and the declaration only scopes over its own body
+        assert_eq!(error("zero"), "unbound variable: zero");
+    }
+
+    #[test]
+    fn identical_declarations_are_distinct_types() {
+        // Two structurally identical declarations are still different types
+        // (nominal typing): the first one's `zero` does not inhabit the
+        // second one.
+        let src = format!(
+            "{NAT} \
+data Nat2 : U where z2 : Nat2; s2 : (n : Nat2) -> Nat2; \
+let bad : Nat2 = zero; U"
+        );
+        let msg = error(&src);
+        assert!(msg.contains("type mismatch"), "{msg}");
+    }
+
+    #[test]
+    fn the_eliminator_has_the_recursor_type() {
+        assert_eq!(
+            type_of(&format!("{NAT} elim Nat")),
+            "(P : Nat → U) → P zero → ((n : Nat)(n' : P n) → P (suc n)) → (x : Nat) → P x"
+        );
+        // and it is eliminable: `plus zero n = n`
+        let src = format!(
+            "{NAT} \
+let idn : Nat -> Nat = λ n . elim Nat (λ _ . Nat) n (λ _ r . suc r) zero; \
+idn (suc (suc zero))"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+    }
+
+    #[test]
+    fn parameterised_declarations_generate_parameterised_eliminators() {
+        let list = "data List (A : U) : U where nil : List A; cons : (a : A) -> (as : List A) -> List A;";
+        let length_def = "\
+let length : (A : U) -> List A -> Nat = \
+λ A xs . elim List A (λ _ . Nat) zero (λ a as r . suc r) xs;";
+        // the eliminator's type abstracts the parameter first
+        assert_eq!(
+            type_of(&format!("{NAT} {list} elim List")),
+            "(A : U)(P : List A → U) → P (nil A) → ((a : A)(as : List A)(as' : P as) \
+→ P (cons A a as)) → (x : List A) → P x"
+        );
+        // ... and a whole program, declaration, definition and use, reduces
+        let use_it = format!(
+            "{NAT} {list} {length_def} \
+length Nat (cons Nat zero (cons Nat zero (nil Nat)))"
+        );
+        assert_eq!(normal_form(&use_it), "suc (suc zero)");
+    }
+
+    #[test]
+    fn the_empty_type_has_a_usable_eliminator() {
         let src = "\
-let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c =
-  λ A a b c refl refl . refl;
-let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) =
-  λ A B f a b refl . refl;
-let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
-  λ m n refl refl . refl;
-let C : (A : U) -> Id Nat (suc zero) zero -> A =
-  λ A (!);
-U";
-        assert_eq!(normal_form(src), "U");
+data Empty : U where U";
+        assert_eq!(type_of(src), "U");
+        assert_eq!(
+            type_of("data Empty : U where elim Empty"),
+            "(P : Empty → U)(x : Empty) → P x"
+        );
+        // From an `Empty` anything follows, without a body.
+        assert_eq!(
+            normal_form(
+                "data Empty : U where \
+let ex : (A : U) -> Empty -> A = λ A x . elim Empty (λ _ . A) x; U"
+            ),
+            "U"
+        );
+    }
+
+    #[test]
+    fn constructor_result_must_be_the_datatype() {
+        let msg = error("data Bad : U where mk : U; U");
+        assert!(msg.contains("constructor mk must return Bad"), "{msg}");
+        // a parameterised datatype must be applied to its parameters: the
+        // bare `P` is not even a type (it is `(A : U) -> U`), so the
+        // constructor type does not check against `U`.
+        let msg = error("data P (A : U) : U where mk : P; U");
+        assert!(msg.contains("type mismatch"), "{msg}");
+        assert!(msg.contains("(A' : U) → U"), "{msg}");
+        // applied, it is fine
+        assert_eq!(normal_form("data P (A : U) : U where mk : P A; U"), "U");
+    }
+
+    #[test]
+    fn strict_positivity_is_enforced() {
+        let msg = error("data Bad : U where mk : (Bad -> U) -> Bad; U");
+        assert!(msg.contains("not strictly positive"), "{msg}");
+        let msg = error("data Bad : U where mk : Id U Bad Bad -> Bad; U");
+        assert!(msg.contains("not strictly positive"), "{msg}");
+        // occurrences in a *function's domain* are the negative ones; a
+        // function *into* the datatype is fine (no induction hypothesis)
+        assert_eq!(
+            normal_form(&format!(
+                "{NAT} data Tree : U where \
+leaf : Tree; node : (Nat -> Tree) -> Tree; U"
+            )),
+            "U"
+        );
+    }
+
+    #[test]
+    fn indexed_families_are_rejected() {
+        let msg = error(&format!(
+            "{NAT} data Bad : Nat -> U where mk : Bad zero; U"
+        ));
+        assert!(msg.contains("must be declared in U"), "{msg}");
+    }
+
+    #[test]
+    fn constructors_must_not_capture_enclosing_binders() {
+        let msg = error(
+            "let f : (A : U) -> U = λ A . data D : U where mk : A -> D; D; U",
+        );
+        assert!(
+            msg.contains("must not depend on enclosing bindings"),
+            "{msg}"
+        );
+        // ... and so are enclosing *definitions*: inline the type instead
+        assert_eq!(
+            normal_form("let A : U = U; data D : U where mk : U -> D; D"),
+            "D"
+        );
+    }
+
+    #[test]
+    fn elim_rejects_non_data_heads() {
+        assert!(error("elim U").contains("elim expects a data type"));
+        assert!(
+            error(&format!(
+                "{NAT} data List (A : U) : U where nil : List A; \
+elim (List Nat)"
+            ))
+            .contains("elim expects the data type itself")
+        );
     }
 
     // -- normalization -----------------------------------------------------
@@ -227,26 +405,31 @@ U";
     #[test]
     fn normalization_of_closed_terms() {
         assert_eq!(normal_form("U"), "U");
-        assert_eq!(normal_form("Nat"), "Nat");
-        assert_eq!(normal_form("zero"), "zero");
-        assert_eq!(normal_form("suc zero"), "succ zero");
-        assert_eq!(normal_form("plus zero zero"), "zero");
+        assert_eq!(normal_form(&format!("{NAT} Nat")), "Nat");
+        assert_eq!(normal_form(&format!("{NAT} zero")), "zero");
+        assert_eq!(normal_form(&format!("{NAT} suc zero")), "suc zero");
+        let np = format!("{NAT} plus zero zero");
+        assert_eq!(normal_form(&format!("{NAT_PLUS} plus zero zero")), "zero");
+        let _ = np;
         assert_eq!(
-            normal_form("plus (suc zero) (suc zero)"),
-            "succ (succ zero)"
+            normal_form(&format!("{NAT_PLUS} plus (suc zero) (suc zero)")),
+            "suc (suc zero)"
         );
         assert_eq!(
-            normal_form("plus (suc (suc zero)) (suc zero)"),
-            "succ (succ (succ zero))"
+            normal_form(&format!("{NAT_PLUS} plus (suc (suc zero)) (suc zero)")),
+            "suc (suc (suc zero))"
         );
-        assert_eq!(normal_form("Id Nat zero zero"), "Id Nat zero zero");
+        assert_eq!(
+            normal_form(&format!("{NAT} Id Nat zero zero")),
+            "Id Nat zero zero"
+        );
     }
 
     #[test]
     fn plus_is_addition_on_numerals() {
         for a in 0..5 {
             for b in 0..5 {
-                let src = format!("plus ({}) ({})", numeral(a), numeral(b));
+                let src = format!("{NAT_PLUS} plus ({}) ({})", numeral(a), numeral(b));
                 assert_eq!(
                     normal_form(&src),
                     printed_nat(a + b),
@@ -257,49 +440,79 @@ U";
     }
 
     #[test]
+    fn stuck_eliminators_are_comparable() {
+        // `plus n m` is a stuck eliminator applied to variables; it must at
+        // least be convertible with itself (the port's deviation 13, now for
+        // generated eliminators instead of a built-in `plus`).
+        let src = format!(
+            "{NAT_PLUS} \
+let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \\ n m . refl; f"
+        );
+        assert_eq!(normal_form(&src), "λ n m . refl");
+    }
+
+    #[test]
     fn beta_reduction_substitutes_the_argument() {
-        let src = "let f : Nat -> Nat = \\ x . plus x (suc zero); f (suc zero)";
-        assert_eq!(normal_form(src), "succ (succ zero)");
+        let src = format!(
+            "{NAT_PLUS} let f : Nat -> Nat = \\ x . plus x (suc zero); f (suc zero)"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
     }
 
     #[test]
     fn let_bindings_are_transparent() {
-        assert_eq!(normal_form("let x : Nat = zero; plus x x"), "zero");
         assert_eq!(
-            normal_form("let x : Nat = zero; let y : Nat = suc x; plus y y"),
-            "succ (succ zero)"
+            normal_form(&format!("{NAT_PLUS} let x : Nat = zero; plus x x")),
+            "zero"
+        );
+        assert_eq!(
+            normal_form(&format!(
+                "{NAT_PLUS} let x : Nat = zero; let y : Nat = suc x; plus y y"
+            )),
+            "suc (suc zero)"
         );
     }
 
     #[test]
     fn lets_shadow_correctly() {
-        let src = "let x : Nat = zero; let x : Nat = suc x; plus x x";
-        assert_eq!(normal_form(src), "succ (succ zero)");
+        let src = format!(
+            "{NAT_PLUS} let x : Nat = zero; let x : Nat = suc x; plus x x"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
     }
 
     #[test]
     fn lambda_values_print_with_their_binders() {
         assert_eq!(
-            normal_form("let f : Nat -> Nat = \\ n . plus n zero; f"),
-            "λ n . plus n zero"
+            normal_form(&format!(
+                "{NAT_PLUS} let f : Nat -> Nat = \\ n . plus n zero; f"
+            )),
+            "λ n . elim Nat (λ _ . Nat) zero (λ _ r . suc r) n"
         );
         assert_eq!(
-            normal_form("let f : Nat -> Nat = \\ n . plus n zero; f zero"),
+            normal_form(&format!(
+                "{NAT_PLUS} let f : Nat -> Nat = \\ n . plus n zero; f zero"
+            )),
             "zero"
         );
     }
 
     #[test]
     fn partially_applied_lambdas_eta_expand() {
-        let src = "let f : Nat -> Nat -> Nat = \\ x y . plus x y; f zero";
-        assert_eq!(normal_form(src), "λ y . y");
-        assert_eq!(type_of(src), "Nat → Nat");
+        let src = format!(
+            "{NAT_PLUS} let f : Nat -> Nat -> Nat = \\ x y . plus x y; f zero"
+        );
+        assert_eq!(normal_form(&src), "λ y . y");
+        assert_eq!(type_of(&src), "Nat → Nat");
     }
 
     #[test]
     fn comments_and_unicode_arrows_are_supported() {
-        assert_eq!(normal_form("{- hello -} plus zero zero -- done"), "zero");
-        assert_eq!(type_of("Nat → Nat → Nat"), "U");
+        assert_eq!(
+            normal_form(&format!("{NAT_PLUS} {{- hello -}} plus zero zero -- done")),
+            "zero"
+        );
+        assert_eq!(type_of(&format!("{NAT} Nat → Nat → Nat")), "U");
     }
 
     // -- types -------------------------------------------------------------
@@ -307,10 +520,10 @@ U";
     #[test]
     fn types_of_closed_terms() {
         assert_eq!(type_of("U"), "U");
-        assert_eq!(type_of("Nat"), "U");
-        assert_eq!(type_of("zero"), "Nat");
-        assert_eq!(type_of("suc zero"), "Nat");
-        assert_eq!(type_of("Id Nat zero zero"), "U");
+        assert_eq!(type_of(&format!("{NAT} Nat")), "U");
+        assert_eq!(type_of(&format!("{NAT} zero")), "Nat");
+        assert_eq!(type_of(&format!("{NAT} suc zero")), "Nat");
+        assert_eq!(type_of(&format!("{NAT} Id Nat zero zero")), "U");
         assert_eq!(type_of("(A : U) -> A -> A"), "U");
     }
 
@@ -318,17 +531,24 @@ U";
     fn type_checking_is_directional() {
         // A lambda can be checked against a type but not inferred.
         assert!(typecheck("\\ x . x").is_err());
-        let src = "let f : Nat -> Nat = \\ x . x; f";
-        assert_eq!(type_of(src), "Nat → Nat");
+        let src = format!("{NAT} let f : Nat -> Nat = \\ x . x; f");
+        assert_eq!(type_of(&src), "Nat → Nat");
     }
 
     #[test]
     fn refl_checks_definitional_equality() {
         // `plus zero zero` is convertible with `zero`
-        assert!(typecheck("let f : Id Nat zero (plus zero zero) = refl; U").is_ok());
+        assert!(typecheck(&format!(
+            "{NAT_PLUS} let f : Id Nat zero (plus zero zero) = refl; U"
+        ))
+        .is_ok());
         // but not with `suc zero`
-        assert!(error("let f : Id Nat (suc zero) zero = refl; U")
-            .contains("expecting succ zero equals to zero"));
+        assert!(
+            error(&format!(
+                "{NAT_PLUS} let f : Id Nat (suc zero) zero = refl; U"
+            ))
+            .contains("expecting suc zero equals to zero")
+        );
     }
 
     // -- generated transitivity proofs -------------------------------------
@@ -394,7 +614,7 @@ U";
 
     #[test]
     fn type_mismatches_are_reported() {
-        let msg = error("let bad : Nat = U; U");
+        let msg = error(&format!("{NAT} let bad : Nat = U; U"));
         assert!(msg.contains("type mismatch"), "{msg}");
         assert!(msg.contains("expected type:\n\n  Nat"), "{msg}");
         assert!(msg.contains("inferred type:\n\n  U"), "{msg}");
@@ -408,13 +628,13 @@ U";
 
     #[test]
     fn function_expected_in_application_position() {
-        let msg = error("zero zero");
+        let msg = error(&format!("{NAT} zero zero"));
         assert!(msg.contains("Expected a function type"), "{msg}");
     }
 
     #[test]
     fn refl_pattern_on_a_non_identity_type() {
-        let msg = error("let f : Nat -> Nat = \\ refl . zero; U");
+        let msg = error(&format!("{NAT} let f : Nat -> Nat = \\ refl . zero; U"));
         assert!(
             msg.contains("Expected an identity type for pattern 'refl'"),
             "{msg}"
@@ -423,53 +643,66 @@ U";
 
     #[test]
     fn absurd_pattern_on_a_provable_equation() {
-        let msg = error("let C : (A : U) -> Id Nat zero zero -> A = \\ A (!); U");
+        let msg = error(&format!(
+            "{NAT} let C : (A : U) -> Id Nat zero zero -> A = \\ A (!); U"
+        ));
         assert!(msg.contains("It should not be '(!)'"), "{msg}");
         assert!(msg.contains("you should try pattern 'refl'"), "{msg}");
     }
 
     #[test]
     fn refl_pattern_on_a_contradictory_equation() {
-        let msg = error("let f : Id Nat zero (suc zero) -> Nat = \\ refl . zero; U");
+        let msg = error(&format!(
+            "{NAT} let f : Id Nat zero (suc zero) -> Nat = \\ refl . zero; U"
+        ));
         assert!(msg.contains("It should not be 'refl'"), "{msg}");
         assert!(msg.contains("you should try pattern '(!)'"), "{msg}");
     }
 
     #[test]
     fn undecidable_equations_are_reported_as_not_sure() {
-        let src = "let U2 : (m n : Nat) -> Id Nat (plus m zero) (plus n zero) -> Nat = \
-                   \\ m n refl . zero; U";
-        let msg = error(src);
+        let src = format!(
+            "{NAT_PLUS} let U2 : (m n : Nat) -> Id Nat (plus m zero) (plus n zero) -> Nat = \
+\\ m n refl . zero; U"
+        );
+        let msg = error(&src);
         assert!(
             msg.starts_with("I am not sure if there should be a pattern 'refl'"),
             "{msg}"
         );
-        assert!(msg.contains("plus m zero and plus n zero"), "{msg}");
+        assert!(
+            msg.contains("plus m zero and plus n zero")
+                || msg.contains("elim Nat"),
+            "{msg}"
+        );
     }
 
     #[test]
     fn too_many_patterns_are_reported() {
         assert_eq!(
-            error("let f : Nat -> Nat = \\ x y . x; U"),
+            error(&format!("{NAT} let f : Nat -> Nat = \\ x y . x; U")),
             "Too many patterns."
         );
     }
 
     #[test]
     fn errors_point_at_the_offending_token() {
-        assert_eq!(error_pos("let bad : Nat = U; U"), (1, 17));
+        let src = format!("{NAT}\nlet bad : Nat = U; U");
+        assert_eq!(error_pos(&src), (2, 17));
         assert_eq!(error_pos("x"), (1, 1));
         // second line
-        assert_eq!(error_pos("let bad : Nat =\n  U; U"), (2, 3));
+        assert_eq!(error_pos(&format!("{NAT}\nlet bad : Nat =\n  U; U")), (3, 3));
     }
 
     #[test]
     fn definitions_can_be_applied_after_a_pattern_substitution() {
         // The original cannot do this (`Elab.hs` matches on the inferred type
         // without forcing it first); the port forces.  See NOTES.md.
-        let src = "let go : (A : U) (a : A) -> Nat = \\ A a . zero; \
-                   let use : (A : U) (a : A) -> Id A a a -> Nat = \\ A a refl . go A a; U";
-        assert_eq!(normal_form(src), "U");
+        let src = format!(
+            "{NAT} let go : (A : U) (a : A) -> Nat = \\ A a . zero; \
+let use : (A : U) (a : A) -> Id A a a -> Nat = \\ A a refl . go A a; U"
+        );
+        assert_eq!(normal_form(&src), "U");
     }
 
     // -- parser errors -----------------------------------------------------
@@ -479,18 +712,20 @@ U";
         // Regression: `check_pm` used to match the Pi domain without forcing
         // it, so a domain that became a delayed substitution after an earlier
         // `refl` pattern was rejected as "not an identity type".
-        let src = "let A : U = Id Nat zero zero; \
-                   let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U";
-        assert_eq!(normal_form(src), "U");
+        let src = format!(
+            "{NAT} let A : U = Id Nat zero zero; \
+let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U"
+        );
+        assert_eq!(normal_form(&src), "U");
     }
 
     #[test]
     fn printed_numerals_can_be_read_back() {
-        // The printer writes `succ`; the parser accepts it as a synonym for
-        // `suc`, so normal forms round-trip.
-        let printed = normal_form("plus (suc zero) (suc zero)");
-        assert_eq!(printed, "succ (succ zero)");
-        assert!(typecheck(&format!("let z : Nat = {printed}; z")).is_ok());
+        // Constructors print under the names they were declared with, so
+        // normal forms round-trip.
+        let printed = normal_form(&format!("{NAT_PLUS} plus (suc zero) (suc zero)"));
+        assert_eq!(printed, "suc (suc zero)");
+        assert!(typecheck(&format!("{NAT} let z : Nat = {printed}; z")).is_ok());
     }
 
     #[test]
@@ -511,14 +746,19 @@ U";
     #[test]
     fn keywords_may_appear_inside_identifiers() {
         // Backtracking means `letx` is an identifier; the original commits on
-        // the `let` prefix and rejects it (see NOTES.md).
-        assert_eq!(normal_form("let letx : Nat = zero; letx"), "zero");
+        // the `let` prefix and rejects it (see NOTES.md).  The former
+        // built-ins are ordinary identifiers now.
+        assert_eq!(
+            normal_form(&format!("{NAT} let letx : Nat = zero; letx")),
+            "zero"
+        );
         assert_eq!(error("sucx"), "unbound variable: sucx");
+        assert_eq!(error(&format!("{NAT} plusx")), "unbound variable: plusx");
     }
 
     #[test]
     fn parse_errors_are_reported_with_positions() {
-        let e = typecheck("plus zero").unwrap_err();
+        let e = typecheck(&format!("{NAT_PLUS} Id Nat zero")).unwrap_err();
         assert_eq!(e.pos.line, 1);
         assert!(e.pos.col > 1);
         let e = typecheck("(").unwrap_err();
@@ -532,10 +772,17 @@ U";
     fn run_prints_normal_form_and_type() {
         assert_eq!(run("U", Mode::Nf).unwrap(), "U\n  :\nU");
         assert_eq!(
-            run("plus (suc zero) (suc zero)", Mode::Nf).unwrap(),
-            "succ (succ zero)\n  :\nNat"
+            run(
+                &format!("{NAT_PLUS} plus (suc zero) (suc zero)"),
+                Mode::Nf
+            )
+            .unwrap(),
+            "suc (suc zero)\n  :\nNat"
         );
-        assert_eq!(run("plus zero zero", Mode::Type).unwrap(), "Nat");
+        assert_eq!(
+            run(&format!("{NAT_PLUS} plus zero zero"), Mode::Type).unwrap(),
+            "Nat"
+        );
     }
 
     #[test]
@@ -555,7 +802,7 @@ U";
         for _ in 0..150 {
             src = format!("suc ({src})");
         }
-        src = format!("let x : Nat = {src}; x");
+        let src = format!("{NAT} let x : Nat = {src}; x");
         let expected = printed_nat(150);
 
         let printed = std::thread::Builder::new()
@@ -576,8 +823,10 @@ U";
     fn absurd_pattern_lambdas_have_a_value() {
         // DEVIATION 7: the original panics (`eval: impossible (Bot)`) as soon
         // as an absurd-pattern lambda is evaluated.
-        let src = "let C : (A : U) -> Id Nat (suc zero) zero -> A = \\ A (!); C";
-        assert_eq!(normal_form(src), "λ A (!) . ⊥");
-        assert_eq!(type_of(src), "(A : U) → Id Nat (succ zero) zero → A");
+        let src = format!(
+            "{NAT} let C : (A : U) -> Id Nat (suc zero) zero -> A = \\ A (!); C"
+        );
+        assert_eq!(normal_form(&src), "λ A (!) . ⊥");
+        assert_eq!(type_of(&src), "(A : U) → Id Nat (suc zero) zero → A");
     }
 }

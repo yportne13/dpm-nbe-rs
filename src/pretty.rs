@@ -125,14 +125,13 @@ fn go(p: u8, ns: &[Name], tm: &Tm) -> String {
         ),
 
         Tm::Refl => "refl".to_string(),
-        Tm::Nat => "Nat".to_string(),
-        Tm::Zero => "zero".to_string(),
-        Tm::Succ(n) => par(p, APP, format!("succ {}", go(ATOM, ns, n))),
-        Tm::Plus(m, n) => par(
-            p,
-            APP,
-            format!("plus {} {}", go(ATOM, ns, m), go(ATOM, ns, n)),
-        ),
+        Tm::Data(def) => def.name.clone(),
+        Tm::Ctor(def, i) => def
+            .ctors
+            .get(*i)
+            .map(|c| c.name.clone())
+            .unwrap_or_else(|| format!("{}#{}", def.name, i)),
+        Tm::Elim(def) => format!("elim {}", def.name),
         Tm::Bot => "⊥".to_string(),
     }
 }
@@ -157,6 +156,7 @@ impl fmt::Display for Tm {
 mod tests {
     use super::*;
     use crate::syntax::{Ix, Pn, Tm};
+    use crate::testdata::nat_def;
 
     fn names(ns: &[&str]) -> Vec<Name> {
         ns.iter().map(|s| s.to_string()).collect()
@@ -170,21 +170,45 @@ mod tests {
         Box::new(Tm::Var(Ix(i)))
     }
 
+    fn nat() -> Tm {
+        Tm::Data(nat_def())
+    }
+
+    fn zero() -> Tm {
+        Tm::Ctor(nat_def(), 0)
+    }
+
+    fn suc(n: Tm) -> Tm {
+        Tm::App(Box::new(Tm::Ctor(nat_def(), 1)), Box::new(n))
+    }
+
     #[test]
     fn prints_atoms() {
         assert_eq!(show_tm(&Tm::U), "U");
-        assert_eq!(show_tm(&Tm::Nat), "Nat");
-        assert_eq!(show_tm(&Tm::Zero), "zero");
+        assert_eq!(show_tm(&nat()), "Nat");
+        assert_eq!(show_tm(&zero()), "zero");
+        assert_eq!(show_tm(&suc(zero())), "suc zero");
+        assert_eq!(show_tm(&Tm::Elim(nat_def())), "elim Nat");
         assert_eq!(show_tm(&Tm::Refl), "refl");
         assert_eq!(show_tm(&Tm::Bot), "\u{22a5}");
     }
 
     #[test]
-    fn prints_nat_operations_with_parentheses() {
-        let two = Tm::Succ(Box::new(Tm::Succ(Box::new(Tm::Zero))));
-        assert_eq!(show_tm(&two), "succ (succ zero)");
-        let plus = Tm::Plus(Box::new(Tm::Zero), Box::new(Tm::Succ(Box::new(Tm::Zero))));
-        assert_eq!(show_tm(&plus), "plus zero (succ zero)");
+    fn prints_ctor_applications_with_parentheses() {
+        let two = suc(suc(zero()));
+        assert_eq!(show_tm(&two), "suc (suc zero)");
+        // elim Nat U zero (suc zero): a stuck eliminator is an application
+        let elim = Tm::App(
+            Box::new(Tm::App(
+                Box::new(Tm::App(
+                    Box::new(Tm::Elim(nat_def())),
+                    Box::new(Tm::U),
+                )),
+                Box::new(zero()),
+            )),
+            Box::new(suc(zero())),
+        );
+        assert_eq!(show_tm(&elim), "elim Nat U zero (suc zero)");
     }
 
     #[test]
@@ -195,8 +219,8 @@ mod tests {
         // \x. x x
         let lam = Tm::Lam(vec![Pn::Var("x".into())], Box::new(Tm::App(v(0), v(0))));
         assert_eq!(p(&[], &lam), "λ x . x x");
-        // (f : Nat) -> f f
-        let pi = Tm::Pi("f".into(), Box::new(Tm::Nat), Box::new(Tm::App(v(0), v(0))));
+        // (f : Nat) -> f f   (ill-typed, but the printer is syntactic)
+        let pi = Tm::Pi("f".into(), Box::new(nat()), Box::new(Tm::App(v(0), v(0))));
         assert_eq!(p(&[], &pi), "(f : Nat) → f f");
     }
 
@@ -204,15 +228,15 @@ mod tests {
     fn consecutive_named_binders_share_no_separator() {
         let tm = Tm::Pi(
             "a".into(),
-            Box::new(Tm::Nat),
-            Box::new(Tm::Pi("b".into(), Box::new(Tm::Nat), Box::new(Tm::Nat))),
+            Box::new(nat()),
+            Box::new(Tm::Pi("b".into(), Box::new(nat()), Box::new(nat()))),
         );
         assert_eq!(show_tm(&tm), "(a : Nat)(b : Nat) → Nat");
     }
 
     #[test]
     fn anonymous_domains_render_as_arrows() {
-        let tm = Tm::Pi("_".into(), Box::new(Tm::Nat), Box::new(Tm::Nat));
+        let tm = Tm::Pi("_".into(), Box::new(nat()), Box::new(nat()));
         assert_eq!(show_tm(&tm), "Nat → Nat");
     }
 
@@ -221,7 +245,7 @@ mod tests {
         // \x. (x' : Nat) -> x'   (the body refers to the inner binder)
         let tm = Tm::Lam(
             vec![Pn::Var("x".into())],
-            Box::new(Tm::Pi("x".into(), Box::new(Tm::Nat), v(0))),
+            Box::new(Tm::Pi("x".into(), Box::new(nat()), v(0))),
         );
         assert_eq!(show_tm(&tm), "λ x . (x' : Nat) → x'");
     }
@@ -230,8 +254,8 @@ mod tests {
     fn prints_lets() {
         let tm = Tm::Let(
             "x".into(),
-            Box::new(Tm::Nat),
-            Box::new(Tm::Zero),
+            Box::new(nat()),
+            Box::new(zero()),
             Box::new(Tm::Var(Ix(0))),
         );
         assert_eq!(show_tm(&tm), "let x : Nat\n    = zero\n;\nx");
@@ -239,7 +263,7 @@ mod tests {
 
     #[test]
     fn prints_id_and_patterns() {
-        let tm = Tm::Id(Box::new(Tm::Nat), Box::new(Tm::Zero), Box::new(Tm::Zero));
+        let tm = Tm::Id(Box::new(nat()), Box::new(zero()), Box::new(zero()));
         assert_eq!(show_tm(&tm), "Id Nat zero zero");
         let lam = Tm::Lam(vec![Pn::Refl, Pn::Abs], Box::new(Tm::Bot));
         assert_eq!(show_tm(&lam), "λ refl (!) . ⊥");
@@ -252,6 +276,6 @@ mod tests {
 
     #[test]
     fn display_matches_show_tm() {
-        assert_eq!(format!("{}", Tm::Zero), "zero");
+        assert_eq!(format!("{}", zero()), "zero");
     }
 }
