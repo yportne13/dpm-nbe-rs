@@ -362,7 +362,7 @@ fn evaluation_matches_the_command_line() {
     assert!(r.error_span.is_some());
 
     let r = analysis::evaluate("(A : U) -> A -> A", "a.dpm", "type");
-    assert_eq!(r.output, "U");
+    assert_eq!(r.output, "U1");
 }
 
 // ---------------------------------------------------------------------------

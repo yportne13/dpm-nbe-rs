@@ -14,6 +14,7 @@ use std::rc::Rc;
 pub fn nat_def() -> Rc<IndDef> {
     Rc::new(IndDef {
         name: "Nat".into(),
+        level: 0,
         params: vec![],
         ctors: vec![
             CtorInfo {
@@ -41,7 +42,7 @@ pub fn list_def() -> Rc<IndDef> {
     // cons : (A : U) -> A -> D A -> D A
     let nil = Tm::Pi(
         "A".into(),
-        Box::new(Tm::U),
+        Box::new(Tm::U(0)),
         Box::new(Tm::App(
             Box::new(Tm::Var(crate::Ix(1))),
             Box::new(Tm::Var(crate::Ix(0))),
@@ -49,7 +50,7 @@ pub fn list_def() -> Rc<IndDef> {
     );
     let cons = Tm::Pi(
         "A".into(),
-        Box::new(Tm::U),
+        Box::new(Tm::U(0)),
         Box::new(Tm::Pi(
             "a".into(),
             Box::new(Tm::Var(crate::Ix(0))),
@@ -68,7 +69,8 @@ pub fn list_def() -> Rc<IndDef> {
     );
     Rc::new(IndDef {
         name: "List".into(),
-        params: vec![("A".into(), Tm::U)],
+        level: 0,
+        params: vec![("A".into(), Tm::U(0))],
         ctors: vec![
             CtorInfo {
                 name: "nil".into(),

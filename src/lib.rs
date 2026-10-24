@@ -182,7 +182,7 @@ let plus : Nat -> Nat -> Nat = \
 let sym : (A : U) (a b : A) -> Id A a b -> Id A b a =
   λ A a b refl . refl; U";
         assert_eq!(normal_form(src), "U");
-        assert_eq!(type_of(src), "U");
+        assert_eq!(type_of(src), "U1");
     }
 
     #[test]
@@ -318,7 +318,7 @@ length Nat (cons Nat zero (cons Nat zero (nil Nat)))"
     fn the_empty_type_has_a_usable_eliminator() {
         let src = "\
 data Empty : U where U";
-        assert_eq!(type_of(src), "U");
+        assert_eq!(type_of(src), "U1");
         assert_eq!(
             type_of("data Empty : U where elim Empty"),
             "(P : Empty → U)(x : Empty) → P x"
@@ -341,7 +341,7 @@ let ex : (A : U) -> Empty -> A = λ A x . elim Empty (λ _ . A) x; U"
         // bare `P` is not even a type (it is `(A : U) -> U`), so the
         // constructor type does not check against `U`.
         let msg = error("data P (A : U) : U where mk : P; U");
-        assert!(msg.contains("type mismatch"), "{msg}");
+        assert!(msg.contains("expected a type"), "{msg}");
         assert!(msg.contains("(A' : U) → U"), "{msg}");
         // applied, it is fine
         assert_eq!(normal_form("data P (A : U) : U where mk : P A; U"), "U");
@@ -369,7 +369,7 @@ leaf : Tree; node : (Nat -> Tree) -> Tree; U"
         let msg = error(&format!(
             "{NAT} data Bad : Nat -> U where mk : Bad zero; U"
         ));
-        assert!(msg.contains("must be declared in U"), "{msg}");
+        assert!(msg.contains("must be declared in a universe"), "{msg}");
     }
 
     #[test]
@@ -383,7 +383,7 @@ leaf : Tree; node : (Nat -> Tree) -> Tree; U"
         );
         // ... and so are enclosing *definitions*: inline the type instead
         assert_eq!(
-            normal_form("let A : U = U; data D : U where mk : U -> D; D"),
+            normal_form("let A : U1 = U; data D : U where mk : U -> D; D"),
             "D"
         );
     }
@@ -519,12 +519,14 @@ let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \\ n m . refl; f"
 
     #[test]
     fn types_of_closed_terms() {
-        assert_eq!(type_of("U"), "U");
+        assert_eq!(type_of("U"), "U1");
+        assert_eq!(type_of("U1"), "U2");
         assert_eq!(type_of(&format!("{NAT} Nat")), "U");
         assert_eq!(type_of(&format!("{NAT} zero")), "Nat");
         assert_eq!(type_of(&format!("{NAT} suc zero")), "Nat");
         assert_eq!(type_of(&format!("{NAT} Id Nat zero zero")), "U");
-        assert_eq!(type_of("(A : U) -> A -> A"), "U");
+        // quantifying over U itself lives one level up (predicativity)
+        assert_eq!(type_of("(A : U) -> A -> A"), "U1");
     }
 
     #[test]
@@ -731,10 +733,14 @@ let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U"
     #[test]
     fn freshened_names_can_be_read_back() {
         // Freshened names contain an apostrophe, so identifiers accept one.
-        assert!(typecheck("let z : U = (A : U) -> (A' : U) -> A'; z").is_ok());
-        assert!(typecheck("let z : U = (A' : U) -> A'; z").is_ok());
-        assert!(typecheck("let z : U = (A : U) -> (A' : U) -> A; z").is_ok());
-        assert_eq!(type_of("(A : U) -> (A : U) -> A"), "U");
+        // a type binder named with an apostrophe, and the level that comes
+        // with quantifying over U
+        assert!(typecheck("let z : U1 = (A : U) -> (A' : U) -> A'; z").is_ok());
+        assert!(typecheck("let z : U1 = (A' : U) -> A'; z").is_ok());
+        assert!(typecheck("let z : U1 = (A : U) -> (A' : U) -> A; z").is_ok());
+        // a *value* binder with an apostrophe stays at level 0
+        assert!(typecheck(&format!("{NAT} let z : U = (A' : Nat) -> Nat; z")).is_ok());
+        assert_eq!(type_of("(A : U) -> (A : U) -> A"), "U1");
     }
 
     #[test]
@@ -766,11 +772,89 @@ let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U"
         assert_eq!(e.msg, "expected an atom");
     }
 
+
+    // -- universes ----------------------------------------------------------
+
+    #[test]
+    fn universes_form_a_predicative_tower() {
+        assert_eq!(type_of("U"), "U1");
+        assert_eq!(type_of("U1"), "U2");
+        assert_eq!(type_of("U2"), "U3");
+        // a universe fits one level up ...
+        assert!(typecheck("let x : U1 = U; x").is_ok());
+        // ... and (by cumulativity) any level further up
+        assert!(typecheck("let x : U3 = U; x").is_ok());
+        // ... but never below itself
+        assert!(error("let x : U = U; x").contains("type mismatch"));
+    }
+
+    #[test]
+    fn cumulativity_admits_smaller_types() {
+        let src = format!(
+            "{NAT} \
+let id1 : (A : U1) -> A -> A = λ A x . x; \
+let n : Nat = id1 Nat zero; \
+let t : U1 = id1 U Nat; \
+suc (id1 Nat (suc n))"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+        // definitional equality stays strict: cumulativity does not make
+        // `U` and `U1` the *same* type, so refl needs both sides equal
+        assert!(typecheck("let p : Id U1 U U = refl; p").is_ok());
+        assert!(error("let p : Id U2 U U1 = refl; p").contains("expecting U equals to U1"));
+    }
+
+    #[test]
+    fn function_types_live_at_the_max_of_their_parts() {
+        assert_eq!(type_of("(A : U) -> A -> A"), "U1");
+        assert_eq!(type_of(&format!("{NAT} (n : Nat) -> Nat")), "U");
+        assert_eq!(type_of(&format!("{NAT} (A : U) -> A -> Nat")), "U1");
+        // the identity type lives where its index type lives
+        assert_eq!(type_of(&format!("{NAT} Id Nat zero zero")), "U");
+        // `Id U U U` is ill-typed (U does not live in U); `Id U1 U U` lives
+        // where its *index type* U1 lives, namely U2
+        assert!(typecheck("Id U U U").is_err());
+        assert_eq!(type_of("Id U1 U U"), "U2");
+    }
+
+    #[test]
+    fn data_declarations_choose_their_universe() {
+        let hi = format!(
+            "{NAT} \
+data Nat1 : U1 where zero1 : Nat1; suc1 : (n : Nat1) -> Nat1; Nat1"
+        );
+        assert_eq!(type_of(&hi), "U1");
+        // eliminating a U1 type into U1 works
+        let src = format!(
+            "{NAT} \
+data Nat1 : U1 where zero1 : Nat1; suc1 : (n : Nat1) -> Nat1; \
+let pred1 : Nat1 -> Nat1 = \
+  λ n . elim Nat1 (λ _ . Nat1) zero1 (λ _ r . r) n; \
+pred1 (suc1 zero1)"
+        );
+        assert_eq!(normal_form(&src), "zero1");
+        // ... and the motive may land lower (cumulativity)
+        let src2 = format!(
+            "{NAT} \
+data Nat1 : U1 where zero1 : Nat1; suc1 : (n : Nat1) -> Nat1; \
+let f : Nat1 -> Nat = \
+  λ n . elim Nat1 (λ _ . Nat) zero (λ _ r . suc r) n; \
+f (suc1 (suc1 zero1))"
+        );
+        assert_eq!(normal_form(&src2), "suc (suc zero)");
+    }
+
+    #[test]
+    fn universe_levels_are_bounded_words() {
+        assert!(parse::parse("U99999999999").is_err());
+        assert_eq!(type_of("U1000"), "U1001");
+    }
+
     // -- modes -------------------------------------------------------------
 
     #[test]
     fn run_prints_normal_form_and_type() {
-        assert_eq!(run("U", Mode::Nf).unwrap(), "U\n  :\nU");
+        assert_eq!(run("U", Mode::Nf).unwrap(), "U\n  :\nU1");
         assert_eq!(
             run(
                 &format!("{NAT_PLUS} plus (suc zero) (suc zero)"),

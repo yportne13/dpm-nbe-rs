@@ -85,8 +85,8 @@ pub enum Raw {
     Var(Name),
     /// `t u`
     App(Box<Raw>, Box<Raw>),
-    /// `U`
-    U,
+    /// `U` or `U1`, `U2`, ... -- a universe of the given level.
+    U(u32),
     /// `let x : A = t; u`
     Let(Name, Box<Raw>, Box<Raw>, Box<Raw>),
     /// `(x : A) -> B`
@@ -121,7 +121,7 @@ impl Raw {
             Raw::SrcPos(_, t) => t.strip_pos(),
             Raw::Var(x) => Raw::Var(x.clone()),
             Raw::App(t, u) => Raw::App(Box::new(t.strip_pos()), Box::new(u.strip_pos())),
-            Raw::U => Raw::U,
+            Raw::U(l) => Raw::U(*l),
             Raw::Let(x, a, t, u) => Raw::Let(
                 x.clone(),
                 Box::new(a.strip_pos()),
@@ -182,6 +182,9 @@ pub struct CtorInfo {
 #[derive(Clone, Debug)]
 pub struct IndDef {
     pub name: Name,
+    /// The universe the type was declared in: `D : U level` (after the
+    /// parameters).  The generated eliminator uses it for its motive.
+    pub level: u32,
     /// The parameter telescope, stored in the datatype's own context:
     /// `params[i].1` is valid in `[..., D, params[0..i]]`, i.e. the datatype
     /// is the single free variable (the same convention as constructor
@@ -218,7 +221,9 @@ pub type Ty = Tm;
 #[derive(Clone, PartialEq, Debug)]
 pub enum Tm {
     Var(Ix),
-    U,
+    /// A universe; level 0 is written `U` in the surface syntax and the
+    /// tower is predicative: `U0 : U1 : U2 : ...`.
+    U(u32),
     Let(Name, Box<Ty>, Box<Tm>, Box<Tm>),
     Pi(Name, Box<Ty>, Box<Ty>),
     Lam(Vec<Pn>, Box<Tm>),
@@ -361,7 +366,8 @@ pub enum Val {
     Ne(Rc<Ne>),
     /// A delayed substitution, eliminated by forcing.
     Sub(Rc<Val>, Rc<Sub>),
-    U,
+    /// A universe; see [`Tm::U(0)`].
+    U(u32),
     Pi(Name, Rc<Val>, Rc<Closure>),
     Id(Rc<Val>, Rc<Val>, Rc<Val>),
     Refl,
@@ -503,8 +509,8 @@ mod tests {
 
     #[test]
     fn env_is_indexed_from_the_right() {
-        let env = Env(vec![Val::Refl, Val::Bot, Val::U]);
-        assert_eq!(lookup_env(Ix(0), &env), Val::U);
+        let env = Env(vec![Val::Refl, Val::Bot, Val::U(0)]);
+        assert_eq!(lookup_env(Ix(0), &env), Val::U(0));
         assert_eq!(lookup_env(Ix(1), &env), Val::Bot);
         assert_eq!(lookup_env(Ix(2), &env), Val::Refl);
     }
@@ -518,10 +524,10 @@ mod tests {
     #[test]
     fn extend_and_push_preserve_the_right_most_binding() {
         let env = Env(vec![Val::Refl]);
-        assert_eq!(env.push(Val::U).0, vec![Val::Refl, Val::U]);
+        assert_eq!(env.push(Val::U(0)).0, vec![Val::Refl, Val::U(0)]);
         assert_eq!(
-            env.extend(&vec![Val::U, Val::Bot]).0,
-            vec![Val::Refl, Val::U, Val::Bot]
+            env.extend(&vec![Val::U(0), Val::Bot]).0,
+            vec![Val::Refl, Val::U(0), Val::Bot]
         );
         assert_eq!(env.len(), Lvl(1));
     }

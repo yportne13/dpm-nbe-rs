@@ -328,6 +328,30 @@ Deliberately *not* supported: constructor patterns in λ (the original has no
 case syntax either — elimination is `elim`), mutual or indexed inductive
 types, and universes above `U`.
 
+### 15. A predicative tower of universes with cumulativity
+
+The original has a single self-filled universe (`U : U`), which makes its
+theory inconsistent.  The port replaces it with a tower: `Tm::U(l)` /
+`Val::U(l)`, written `U` for level 0 and `U1`, `U2`, ... above it, with
+`U l : U (l+1)`.
+
+* **Where levels come from.**  A function type lives at the maximum of its
+  domain's and codomain's levels; `Id A x y` lives where `A` lives; a `data`
+  declaration records the universe it was declared in, types the former as
+  `D : U level` and lets the generated eliminator's motive eliminate into
+  `U level`.  Elaborating a type position now *infers* the term and reads the
+  level off its type (which is always a universe — that is what makes it a
+  type), instead of checking against a fixed `U`.
+* **Cumulativity is check-direction only.**  Where a term is checked against
+  an expected type, `U i` fits `U j` whenever `i <= j` and a function type may
+  return a smaller type than expected (`eval::conv_le`); definitional
+  equality (`refl`, unification) keeps using the strict `conv`, so `U` and
+  `U1` are never *the same* type.  Consequence: the port rejects
+  `let A : U = U` (the original accepted it), and the program-final `U` prints
+  as `U : U1`.
+* Universe polymorphism (a `Level` variable), an impredicative `Prop`, and
+  `Setomega`-style fixes are all deliberately out of scope.
+
 ## Inherited limitations
 
 * There is **no occurs check** (`Elab.hs` marks it as a TODO), so unification
@@ -363,7 +387,7 @@ types, and universes above `U`.
 
 ## Tests
 
-`cargo test` runs 135 unit tests inside `src/` plus the `tests/golden.rs`
+`cargo test` runs 140 unit tests inside `src/` plus the `tests/golden.rs`
 black-box suite (7 tests, ~120 table checks: success cases including the
 arithmetic prelude, `Bool`/`List` elimination, the README programs and
 generated transitivity proofs, declaration errors, elaboration errors with

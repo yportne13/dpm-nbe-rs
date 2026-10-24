@@ -25,7 +25,7 @@ pub fn lift(t: &Tm, cutoff: usize, by: usize) -> Tm {
                 t.clone()
             }
         }
-        Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
         Tm::App(f, a) => Tm::App(Box::new(lift(f, cutoff, by)), Box::new(lift(a, cutoff, by))),
         Tm::Id(a, x, y) => Tm::Id(
             Box::new(lift(a, cutoff, by)),
@@ -106,7 +106,7 @@ mod tests {
         // both substitutions map the same level, the argument's entry wins and
         // the newer substitution is applied to *its* value.
         let s1 = insert_sub(Lvl(1), Lvl(0), Val::Refl);
-        let s2 = insert_sub(Lvl(1), Lvl(0), Val::U);
+        let s2 = insert_sub(Lvl(1), Lvl(0), Val::U(0));
         let composed = crate::eval::subst_sub(&s2, &s1);
         assert_eq!(crate::eval::frc(&lookup_sub(&composed, Lvl(0))), Val::Refl);
     }
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn insert_sub_narrows_the_domain_by_one() {
-        let s = insert_sub(Lvl(3), Lvl(2), Val::U);
+        let s = insert_sub(Lvl(3), Lvl(2), Val::U(0));
         assert_eq!(s.dom, Lvl(2));
         assert_eq!(s.cod, Lvl(3));
         assert_eq!(s.layers.len(), 1);

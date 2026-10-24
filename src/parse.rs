@@ -69,6 +69,14 @@ pub fn parse_named(src: &str, file: &str) -> Result<Raw, ParseError> {
 /// level.
 pub const MAX_DEPTH: usize = 512;
 
+/// Highest universe level the parser accepts (keeps `U999...9` from
+/// overflowing while staying far above anything a program needs).
+pub const MAX_LEVEL: u32 = 1 << 30;
+
+fn parse_level(digits: &str) -> Option<u32> {
+    digits.parse::<u32>().ok().filter(|l| *l <= MAX_LEVEL)
+}
+
 fn is_keyword(s: &str) -> bool {
     // `in` is listed by the original's `keyword` helper but the grammar never
     // accepts it; keeping it here means `in` is rejected as a variable too.
@@ -579,7 +587,24 @@ impl<'a> Parser<'a> {
                 let start = self.i;
                 let name = self.word()?;
                 match name.as_str() {
-                    "U" => Raw::U,
+                    // `U` alone is level 0; `U1`, `U2`, ... name the higher
+                    // universes (`U` followed by digits only).
+                    _ if name == "U" => Raw::U(0),
+                    _ if name.len() > 1
+                        && name.starts_with('U')
+                        && name[1..].bytes().all(|b| b.is_ascii_digit()) =>
+                    {
+                        match parse_level(&name[1..]) {
+                            Some(l) => Raw::U(l),
+                            None => {
+                                return self.fail_at(
+                                    start,
+                                    pos,
+                                    "universe level is too large",
+                                )
+                            }
+                        }
+                    }
                     "refl" => Raw::Refl,
                     // `elim D` takes the data type itself as an atom; the
                     // spine it is applied to (motive, methods, target) is
@@ -643,7 +668,10 @@ mod tests {
 
     #[test]
     fn parses_atoms() {
-        assert_eq!(strip("U"), Raw::U);
+        assert_eq!(strip("U"), Raw::U(0));
+        assert_eq!(strip("U1"), Raw::U(1));
+        assert_eq!(strip("U23"), Raw::U(23));
+        assert!(parse("U99999999999").is_err(), "level overflow rejected");
         assert_eq!(strip("refl"), Raw::Refl);
         assert_eq!(strip("zero"), *var("zero"));
         assert_eq!(strip("Nat"), *var("Nat"));
@@ -668,7 +696,7 @@ mod tests {
             strip("(A : U) -> A -> A"),
             Raw::Pi(
                 "A".into(),
-                Box::new(Raw::U),
+                Box::new(Raw::U(0)),
                 Box::new(Raw::Pi("_".into(), var("A"), var("A")))
             )
         );
@@ -697,7 +725,7 @@ mod tests {
             strip("(A : U) (a : A) -> A"),
             Raw::Pi(
                 "A".into(),
-                Box::new(Raw::U),
+                Box::new(Raw::U(0)),
                 Box::new(Raw::Pi("a".into(), var("A"), var("A")))
             )
         );
@@ -731,7 +759,7 @@ mod tests {
         );
         assert_eq!(
             strip("let _ : Nat = zero; U"),
-            Raw::Let("_".into(), var("Nat"), var("zero"), Box::new(Raw::U))
+            Raw::Let("_".into(), var("Nat"), var("zero"), Box::new(Raw::U(0)))
         );
     }
 
@@ -742,7 +770,7 @@ mod tests {
             Raw::Data(
                 "Nat".into(),
                 vec![],
-                Box::new(Raw::U),
+                Box::new(Raw::U(0)),
                 vec![
                     ("zero".into(), *var("Nat")),
                     (
@@ -762,8 +790,8 @@ mod tests {
             ),
             Raw::Data(
                 "List".into(),
-                vec![("A".into(), Raw::U)],
-                Box::new(Raw::U),
+                vec![("A".into(), Raw::U(0))],
+                Box::new(Raw::U(0)),
                 vec![
                     ("nil".into(), Raw::App(var("List"), var("A"))),
                     (
@@ -788,9 +816,9 @@ mod tests {
             Raw::Data(
                 "Empty".into(),
                 vec![],
-                Box::new(Raw::U),
+                Box::new(Raw::U(0)),
                 vec![],
-                Box::new(Raw::U)
+                Box::new(Raw::U(0))
             )
         );
     }
@@ -802,7 +830,7 @@ mod tests {
             strip("Nat → Nat"),
             Raw::Pi("_".into(), var("Nat"), var("Nat"))
         );
-        assert_eq!(strip("-- only a comment\nU"), Raw::U);
+        assert_eq!(strip("-- only a comment\nU"), Raw::U(0));
     }
 
     #[test]

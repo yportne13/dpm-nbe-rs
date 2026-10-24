@@ -210,7 +210,7 @@ ok('evaluate reports language errors as data', replies[0].result.ok === false &&
 ok('evaluate reports where it failed', replies[0].result.range?.start?.line === 0);
 
 const typed = JSON.parse(mod.check('(A : U) -> A -> A', 'type'));
-ok('check() is a shortcut for `dpm-nbe type`', typed.ok === true && typed.output === 'U', JSON.stringify(typed));
+ok('check() is a shortcut for `dpm-nbe type`', typed.ok === true && typed.output === 'U1', JSON.stringify(typed));
 
 // --- tokens ---------------------------------------------------------------
 

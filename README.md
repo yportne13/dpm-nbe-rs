@@ -2,13 +2,14 @@
 
 A Rust re-implementation of the Haskell project
 [`KonjacSource/dpm-nbe`](../Haskell/dpm-nbe) (**dependent pattern matching
-under a normalization-by-evaluation setup**), upgraded with **user-declared
-inductive types**: nothing is built in any more, `Nat` is a declaration like
-any other.
+under a normalization-by-evaluation setup**), upgraded twice over the
+original: **user-declared inductive types** (nothing is built in any more,
+`Nat` is a declaration like any other) and a **predicative hierarchy of
+universes** `U : U1 : U2 : ...` with cumulativity.
 
 * ~3k lines of implementation, **no dependencies** (standard library only).
 * Library + `dpm-nbe` command-line tool.
-* 135 unit tests + 7 black-box tests + 25 LSP integration tests.
+* 140 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 
@@ -88,7 +89,7 @@ replaces `Content-Length` framing with a function call.
 
 | Syntax | Meaning |
 | --- | --- |
-| `U` | universe |
+| `U`, `U1`, `U2`, ... | the predicative tower of universes: `U i : U (i+1)` |
 | `(x : A) -> B`, `A -> B` | dependent / non-dependent function type |
 | `\ p1 p2 ... . t` or `λ ...` | lambda (patterns: variables, `_`, `refl`, `(!)`) |
 | `let x : A = t; u` | local definition |
@@ -109,6 +110,16 @@ Notes on the concrete syntax:
 * Patterns are only variables, `refl` and the absurd pattern `(!)`; `(!)` must
   be the last pattern, and `_` is available as a wildcard binder.
 * Nested block comments are not supported.
+
+### Universes
+
+`U` is level 0 of a predicative tower; `U1`, `U2`, ... are spelled with their
+level.  The original's `U : U` is gone: `U : U1`, and a function type lives at
+the maximum of its domain's and codomain's levels, so quantifying over `U`
+itself lands one level up (`(A : U) -> A -> A : U1`).  Checking is *cumulative*:
+where a term is checked against an expected type, `U i` fits `U j` whenever
+`i <= j`, so a `(A : U1) -> A -> A` identity accepts `Nat : U` arguments.
+Definitional equality (what `refl` and the pattern matcher use) stays strict.
 
 ### Inductive types
 
@@ -141,11 +152,13 @@ let length : (A : U) -> List A -> Nat =
   λ A xs . elim List A (λ _ . Nat) zero (λ a as r . suc r) xs;
 ```
 
-Checking rules: the type after the parameters must be `U` (no indexed
-families); every constructor must return `D params`; occurrences of `D` in
-constructor arguments must be strictly positive (`D params` itself, or behind
-function codomains — never in a domain); two identical declarations are still
-distinct types (typing is nominal).
+Declarations pick their own universe (`data Nat1 : U1 where ...`), and the
+generated eliminator's motive eliminates into it.  Checking rules: the type
+after the parameters must *be* a universe (no indexed families); every
+constructor must return `D params`; occurrences of `D` in constructor
+arguments must be strictly positive (`D params` itself, or behind function
+codomains — never in a domain); two identical declarations are still distinct
+types (typing is nominal).
 
 Example (a subset of the README of the original project; `tests/fixtures/`
 holds the full one):

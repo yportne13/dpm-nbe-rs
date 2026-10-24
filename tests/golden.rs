@@ -34,31 +34,31 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "readme_sym",
         "nf",
         "let sym : (A : U) (a b : A) -> Id A a b -> Id A b a = λ A a b refl . refl; U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "readme_trans",
         "nf",
         "let trans : (A : U) (a b c : A) -> Id A a b -> Id A b c -> Id A a c = λ A a b c refl refl . refl; U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "readme_cong",
         "nf",
         "let cong : (A B : U) (f : A -> B) (a b : A) -> Id A a b -> Id B (f a) (f b) = λ A B f a b refl . refl; U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "readme_H",
         "nf",
         "let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero = λ m n refl refl . refl; U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "readme_C_absurd",
         "nf",
         "let C : (A : U) -> Id Nat (suc zero) zero -> A = λ A (!); U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "nf_C_absurd_value_DEVIATION",
@@ -124,7 +124,7 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "nf_U",
         "nf",
         "U",
-        "U\n  :\nU\n",
+        "U\n  :\nU1\n",
     ),
     (
         "nf_let_id_applied",
@@ -160,7 +160,7 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "nf_anonymous_pi_body",
         "nf",
         "(A : U) -> A -> A",
-        "(A : U) → A → A\n  :\nU\n",
+        "(A : U) → A → A\n  :\nU1\n",
     ),
     (
         "nf_poly_identity_names_DEVIATION",
@@ -214,7 +214,7 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "nf_id_U_nat_nat",
         "nf",
         "Id U Nat Nat",
-        "Id U Nat Nat\n  :\nU\n",
+        "Id U Nat Nat\n  :\nU1\n",
     ),
     (
         "nf_let_type_alias",
@@ -382,19 +382,19 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "type_id_U_nat_nat",
         "type",
         "Id U Nat Nat",
-        "U\n",
+        "U1\n",
     ),
     (
         "type_pi_anonymous",
         "type",
         "(A : U) -> A -> A",
-        "U\n",
+        "U1\n",
     ),
     (
         "type_U",
         "type",
         "U",
-        "U\n",
+        "U1\n",
     ),
     (
         "type_arrow",
@@ -479,7 +479,7 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
         "let x : Nat = U; x",
         4,
         15,
-        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U\n\n",
+        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U1\n\n",
     ),
     (
         "err_mismatch_suc_arg",
@@ -487,7 +487,7 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
         "suc U",
         4,
         5,
-        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U\n\n",
+        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U1\n\n",
     ),
     (
         "err_not_a_function",
@@ -559,7 +559,7 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
         "let x : Nat = zero;\nsuc U",
         5,
         5,
-        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U\n\n",
+        "type mismatch\n\nexpected type:\n\n  Nat\n\ninferred type:\n\n  U1\n\n",
     ),
     (
         "err_ctor_result_must_be_the_datatype",
@@ -721,7 +721,7 @@ fn golden_success_cases() {
         "readme_full_program".to_string(),
         "nf".to_string(),
         README_FULL.to_string(),
-        "U\n  :\nU\n".to_string(),
+        "U\n  :\nU1\n".to_string(),
     ));
 
     // `genTransN` family from Main.hs, n = 1..=6.  As written in Main.hs the
@@ -731,7 +731,7 @@ fn golden_success_cases() {
             format!("gen_trans_{n}"),
             "nf".to_string(),
             trans_prog(n, "U"),
-            "U\n  :\nU\n".to_string(),
+            "U\n  :\nU1\n".to_string(),
         ));
     }
     // ... and the same definition observed through a reference to it, which
@@ -810,12 +810,12 @@ fn gen_trans_literals() {
         (
             "trans1_program",
             "let trans1 : (A : U) (a1 : A) -> Id A a1 a1 = \u{3bb} A a1 . refl; U",
-            "U\n  :\nU\n",
+            "U\n  :\nU1\n",
         ),
         (
             "trans6_program",
             "let trans6 : (A : U) (a1 : A) (a2 : A) (a3 : A) (a4 : A) (a5 : A) (a6 : A) -> Id A a1 a2 -> Id A a2 a3 -> Id A a3 a4 -> Id A a4 a5 -> Id A a5 a6 -> Id A a1 a6 = \u{3bb} A a1 a2 a3 a4 a5 a6 refl refl refl refl refl . refl; U",
-            "U\n  :\nU\n",
+            "U\n  :\nU1\n",
         ),
     ];
 
@@ -1033,7 +1033,7 @@ fn bom_is_accepted_deviation() {
         out.code,
         esc(&out.stderr)
     );
-    assert_eq!(out.stdout, "U\n  :\nU\n", "BOM + U normal form/type");
+    assert_eq!(out.stdout, "U\n  :\nU1\n", "BOM + U normal form/type");
     assert!(
         out.stderr.is_empty(),
         "unexpected stderr: {}",

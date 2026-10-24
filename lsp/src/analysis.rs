@@ -921,7 +921,7 @@ pub struct HoverInfo {
 /// Documentation for the fixed vocabulary, used by hover and completion.
 pub fn keyword_doc(word: &str) -> Option<&'static str> {
     Some(match word {
-        "U" => "`U` — the universe of types.  `U : U` holds in this system.",
+        "U" => "`U` — the universe of level 0.  The tower is predicative: `U : U1 : U2 : ...`.",
         "Id" => "`Id A x y` — the identity (propositional equality) type of `A` at `x` and `y`.",
         "refl" => "`refl` — the constructor of `Id A x x`.\n\nAs a λ pattern it refines the context by unifying the indices of the identity type.",
         "data" => "`data D (params) : U where c : ty; ...` — declare an inductive type.  No data types are built in: `Nat` is a declaration like any other.",

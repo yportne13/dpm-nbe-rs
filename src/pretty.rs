@@ -82,7 +82,8 @@ fn go(p: u8, ns: &[Name], tm: &Tm) -> String {
 
         Tm::App(t, u) => par(p, APP, format!("{} {}", go(APP, ns, t), go(ATOM, ns, u))),
 
-        Tm::U => "U".to_string(),
+        Tm::U(0) => "U".to_string(),
+        Tm::U(l) => format!("U{l}"),
 
         Tm::Pi(x, a, b) if x == "_" => par(
             p,
@@ -184,7 +185,7 @@ mod tests {
 
     #[test]
     fn prints_atoms() {
-        assert_eq!(show_tm(&Tm::U), "U");
+        assert_eq!(show_tm(&Tm::U(0)), "U");
         assert_eq!(show_tm(&nat()), "Nat");
         assert_eq!(show_tm(&zero()), "zero");
         assert_eq!(show_tm(&suc(zero())), "suc zero");
@@ -202,7 +203,7 @@ mod tests {
             Box::new(Tm::App(
                 Box::new(Tm::App(
                     Box::new(Tm::Elim(nat_def())),
-                    Box::new(Tm::U),
+                    Box::new(Tm::U(0)),
                 )),
                 Box::new(zero()),
             )),

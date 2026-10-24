@@ -110,7 +110,7 @@ pub fn frc_s(s: &Sub, v: &Val) -> Val {
     match v {
         Val::Sub(v2, s2) => frc_s(&subst_sub(s, s2), v2),
         Val::Ne(n) => frc_ne_s(s, n),
-        Val::U => Val::U,
+        Val::U(l) => Val::U(*l),
         Val::Pi(x, a, cl) => Val::Pi(
             x.clone(),
             Rc::new(subst_val(s, a)),
@@ -362,7 +362,7 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
             let tv = eval(env, t);
             eval(&define(env, tv), u)
         }
-        Tm::U => Val::U,
+        Tm::U(l) => Val::U(*l),
         Tm::Id(a, x, y) => Val::id(eval(env, a), eval(env, x), eval(env, y)),
         Tm::Refl => Val::Refl,
         Tm::Data(def) => Val::data(def),
@@ -379,12 +379,29 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
 // Conversion checking (beta-eta)
 // ---------------------------------------------------------------------------
 
+/// Cumulative subtyping: like [`conv`], except that a universe `U i` is
+/// below `U j` whenever `i <= j`, and a function type may return a *smaller*
+/// type than expected (domains must agree).  This is the comparison to use
+/// where a term is *checked against* an expected type; definitional equality
+/// (`refl`, unification) stays strict.
+pub fn conv_le(l: Lvl, t: &Val, u: &Val) -> bool {
+    let t = frc(t);
+    let u = frc(u);
+    match (&t, &u) {
+        (Val::U(i), Val::U(j)) => i <= j,
+        (Val::Pi(_, a, b), Val::Pi(_, a2, b2)) => {
+            conv(l, a, a2) && conv_le(l.inc(), &b.apply(Val::vvar(l)), &b2.apply(Val::vvar(l)))
+        }
+        _ => conv(l, &t, &u),
+    }
+}
+
 /// Beta-eta conversion.  Precondition: both values have the same type.
 pub fn conv(l: Lvl, t: &Val, u: &Val) -> bool {
     let t = frc(t);
     let u = frc(u);
     match (&t, &u) {
-        (Val::U, Val::U) => true,
+        (Val::U(i), Val::U(j)) => i == j,
         (Val::Pi(_, a, b), Val::Pi(_, a2, b2)) => {
             conv(l, a, a2) && conv(l.inc(), &b.apply(Val::vvar(l)), &b2.apply(Val::vvar(l)))
         }
@@ -475,7 +492,7 @@ pub fn quote_val(l: Lvl, v: &Val) -> Tm {
     match frc(v) {
         Val::Ne(n) => quote_ne(l, &n),
         Val::Sub(..) => panic!("quote: impossible (unforced substitution)"),
-        Val::U => Tm::U,
+        Val::U(l) => Tm::U(l),
         Val::Pi(x, a, cl) => Tm::Pi(
             x,
             Box::new(quote_val(l, &a)),
@@ -625,7 +642,7 @@ mod tests {
         // Substitution is applied lazily: `frcS` on a constructor only delays
         // the substitution on the spine, so equality is up to conversion.
         let def = nat_def();
-        for v in [Val::U, num_with(&def, 0), num_with(&def, 3), Val::vvar(Lvl(0))] {
+        for v in [Val::U(0), num_with(&def, 0), num_with(&def, 3), Val::vvar(Lvl(0))] {
             assert!(conv(
                 Lvl(1),
                 &frc(&Val::vsub(v.clone(), id_sub(Lvl(1)))),
@@ -635,7 +652,7 @@ mod tests {
         // Atoms come back exactly.
         let z = num_with(&def, 0);
         assert_eq!(frc(&Val::vsub(z.clone(), id_sub(Lvl(1)))), z);
-        assert_eq!(frc(&Val::vsub(Val::U, id_sub(Lvl(1)))), Val::U);
+        assert_eq!(frc(&Val::vsub(Val::U(0), id_sub(Lvl(1)))), Val::U(0));
         let d = Val::data(&def);
         assert_eq!(frc(&Val::vsub(d.clone(), id_sub(Lvl(1)))), d);
     }
@@ -664,7 +681,7 @@ mod tests {
     /// The spine `[motive, zero-case, suc-case, target]` for `Nat`, with a
     /// constant motive (its value is irrelevant to reduction).
     fn nat_elim_spine(mz: Val, ms: Val, target: Val) -> Spine {
-        vec![Val::U, mz, ms, target]
+        vec![Val::U(0), mz, ms, target]
     }
 
     /// `λ n r . suc r` as a value (the `suc` case of addition-like recursors).
@@ -808,7 +825,7 @@ mod tests {
 
     #[test]
     fn conv_is_reflexive() {
-        for v in [Val::U, num(0), num(4), Val::Refl, Val::data(&nat_def())] {
+        for v in [Val::U(0), num(0), num(4), Val::Refl, Val::data(&nat_def())] {
             assert!(conv(Lvl::ZERO, &v, &v));
         }
     }
@@ -825,7 +842,7 @@ mod tests {
     #[test]
     fn conv_distinguishes_different_values() {
         assert!(!conv(Lvl::ZERO, &num(1), &num(2)));
-        assert!(!conv(Lvl::ZERO, &Val::data(&nat_def()), &Val::U));
+        assert!(!conv(Lvl::ZERO, &Val::data(&nat_def()), &Val::U(0)));
     }
 
     #[test]
@@ -852,7 +869,7 @@ mod tests {
 
     #[test]
     fn quote_reads_back_normal_forms() {
-        for t in [Tm::U, Tm::Refl, Tm::Bot] {
+        for t in [Tm::U(0), Tm::Refl, Tm::Bot] {
             assert_eq!(nf(&Env::empty(), &t), t);
         }
         // suc (suc zero) evaluates and quotes back
@@ -887,7 +904,7 @@ mod tests {
         assert_eq!(eval(&Env::empty(), &Tm::Bot), Val::Bot);
         assert_eq!(frc(&Val::Bot), Val::Bot);
         assert!(conv(Lvl::ZERO, &Val::Bot, &Val::Bot));
-        assert!(!conv(Lvl::ZERO, &Val::Bot, &Val::U));
+        assert!(!conv(Lvl::ZERO, &Val::Bot, &Val::U(0)));
         assert_eq!(quote_val(Lvl::ZERO, &Val::Bot), Tm::Bot);
     }
 

@@ -12,7 +12,7 @@
 //! Note: this is a "with-K" implementation, as in the original.
 
 use crate::context::{subst_ctx, Ctx, M};
-use crate::eval::{conv, eval, frc, quote_val, subst_cl, subst_sub, subst_val};
+use crate::eval::{conv, conv_le, eval, frc, quote_val, subst_cl, subst_sub, subst_val};
 use crate::pretty::show_val;
 use crate::subst::{id_sub, insert_sub};
 use crate::syntax::*;
@@ -159,6 +159,24 @@ fn report<T>(ctx: &Ctx, msg: String) -> M<T> {
 // Type checking
 // ---------------------------------------------------------------------------
 
+/// Elaborate `raw` in a position where a *type* is expected, returning the
+/// term, its value, and the universe level the type lives at (its own type is
+/// always a universe, which is what makes it a type at all).
+fn infer_type(ctx: &Ctx, raw: &Raw) -> M<(Tm, Val, u32)> {
+    let (t, ty) = infer(ctx, raw)?;
+    let va = eval(&ctx.env, &t);
+    match frc(&ty) {
+        Val::U(l) => Ok((t, va, l)),
+        ty => report(
+            ctx,
+            format!(
+                "expected a type, but the term has type\n\n  {}",
+                show_val(ctx, &ty)
+            ),
+        ),
+    }
+}
+
 /// Check `r` against `ty`, returning its core term.
 pub fn check(ctx: &Ctx, r: &Raw, ty: &Val) -> M<Tm> {
     let ty = frc(ty);
@@ -166,8 +184,7 @@ pub fn check(ctx: &Ctx, r: &Raw, ty: &Val) -> M<Tm> {
         Raw::SrcPos(pos, t) => check(&ctx.with_pos(pos.clone()), t, &ty),
         Raw::Lam(ps, t) => check_pm(ctx, ps, t, &ty),
         Raw::Let(x, a, t, u) => {
-            let a = check(ctx, a, &Val::U)?;
-            let va = eval(&ctx.env, &a);
+            let (a, va, _) = infer_type(ctx, a)?;
             let t = check(ctx, t, &va)?;
             let vt = eval(&ctx.env, &t);
             let u = check(&ctx.define(x.clone(), vt, va), u, &ty)?;
@@ -194,7 +211,7 @@ pub fn check(ctx: &Ctx, r: &Raw, ty: &Val) -> M<Tm> {
         }
         r => {
             let (t, ty2) = infer(ctx, r)?;
-            if conv(ctx.lvl, &ty2, &ty) {
+            if conv_le(ctx.lvl, &ty2, &ty) {
                 Ok(t)
             } else {
                 report(
@@ -320,7 +337,7 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
             Ok((Tm::Var(ix), ty))
         }
 
-        Raw::U => Ok((Tm::U, Val::U)),
+        Raw::U(l) => Ok((Tm::U(*l), Val::U(l + 1))),
 
         Raw::App(t, u) => {
             let (t, tty) = infer(ctx, t)?;
@@ -348,15 +365,17 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
         Raw::Lam(..) => report(ctx, "Can't infer type for lambda expression".to_string()),
 
         Raw::Pi(x, a, b) => {
-            let a = check(ctx, a, &Val::U)?;
-            let va = eval(&ctx.env, &a);
-            let b = check(&ctx.bind(x.clone(), va), b, &Val::U)?;
-            Ok((Tm::Pi(x.clone(), Box::new(a), Box::new(b)), Val::U))
+            let (a, va, la) = infer_type(ctx, a)?;
+            let (b, _, lb) = infer_type(&ctx.bind(x.clone(), va), b)?;
+            Ok((
+                Tm::Pi(x.clone(), Box::new(a), Box::new(b)),
+                // a function type lives at the join of its domain and codomain
+                Val::U(la.max(lb)),
+            ))
         }
 
         Raw::Let(x, ty, t, u) => {
-            let ty = check(ctx, ty, &Val::U)?;
-            let vty = eval(&ctx.env, &ty);
+            let (ty, vty, _) = infer_type(ctx, ty)?;
             let t = check(ctx, t, &vty)?;
             let vt = eval(&ctx.env, &t);
             let (u, uty) = infer(&ctx.define(x.clone(), vt, vty), u)?;
@@ -369,11 +388,11 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
         Raw::Refl => report(ctx, "Can't infer type for refl".to_string()),
 
         Raw::Id(a, x, y) => {
-            let a = check(ctx, a, &Val::U)?;
-            let va = eval(&ctx.env, &a);
+            let (a, va, la) = infer_type(ctx, a)?;
             let x = check(ctx, x, &va)?;
             let y = check(ctx, y, &va)?;
-            Ok((Tm::Id(Box::new(a), Box::new(x), Box::new(y)), Val::U))
+            // `Id A x y` lives where `A` lives
+            Ok((Tm::Id(Box::new(a), Box::new(x), Box::new(y)), Val::U(la)))
         }
 
         Raw::Data(..) => {
@@ -447,28 +466,32 @@ pub fn elab_data(
     let mut pctx = ctx.clone();
     let mut ptys: Vec<(Name, Tm)> = Vec::with_capacity(k);
     for (x, a_raw) in params {
-        let a = check(&pctx, a_raw, &Val::U)?;
-        let va = eval(&pctx.env, &a);
+        let (a, va, _) = infer_type(&pctx, a_raw)?;
         ptys.push((x.clone(), a));
         pctx = pctx.bind(x.clone(), va);
     }
     // Parameter p_i lives at level ctx.lvl + i.
 
-    // 2. The type after the parameters must be `U` (no indexed families).
-    let ty = check(&pctx, ty_raw, &Val::U)?;
-    if !conv(pctx.lvl, &eval(&pctx.env, &ty), &Val::U) {
-        return report(
-            ctx,
-            format!(
-                "an inductive type must be declared in U, but {}'s type is\n\n  {}",
-                name,
-                show_val(&pctx, &frc(&eval(&pctx.env, &ty)))
-            ),
-        );
-    }
+    // 2. The type after the parameters must *be* a universe (any level; no
+    //    indexed families).
+    let (ty, ty_val, _) = infer_type(&pctx, ty_raw)?;
+    let level = match &frc(&ty_val) {
+        Val::U(l) => *l,
+        _ => {
+            return report(
+                ctx,
+                format!(
+                    "an inductive type must be declared in a universe, but {}'s type is\n\n  {}",
+                    name,
+                    show_val(&pctx, &frc(&ty_val))
+                ),
+            )
+        }
+    };
 
-    // 3. The datatype's own type `Pi params U`, and a definition skeleton
-    //    (parameters and constructors are committed once checking is done).
+    // 3. The datatype's own type `Pi params (U level)`, and a definition
+    //    skeleton (parameters and constructors are committed once checking is
+    //    done).
     let mut d_ty = ty;
     for (x, a) in ptys.iter().rev() {
         d_ty = Tm::Pi(x.clone(), Box::new(a.clone()), Box::new(d_ty));
@@ -476,6 +499,7 @@ pub fn elab_data(
     let d_ty_val = eval(&ctx.env, &d_ty);
     let mut def = Rc::new(IndDef {
         name: name.clone(),
+        level,
         params: Vec::new(),
         ctors: Vec::new(),
     });
@@ -491,8 +515,7 @@ pub fn elab_data(
         let mut ctx_d = ctx.define(name.clone(), Val::data(&def), d_ty_val.clone());
         let mut cps: Vec<(Name, Tm)> = Vec::with_capacity(k);
         for (x, a_raw) in params {
-            let a = check(&ctx_d, a_raw, &Val::U)?;
-            let va = eval(&ctx_d.env, &a);
+            let (a, va, _) = infer_type(&ctx_d, a_raw)?;
             cps.push((x.clone(), a));
             ctx_d = ctx_d.bind(x.clone(), va);
         }
@@ -501,7 +524,7 @@ pub fn elab_data(
         let pvs: Spine = (0..k).map(|i| Val::vvar(Lvl(ctx.lvl.0 + 1 + i))).collect();
         let mut infos = Vec::with_capacity(ctors.len());
         for (cname, craw) in ctors {
-            let tm = check(&ctx_d, craw, &Val::U)?;
+            let (tm, _ty_val, _) = infer_type(&ctx_d, craw)?;
 
             // Walk the constructor's telescope on values: collect the argument
             // domains and the result.
@@ -658,7 +681,7 @@ fn subst_outer(t: &Tm, d: usize, k: usize, ctx: &Ctx) -> Tm {
                 crate::subst::lift(&quote_val(ctx.lvl, &v), 0, 1)
             }
         }
-        Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
         Tm::App(f, a) => Tm::App(
             Box::new(subst_outer(f, d, k, ctx)),
             Box::new(subst_outer(a, d, k, ctx)),
@@ -692,7 +715,7 @@ fn subst_outer(t: &Tm, d: usize, k: usize, ctx: &Ctx) -> Tm {
 fn occurs_data(t: &Tm, def: &Rc<IndDef>) -> bool {
     match t {
         Tm::Data(d) => Rc::ptr_eq(d, def),
-        Tm::Var(_) | Tm::U | Tm::Refl | Tm::Bot | Tm::Ctor(..) | Tm::Elim(_) => false,
+        Tm::Var(_) | Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Ctor(..) | Tm::Elim(_) => false,
         Tm::App(f, a) => occurs_data(f, def) || occurs_data(a, def),
         Tm::Id(a, x, y) => {
             occurs_data(a, def) || occurs_data(x, def) || occurs_data(y, def)
@@ -753,7 +776,7 @@ fn classify_arg(v: &Val, def: &Rc<IndDef>, pvs: &Spine, l: Lvl) -> Option<bool> 
 fn free_vars_only_d(t: &Tm, d: usize) -> bool {
     match t {
         Tm::Var(i) => i.0 <= d,
-        Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => true,
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => true,
         Tm::App(f, a) => free_vars_only_d(f, d) && free_vars_only_d(a, d),
         Tm::Id(a, x, y) => free_vars_only_d(a, d) && free_vars_only_d(x, d) && free_vars_only_d(y, d),
         Tm::Pi(_, a, b) => free_vars_only_d(a, d) && free_vars_only_d(b, d + 1),
@@ -772,7 +795,7 @@ pub fn close_data(t: &Tm, def: &Rc<IndDef>) -> Tm {
         match t {
             Tm::Var(i) if i.0 >= d => Tm::Data(def.clone()),
             Tm::Var(i) => Tm::Var(*i),
-            Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
             Tm::App(f, a) => Tm::App(Box::new(go(f, d, def)), Box::new(go(a, d, def))),
             Tm::Id(a, x, y) => Tm::Id(
                 Box::new(go(a, d, def)),
@@ -859,14 +882,15 @@ pub fn elim_ty(def: &Rc<IndDef>) -> Tm {
         })
         .collect();
 
-    // The motive's type `(x : D ps) -> U` in the context `[ps]`: the motive
-    // does *not* abstract the parameters again, they are the eliminator's own
-    // leading arguments.  `D` becomes the constant; the stored parameter
-    // domains are not needed here.
+    // The motive's type `(x : D ps) -> U level` in the context `[ps]`: the
+    // motive does *not* abstract the parameters again, they are the
+    // eliminator's own leading arguments, and it eliminates into the
+    // universe the datatype was declared in.  `D` becomes the constant; the
+    // stored parameter domains are not needed here.
     let motive_ty = Tm::Pi(
         "_".to_string(),
         Box::new(app(Tm::Data(def.clone()), p_vars(k, 0))),
-        Box::new(Tm::U),
+        Box::new(Tm::U(def.level)),
     );
 
     // The methods, each in the context `[ps, P, m_0 .. m_{i-1}]`.
@@ -962,7 +986,7 @@ fn remap_free(t: &Tm, map: &[Option<usize>], def: &Rc<IndDef>) -> Tm {
                     }
                 }
             }
-            Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
+            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => t.clone(),
             Tm::App(f, a) => Tm::App(Box::new(go(f, d, map, def)), Box::new(go(a, d, map, def))),
             Tm::Id(a, x, y) => Tm::Id(
                 Box::new(go(a, d, map, def)),
@@ -1098,7 +1122,7 @@ mod tests {
         let stuck_elim = |x: Lvl| {
             Val::ne(Ne::Elim(
                 def.clone(),
-                vec![Val::U, num(&def, 0), suc_case(&def), Val::vvar(x)],
+                vec![Val::U(0), num(&def, 0), suc_case(&def), Val::vvar(x)],
             ))
         };
         assert!(matches!(
@@ -1113,7 +1137,7 @@ mod tests {
         let def = nat_def();
         let a = Val::ne(Ne::Elim(
             def.clone(),
-            vec![Val::U, num(&def, 0), suc_case(&def), num(&def, 0)],
+            vec![Val::U(0), num(&def, 0), suc_case(&def), num(&def, 0)],
         ));
         assert!(matches!(
             unify1(Lvl(0), &a, &num(&def, 0)),
@@ -1155,8 +1179,8 @@ mod tests {
     /// tests.  The indices are arbitrary; only their unifiability matters.
     fn absurd_pi() -> Val {
         let def = nat_def();
-        let id = Val::id(Val::U, num(&def, 0), num(&def, 1));
-        Val::pi("_", id, Closure::new(Env::empty(), Tm::U))
+        let id = Val::id(Val::U(0), num(&def, 0), num(&def, 1));
+        Val::pi("_", id, Closure::new(Env::empty(), Tm::U(0)))
     }
 
     #[test]
@@ -1171,7 +1195,7 @@ mod tests {
         // Unreachable from the parser (an absurd lambda always ends in `Bot`),
         // but part of the checker's contract.
         let ctx = crate::context::Ctx::empty(crate::syntax::Pos::initial("<test>"));
-        let err = check_pm(&ctx, &[Pn::Abs], &Raw::U, &absurd_pi());
+        let err = check_pm(&ctx, &[Pn::Abs], &Raw::U(0), &absurd_pi());
         match err {
             Err(e) => assert!(e.msg.contains("absurd pattern"), "unexpected: {}", e.msg),
             Ok(t) => panic!("expected an error, got {t:?}"),
@@ -1182,8 +1206,8 @@ mod tests {
     fn absurd_pattern_is_rejected_on_a_reflexivity_equation() {
         let ctx = crate::context::Ctx::empty(crate::syntax::Pos::initial("<test>"));
         let def = nat_def();
-        let id = Val::id(Val::U, num(&def, 0), num(&def, 0));
-        let ty = Val::pi("_", id, Closure::new(Env::empty(), Tm::U));
+        let id = Val::id(Val::U(0), num(&def, 0), num(&def, 0));
+        let ty = Val::pi("_", id, Closure::new(Env::empty(), Tm::U(0)));
         match check_pm(&ctx, &[Pn::Abs], &Raw::Bot, &ty) {
             Err(e) => assert!(
                 e.msg.contains("should try pattern 'refl'"),
@@ -1217,6 +1241,7 @@ mod tests {
     fn elim_ty_of_an_empty_type() {
         let def = Rc::new(IndDef {
             name: "Empty".into(),
+            level: 0,
             params: vec![],
             ctors: vec![],
         });
