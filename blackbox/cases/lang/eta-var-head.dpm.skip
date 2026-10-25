@@ -1,0 +1,11 @@
+-- ETA, PARKED (see findings-lang.md): eval.rs documents conv as
+-- "Beta-eta conversion", but a lambda is not convertible to the neutral
+-- it eta-expands to.  This canonical shape is rejected with exit 1 and
+-- "expecting (lambda x . f x) equals to f, but it is not" (the lambda
+-- glyph is printed), exactly as NOTES.md's inherited-limitations
+-- section documents ("No eta").  The behaviour is deliberate; the
+-- eval.rs comment is the defect.  Sidecars pin today's rejection
+-- (verified against the pinned binary).
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let e : (f : Nat -> Nat) -> Id (Nat -> Nat) (\ x . f x) f = \ f . refl;
+e

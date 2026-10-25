@@ -1,0 +1,9 @@
+-- two stuck elims whose MOTIVE arguments are only convertible, not
+-- syntactically equal: the let-bound motive m is a transparent
+-- definition of the same lambda, so the spines agree pointwise and
+-- refl proves the two stuck neutrals equal under the binder n
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let m : Nat -> U = \ _ . Nat;
+let q : (n : Nat) -> Id Nat (elim Nat m zero (\ h r . h) n)
+                        (elim Nat (\ _ . Nat) zero (\ h r . h) n) = \ n . refl;
+q

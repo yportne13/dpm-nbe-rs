@@ -3,6 +3,8 @@
 //! ```text
 //! dpm-nbe nf    # read a program from stdin, print its normal form and type
 //! dpm-nbe type  # read a program from stdin, print its type
+//! dpm-nbe prune # read a program from stdin, drop the declarations the goal
+//!               # cannot reach, print the rest as source
 //! dpm-nbe --help
 //! ```
 
@@ -11,16 +13,19 @@ use std::io::Read;
 use std::process::ExitCode;
 
 const HELP: &str = "\
-usage: dpm-nbe [--help|nf|type]
+usage: dpm-nbe [--help|nf|type|prune]
   --help : display this message
   nf     : read & typecheck a program from stdin, print its normal form and type
-  type   : read & typecheck a program from stdin, print its type";
+  type   : read & typecheck a program from stdin, print its type
+  prune  : read (but do not typecheck) a program from stdin, drop the
+           declarations the final expression cannot reach, print the rest";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mode = match args.as_slice() {
         [a] if a == "nf" => Mode::Nf,
         [a] if a == "type" => Mode::Type,
+        [a] if a == "prune" => Mode::Prune,
         _ => {
             println!("{HELP}");
             return ExitCode::SUCCESS;

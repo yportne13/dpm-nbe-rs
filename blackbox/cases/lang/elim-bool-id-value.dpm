@@ -1,0 +1,5 @@
+-- identity on Bool written as the bare recursor: the let value IS the
+-- partially applied eliminator, and its normal form stays stuck
+data Bool : U where true : Bool; false : Bool;
+let idb : Bool -> Bool = elim Bool (\ _ . Bool) true false;
+idb

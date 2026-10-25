@@ -1,0 +1,3 @@
+-- identity at a higher universe: U and U are the same level-2 type
+let p : Id U1 U U = refl;
+p

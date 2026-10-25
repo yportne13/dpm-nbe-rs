@@ -1,0 +1,5 @@
+-- addition by recursion on the first argument: 3 + 4 = 7
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+plus (suc (suc (suc zero))) (suc (suc (suc (suc zero))))

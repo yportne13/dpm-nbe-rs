@@ -1,0 +1,9 @@
+-- a tree node has TWO recursive arguments, so its method receives two
+-- induction hypotheses; sum adds both subtrees and the label
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+data Tree : U where leaf : Tree; node : Tree -> Nat -> Tree -> Tree;
+let sum : Tree -> Nat =
+  elim Tree (\ _ . Nat) zero (\ l lr x r rr . plus lr (plus x rr));
+sum (node (node leaf (suc zero) leaf) (suc (suc zero)) leaf)

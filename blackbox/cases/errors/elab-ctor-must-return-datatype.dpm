@@ -1,0 +1,1 @@
+data Bad : U where mk : U; U

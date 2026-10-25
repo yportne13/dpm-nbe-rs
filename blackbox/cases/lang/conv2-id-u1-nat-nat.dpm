@@ -1,0 +1,7 @@
+-- cumulativity boundary, accepting side: the endpoints of an Id may
+-- live one universe below the Id's type argument, because checking
+-- Nat : U1 goes through conv_le; refl still needs strict conv on the
+-- endpoints, and Nat equals Nat
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let p : Id U1 Nat Nat = refl;
+p

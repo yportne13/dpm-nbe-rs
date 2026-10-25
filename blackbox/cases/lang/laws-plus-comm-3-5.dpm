@@ -1,0 +1,8 @@
+-- plus-comm, 3+5 instance: both sides normalise to 8, so refl checks
+-- (conversion does the proving)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let e : Id Nat (plus (suc (suc (suc zero))) (suc (suc (suc (suc (suc zero))))))
+              (plus (suc (suc (suc (suc (suc zero))))) (suc (suc (suc zero)))) = refl;
+e

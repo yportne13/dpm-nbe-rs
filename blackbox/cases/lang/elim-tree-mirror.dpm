@@ -1,0 +1,6 @@
+-- mirroring uses both IHs and swaps them under the node constructor
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+data Tree : U where leaf : Tree; node : Tree -> Nat -> Tree -> Tree;
+let mirror : Tree -> Tree =
+  elim Tree (\ _ . Tree) leaf (\ l lr x r rr . node rr x lr);
+mirror (node (node leaf (suc zero) leaf) (suc (suc zero)) (node leaf (suc (suc (suc zero))) leaf))

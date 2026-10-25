@@ -1,0 +1,7 @@
+-- append by recursion on the first list: [1,2] ++ [0] = [1,2,0]
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+data List (A : U) : U where nil : List A; cons : A -> List A -> List A;
+let app : (A : U) -> List A -> List A -> List A =
+  \ A xs ys . elim List A (\ _ . List A) ys (\ a as r . cons A a r) xs;
+app Nat (cons Nat (suc zero) (cons Nat (suc (suc zero)) (nil Nat)))
+       (cons Nat zero (nil Nat))

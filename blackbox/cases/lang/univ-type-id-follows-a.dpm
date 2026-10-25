@@ -1,0 +1,4 @@
+-- Id A x y lives where A lives: A = U1 is a level-2 thing, so U2;
+-- Nat itself flows into U1 by cumulativity
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+Id U1 Nat Nat

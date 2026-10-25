@@ -165,6 +165,14 @@ pub fn is_keyword(s: &str) -> bool {
     KEYWORDS.contains(&s)
 }
 
+/// A universe of the tower beyond level 0: `U` followed by digits only
+/// (`U1`, `U2`, ...), the spelling `src/parse.rs` reads as `Raw::U(l)`.
+/// Like the reserved words this is fixed vocabulary, so it lexes as a
+/// keyword rather than as an identifier.
+pub fn is_universe(s: &str) -> bool {
+    s.len() > 1 && s.starts_with('U') && s[1..].bytes().all(|b| b.is_ascii_digit())
+}
+
 /// `λ` and `\` both start a lambda.
 pub fn is_lambda(s: &str) -> bool {
     s == "λ" || s == "\\"
@@ -270,7 +278,7 @@ pub fn lex(src: &str) -> Vec<Token> {
                 }
             }
             let word = &src[start..i];
-            let kind = if is_keyword(word) {
+            let kind = if is_keyword(word) || is_universe(word) {
                 TokKind::Keyword
             } else {
                 TokKind::Ident
@@ -934,6 +942,10 @@ pub struct HoverInfo {
 pub fn keyword_doc(word: &str) -> Option<&'static str> {
     Some(match word {
         "U" => "`U` — the universe of level 0.  The tower is predicative: `U : U1 : U2 : ...`.",
+        _ if is_universe(word) => {
+            "`U` followed by digits (`U1`, `U2`, ...) — the universe of that level in the \
+             predicative tower `U : U1 : U2 : ...`."
+        }
         "Id" => "`Id A x y` — the identity (propositional equality) type of `A` at `x` and `y`.",
         "refl" => "`refl` — the constructor of `Id A x x`.\n\nAs a λ pattern it refines the context by unifying the indices of the identity type.",
         "data" => "`data D (params) : U where c : ty; ...` — declare an inductive type.  No data types are built in: `Nat` is a declaration like any other.",

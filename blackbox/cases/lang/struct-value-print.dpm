@@ -1,0 +1,5 @@
+-- the normal form of a struct value is the (saturated) constructor
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Pr (A : U) (B : U) : U where left : A; right : B;
+let p : Pr Nat Nat = mkPr Nat Nat (suc zero) (suc (suc zero));
+p

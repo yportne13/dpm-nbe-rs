@@ -1,0 +1,6 @@
+-- the eliminator applied to its motive only, checked against a Pi type;
+-- the methods and target are supplied later, at use site
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let e : Nat -> ((n : Nat) -> Nat -> Nat) -> Nat -> Nat =
+  elim Nat (\ _ . Nat);
+e zero (\ n r . r) (suc (suc (suc zero)))

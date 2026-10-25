@@ -1,0 +1,5 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+struct Pair (A : U) (B : U) : U where fst : A; snd : B;
+data Bool : U where true : Bool; false : Bool;
+let p : Pair Nat Nat = mkPair Nat Nat (suc zero) zero;
+plus (p.fst) (snd Nat Nat p)

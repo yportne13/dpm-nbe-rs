@@ -35,11 +35,11 @@
     },
     "keyword": {
       "name": "keyword.control.dpm-nbe",
-      "match": "\\b(let|in|data|where|elim)\\b"
+      "match": "\\b(let|in|data|struct|where|elim)\\b"
     },
     "type": {
       "name": "support.type.dpm-nbe",
-      "match": "\\b(U|Id)\\b"
+      "match": "\\b(U[0-9]*|Id)(?![A-Za-z0-9'])"
     },
     "constructor": {
       "name": "constant.language.dpm-nbe",

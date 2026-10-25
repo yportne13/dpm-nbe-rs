@@ -444,6 +444,87 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "let a : Nat = zero; let b : Nat = a; b",
         "Nat\n",
     ),
+    // -- regression rows for the inductive-types fixes ----------------------
+    //
+    // A constructor argument that merely *ends* in the datatype (`Nat -> R`,
+    // `U -> R`) is not recursive: its method binds the argument and nothing
+    // else, so `elim R` below has a one-argument mk-method.  The first row
+    // uses a `U -> R` argument, which lives in `U1`, so `R` itself is
+    // declared there (the ctor-arg universe guard rejects it at `U`); the
+    // second keeps the same semantics with a domain small enough for any
+    // universe, and the third pins the generated method type.
+    (
+        "nf_elim_fn_arg_no_ih",
+        "nf",
+        "data R : U1 where base : R; mk : (U -> R) -> R;\nelim R (\\ _ . Nat) zero (\\ f . zero) (mk (\\ u . base))",
+        "zero\n  :\nNat\n",
+    ),
+    (
+        "nf_elim_fn_arg_no_ih_nat_domain",
+        "nf",
+        "data R : U where base : R; mk : (Nat -> R) -> R;\nelim R (\\ _ . Nat) zero (\\ f . zero) (mk (\\ n . base))",
+        "zero\n  :\nNat\n",
+    ),
+    (
+        "nf_elim_head_fn_arg_no_ih",
+        "nf",
+        "data R : U where base : R; mk : (Nat -> R) -> R; elim R",
+        "elim R\n  :\n(P : R → U) → P base → ((Nat → R) → P (mk _)) → (x : R) → P x\n",
+    ),
+    // A datatype may store small-universe codes only if it is declared one
+    // level up (`Wrap1`/`Wrap2` in `U1`), while the `U`-level `Wrap` below is
+    // rejected (see `err_ctor_arg_from_higher_universe`).
+    (
+        "nf_data_high_universe_stores_small_code",
+        "nf",
+        "data Wrap1 : U1 where mk : U -> Wrap1; mk Nat",
+        "mk Nat\n  :\nWrap1\n",
+    ),
+    (
+        "nf_struct_high_universe_stores_small_code",
+        "nf",
+        "struct Wrap2 : U1 where carrier : U; mkWrap2 Nat",
+        "mkWrap2 Nat\n  :\nWrap2\n",
+    ),
+    // A struct field may mention the struct itself; the projections then
+    // typecheck (no closed value of such a struct exists without recursion).
+    (
+        "nf_struct_recursive_field_hd",
+        "nf",
+        "struct Box : U where n : Nat; b : Box; let hd : Box -> Nat = \\ b . b.n; U",
+        "U\n  :\nU1\n",
+    ),
+    (
+        "nf_struct_recursive_field_tl",
+        "nf",
+        "struct Box : U where n : Nat; b : Box; let tl : Box -> Box = \\ b . b.b; U",
+        "U\n  :\nU1\n",
+    ),
+    // The generated projection `fst` and the surface projection `p.fst` are
+    // the same function: applied to one pair they must both reduce to the
+    // same numeral, so `plus` of the two is `2`.
+    (
+        "nf_struct_projection_forms_agree",
+        "nf",
+        "struct Pair (A : U) (B : U) : U where fst : A; snd : B; let p : Pair Nat Nat = mkPair Nat Nat (suc zero) zero; plus (fst Nat Nat p) (p.fst)",
+        "suc (suc zero)\n  :\nNat\n",
+    ),
+    // A struct parameter may be called `p` (the name the desugaring used to
+    // use for its own binder) without capturing anything.
+    (
+        "nf_struct_param_named_p",
+        "nf",
+        "struct Foo (p : U) : U where f : p; let x : Foo Nat = mkFoo Nat zero; x.f",
+        "zero\n  :\nNat\n",
+    ),
+    // The parser accepts universe levels up to 2^30 - 1; the level's own
+    // type is the next universe up.
+    (
+        "nf_U_max_level",
+        "nf",
+        "U1073741823",
+        "U1073741823\n  :\nU1073741824\n",
+    ),
 ];
 
 /// (name, mode, source-after-prelude, line, col, message) for exit-code-1
@@ -585,6 +666,36 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
         1,
         "elim expects a data type\n",
     ),
+    // -- regression rows for the inductive-types fixes ----------------------
+    //
+    // The mk-method for a function-typed argument takes exactly one argument,
+    // so a two-pattern method is one pattern too many.
+    (
+        "err_elim_fn_arg_method_arity",
+        "nf",
+        "data R : U where base : R; mk : (Nat -> R) -> R;\nelim R (\\ _ . Nat) zero (\\ f r . r) (mk (\\ n . base))",
+        5,
+        26,
+        "Too many patterns.\n",
+    ),
+    // A `U`-level datatype may not store a small-universe code.
+    (
+        "err_ctor_arg_from_higher_universe",
+        "nf",
+        "data Wrap : U where mk : U -> Wrap; Wrap",
+        4,
+        1,
+        "constructor mk of Wrap may not store arguments from a higher universe (declare Wrap in a higher universe)\n",
+    ),
+    // Two fields of one struct may not share a name.
+    (
+        "err_struct_duplicate_field",
+        "nf",
+        "struct S : U where a : Nat; a : Nat; U",
+        4,
+        1,
+        "struct S has duplicate field a\n",
+    ),
 ];
 
 /// (name, source) garbage that must not parse.
@@ -601,6 +712,9 @@ static PARSE_ERR: &[(&str, &str)] = &[
     ("parse_stray_rparen", "Id Nat zero zero)"),
     ("parse_missing_body", "let x : Nat = zero;"),
     ("parse_empty_input", ""),
+    // The largest accepted universe level is 2^30 - 1; one more does not
+    // parse (see also `nf_U_max_level` above).
+    ("parse_U_level_too_large", "U1073741824"),
 ];
 
 // ---------------------------------------------------------------------------

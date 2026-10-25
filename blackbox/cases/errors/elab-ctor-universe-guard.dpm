@@ -1,0 +1,1 @@
+data Wrap : U where mk : U -> Wrap; Wrap

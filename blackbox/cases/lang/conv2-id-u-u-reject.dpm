@@ -1,0 +1,6 @@
+-- cumulativity boundary, rejecting side: Id U U U would need the
+-- endpoint U to inhabit the type U, but U : U1 and cumulativity never
+-- lowers a level, so the elaboration is a type mismatch (expected U,
+-- inferred U1); the legal spelling of "U equals U" is Id U1 U U
+let p : Id U U U = refl;
+p

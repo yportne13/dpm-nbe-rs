@@ -1,0 +1,4 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+{- block
+   comment -}
+suc U

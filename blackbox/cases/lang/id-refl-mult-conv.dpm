@@ -1,0 +1,9 @@
+-- same through multiplication: mult 2 3 = 6 definitionally
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let mult : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) zero (\ m r . plus b r) a;
+let p : Id Nat (mult (suc (suc zero)) (suc (suc (suc zero))))
+                (suc (suc (suc (suc (suc (suc zero)))))) = refl;
+p

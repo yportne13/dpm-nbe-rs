@@ -1,0 +1,3 @@
+node (node leaf (suc (suc (suc zero))) leaf) (suc (suc zero)) (node leaf (suc zero) leaf)
+  :
+Tree

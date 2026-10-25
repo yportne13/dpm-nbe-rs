@@ -1,0 +1,9 @@
+-- length with a constant motive: count the cons cells, 2 + 1 = 3
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+data List (A : U) : U where nil : List A; cons : A -> List A -> List A;
+let len : (A : U) -> List A -> Nat =
+  \ A xs . elim List A (\ _ . Nat) zero (\ a as r . suc r) xs;
+plus (len Nat (cons Nat (suc zero) (cons Nat (suc (suc zero)) (nil Nat))))
+     (len Nat (cons Nat zero (nil Nat)))

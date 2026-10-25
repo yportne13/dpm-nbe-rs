@@ -1,0 +1,4 @@
+-- Bool elimination nested twice: or false (or true false) = true
+data Bool : U where true : Bool; false : Bool;
+let or : Bool -> Bool -> Bool = \ a b . elim Bool (\ _ . Bool) true b a;
+or false (or true false)

@@ -1,0 +1,8 @@
+-- the double-refinement program from the README: the second refl makes
+-- the first one's stuck eliminator reducible again
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let H : (m n : Nat) -> Id Nat n (plus m zero) -> Id Nat m zero -> Id Nat n zero =
+  \ m n refl refl . refl;
+H zero zero refl refl

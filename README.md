@@ -5,12 +5,14 @@ A Rust re-implementation of the Haskell project
 under a normalization-by-evaluation setup**), upgraded over the
 original: **user-declared inductive types** (nothing is built in any more,
 `Nat` is a declaration like any other), **structs** -- records as sugar over
-single-constructor declarations, with `x.f` projections -- and a
-**predicative hierarchy of universes** `U : U1 : U2 : ...` with cumulativity.
+single-constructor declarations, with `x.f` projections -- a
+**predicative hierarchy of universes** `U : U1 : U2 : ...` with cumulativity,
+and a **`prune` mode** that drops the declarations the final expression
+cannot reach.
 
 * ~3k lines of implementation, **no dependencies** (standard library only).
 * Library + `dpm-nbe` command-line tool.
-* 147 unit tests + 7 black-box tests + 25 LSP integration tests.
+* 167 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 
@@ -39,6 +41,11 @@ echo 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; suc zero' \
 
 # print its type
 echo '(A : U) -> A -> A' | ./target/release/dpm-nbe type
+
+# drop the declarations the final expression cannot reach, print the rest
+echo 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;' \
+  'let dead : Nat = zero; suc zero' \
+  | ./target/release/dpm-nbe prune
 ```
 
 `nf` prints
@@ -53,9 +60,10 @@ Errors are printed to stderr (with the source line, a caret and the message)
 and exit with status 1; parse and type errors are reported the same way:
 
 ```
-<stdin>:1:31:
+<stdin>:1:48:
+  |
 1 | data Nat : U where zero : Nat; let bad : Nat = U; U
-  |                               ^
+  |                                                ^
 type mismatch
 
 expected type:
@@ -64,8 +72,21 @@ expected type:
 
 inferred type:
 
-  U
+  U1
 ```
+
+## Testing
+
+```sh
+cargo test --workspace                     # unit tests + the golden suite (tests/golden.rs)
+cargo build --release && blackbox/run.sh   # end-to-end cases against the built CLI
+blackbox/run.sh blackbox/cases/lang        # a single area: lang/, errors/ or stress/
+```
+
+The `blackbox/` tree drives the compiled binary as a black box -- program on
+stdin, `nf`/`type`, stdout, stderr and exit status checked per case; the case
+format and its sidecar files are documented in
+[`blackbox/README.md`](blackbox/README.md).
 
 ## Language server and web IDE
 
@@ -122,6 +143,8 @@ itself lands one level up (`(A : U) -> A -> A : U1`).  Checking is *cumulative*:
 where a term is checked against an expected type, `U i` fits `U j` whenever
 `i <= j`, so a `(A : U1) -> A -> A` identity accepts `Nat : U` arguments.
 Definitional equality (what `refl` and the pattern matcher use) stays strict.
+Level numerals are bounded: the parser accepts up to `U1073741823` (every
+level stays below 2^30); `U1073741824` and beyond are parse errors.
 
 ### Inductive types
 
@@ -162,7 +185,10 @@ Pair A B` plus one projection function per field (`fst`, `snd`, each
 `(A : U) (B : U) -> Pair A B -> T_i`, defined with the eliminator); `x.f`
 elaborates to that eliminator applied to `x`'s type's parameters.  Field
 types may not depend on earlier fields (a projection could not be typed);
-use a plain `data` if you need that.
+use a plain `data` if you need that.  A struct must also be declared in a
+universe at least as high as its field types: `struct Wrap : U1 where
+carrier : U;` is accepted, but the same declaration at `U` is rejected
+(`U : U1`, so the carrier's type does not fit in `U`).
 
 Declarations may take parameters, and the eliminator abstracts them first:
 

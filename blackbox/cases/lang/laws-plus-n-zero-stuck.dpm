@@ -1,0 +1,9 @@
+-- n+0 for a VARIABLE n: the recursion is stuck on the neutral n, so
+-- the law does not hold definitionally (no induction); the normal
+-- form is the stuck eliminator, which this case pins.  Contrast
+-- laws-plus-zero-left, where the same law holds on the other side.
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let f : Nat -> Nat = \ n . plus n zero;
+f

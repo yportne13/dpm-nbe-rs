@@ -1,0 +1,2 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+data Wrap1 : U1 where mk : U -> Wrap1; mk Nat

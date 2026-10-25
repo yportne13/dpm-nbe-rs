@@ -14,7 +14,7 @@ env:
 
 jobs:
   test:
-    name: Library, language server, web build and extension
+    name: Library, language server, black-box suite, web build and extension
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +31,26 @@ jobs:
       - name: Test the workspace
         run: cargo test --workspace
 
-      - name: Build the language server
-        run: cargo build --release -p dpm-nbe-lsp
+      # One release build of the whole workspace: it produces the
+      # target/release/dpm-nbe binary that the black-box suite below drives,
+      # and it still compiles the language server that this job used to build
+      # with a separate `cargo build --release -p dpm-nbe-lsp` invocation.
+      - name: Build the release binaries (CLI and language server)
+        run: cargo build --release
+
+      # ------------------------------------------------------------ blackbox
+      # The runner is self-contained: it locates the binary itself (with a
+      # .exe fallback that simply does not match on Linux), needs no
+      # arguments for the full suite, and exits nonzero on any failing case,
+      # which fails this step -- and the job -- as-is.
+      - name: Black-box CLI suite
+        run: bash blackbox/run.sh
+
+      # Randomized no-panic fuzzer over the same release binary: deterministic
+      # default seed, ~20 s.  Any exit status outside {0,1,2}, an internal
+      # panic, or a hang fails the script (and this step).
+      - name: Randomized fuzz (no-panic invariant)
+        run: node blackbox/fuzz.mjs
 
       # ------------------------------------------------------------ wasm/web
       - uses: actions/cache@v4

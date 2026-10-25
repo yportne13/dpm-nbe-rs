@@ -458,11 +458,14 @@ fn fmt(template: &str, args: &[&str]) -> String {
 /// followed, still in scope for `body`, by one projection per field:
 ///
 /// ```text
-/// let fi : Pi ps (p : S ps) -> Ti =
-///   λ ps p . elim S ps (λ _ . Ti) (λ f1 ... fn . fi) p;
+/// let fi : Pi ps (q : S ps) -> Ti = λ ps q . q.fi;
 /// ```
 ///
-/// Because `Ti` appears under `(p : S ps)`, a field type may not depend on an
+/// with `q` fresh (against the ambient names, the parameters and the fields),
+/// so the generated function and the surface syntax `x.f` are elaborated by
+/// the one semantic path for projections, [`infer_proj`].
+///
+/// Because `Ti` appears under `(q : S ps)`, a field type may not depend on an
 /// earlier field: the projection's type would have no binding for it, and the
 /// declaration is rejected right there.
 pub fn elab_struct(
@@ -482,6 +485,14 @@ pub fn elab_struct(
         acc
     };
 
+    // Two fields of the same name would be two different arguments of the
+    // constructor, with no way to tell them apart at a projection site.
+    for (i, (f, _)) in fields.iter().enumerate() {
+        if fields[..i].iter().any(|(g, _)| g == f) {
+            return report(ctx, format!("struct {} has duplicate field {}", name, f));
+        }
+    }
+
     // The constructor: `mkS : (f1 : T1) -> ... -> (fn : Tn) -> S ps`.
     let mut ctor_ty = s_app(None);
     for (f, t) in fields.iter().rev() {
@@ -489,46 +500,33 @@ pub fn elab_struct(
     }
     let ctor = (format!("mk{name}"), Box::new(ctor_ty));
 
+    // The struct-value binder of the generated projections, fresh against the
+    // ambient context, the parameters and the fields, so that it captures
+    // nothing (a parameter is typically called `p`).
+    let mut q = "p".to_string();
+    while ctx.names.iter().any(|n| *n == q)
+        || params.iter().any(|(p, _)| *p == q)
+        || fields.iter().any(|(f, _)| *f == q)
+    {
+        q.push('\'');
+    }
+
     // The projections, wrapped around the body.
     let mut body_out = body.clone();
     for (f, t) in fields.iter() {
-        // type: Pi ps (p : S ps) -> T
-        let mut p_ty = Raw::Pi(
-            "p".to_string(),
-            Box::new(s_app(None)),
-            Box::new(t.clone()),
-        );
+        // type: Pi ps (q : S ps) -> T
+        let mut p_ty = Raw::Pi(q.clone(), Box::new(s_app(None)), Box::new(t.clone()));
         for (p, a) in params.iter().rev() {
             p_ty = Raw::Pi(p.clone(), Box::new(a.clone()), Box::new(p_ty));
         }
-        // value: λ ps p . elim S ps (λ _ . T) (λ f1 .. fn . f_idx) p
-        // (the selector saturates every field so the eta-expanded method
-        // reduces to the wanted one -- here simply `f_idx` applied to all
-        // field variables is written directly as the projection body)
-        let sel = Raw::Var(f.clone());
-        let mut proj_body = Raw::Elim(Box::new(Raw::Var(name.clone())));
-        proj_body = s_app(Some(proj_body));
-        proj_body = Raw::App(
-            Box::new(proj_body),
-            Box::new(Raw::Lam(
-                vec![Pn::Var("_".to_string())],
-                Box::new(t.clone()),
-            )),
+        // value: λ ps q . q.f -- the projection exactly as the surface syntax
+        // spells it, so both paths share `infer_proj`'s semantics.
+        let mut lams: Vec<Pn> = params.iter().map(|(p, _)| Pn::Var(p.clone())).collect();
+        lams.push(Pn::Var(q.clone()));
+        let value = Raw::Lam(
+            lams,
+            Box::new(Raw::Proj(Box::new(Raw::Var(q.clone())), f.clone())),
         );
-        proj_body = Raw::App(
-            Box::new(proj_body),
-            Box::new(Raw::Lam(
-                fields.iter().map(|(g, _)| Pn::Var(g.clone())).collect(),
-                Box::new(sel),
-            )),
-        );
-        proj_body = Raw::App(Box::new(proj_body), Box::new(Raw::Var("p".to_string())));
-        let mut lams = params
-            .iter()
-            .map(|(p, _)| Pn::Var(p.clone()))
-            .collect::<Vec<_>>();
-        lams.push(Pn::Var("p".to_string()));
-        let value = Raw::Lam(lams, Box::new(proj_body));
 
         body_out = Raw::Let(f.clone(), Box::new(p_ty), Box::new(value), Box::new(body_out));
     }
@@ -540,8 +538,10 @@ pub fn elab_struct(
 
 /// `x.f`: project the field named `f` out of `x`, whose type must be a
 /// single-constructor data type (a struct).  Elaborates to its eliminator:
-/// `elim S ps (λ _ . T_f) (λ f1 .. fn . f_idx) x`, with the parameters `ps`
-/// read off `x`'s type.
+/// `elim S ps (λ _ . T_f) (λ f1 f1'? .. fn fn'? . f_idx) x`, with the
+/// parameters `ps` read off `x`'s type.  The method binds every field, plus
+/// an induction hypothesis `fi'` after each *recursive* one -- exactly the
+/// interleaving the method type in [`elim_ty`] prescribes.
 fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
     let (t, ty) = infer(ctx, x)?;
     let ty = frc(&ty);
@@ -553,7 +553,7 @@ fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
                     ctx,
                     format!(
                         "{}.{} : {} is not a declared type, so it has no fields",
-                        show_val(ctx, &eval(&ctx.env, &t)),  // placeholder, refined below
+                        show_val(ctx, &eval(&ctx.env, &t)),
                         f,
                         show_val(ctx, &ty)
                     ),
@@ -571,8 +571,6 @@ fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
             )
         }
     };
-    let _ = &def;
-    let (def, ps) = (def, ps);
     if def.ctors.len() != 1 {
         return report(
             ctx,
@@ -607,7 +605,7 @@ fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
 
     // A field type may not mention an earlier field (there is nothing to
     // instantiate it with at the projection site).
-    if field_depends_on_earlier(args[idx].1, idx, k) {
+    if field_depends_on_earlier(args[idx].1, idx) {
         return report(
             ctx,
             format!(
@@ -631,15 +629,28 @@ fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
     let field_ty = eval(&env, args[idx].1);
 
     // The motive quotes that value one level down (under the motive's own
-    // binder); the method selects the wanted field.
+    // binder); the method binds every field, with an induction hypothesis
+    // after each recursive one, so it lines up with the interleaved binders
+    // of the eliminator's method type (and with `elim_step`, which applies
+    // it as `a_1 r_1 .. a_j r_j`).  The body is the selected field's
+    // variable; its index counts from the innermost of those binders.
     let motive = Tm::Lam(
         vec![Pn::Var("_".to_string())],
         Box::new(quote_val(ctx.lvl.inc(), &field_ty)),
     );
-    let method = Tm::Lam(
-        args.iter().map(|(n, _)| Pn::Var(n.to_string())).collect(),
-        Box::new(Tm::Var(Ix(args.len() - 1 - idx))),
-    );
+    let mut mps: Vec<Pn> = Vec::with_capacity(2 * args.len());
+    let mut pos = 0usize; // flat position of field `idx` in the interleaved list
+    for (j, (n, _)) in args.iter().enumerate() {
+        if j == idx {
+            pos = mps.len();
+        }
+        mps.push(Pn::Var(n.to_string()));
+        if c0.recursive[j] {
+            mps.push(Pn::Var(format!("{}'", n)));
+        }
+    }
+    let body_ix = Ix(mps.len() - 1 - pos);
+    let method = Tm::Lam(mps, Box::new(Tm::Var(body_ix)));
 
     // `elim S ps motive method x`
     let mut term = Tm::Elim(def.clone());
@@ -652,27 +663,23 @@ fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
     Ok((term, field_ty))
 }
 
-/// Whether a stored field type (at position `idx`, over `k` parameters) has a
-/// free variable among the earlier fields.  The stored context from the
-/// inside out is `[f_{idx-1}, .., f_0, p_{k-1}, .., p_0, D]`, so slots below
-/// `idx` are fields.
-fn field_depends_on_earlier(t: &Tm, idx: usize, k: usize) -> bool {
-    fn go(t: &Tm, d: usize, idx: usize, k: usize) -> bool {
+/// Whether a stored field type (at position `idx`) has a free variable among
+/// the earlier fields.  The stored context from the inside out is
+/// `[f_{idx-1}, .., f_0, p_{k-1}, .., p_0, D]`, so slots below `idx` are
+/// fields.
+fn field_depends_on_earlier(t: &Tm, idx: usize) -> bool {
+    fn go(t: &Tm, d: usize, idx: usize) -> bool {
         match t {
             Tm::Var(i) => i.0 >= d && (i.0 - d) < idx,
             Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => false,
-            Tm::App(f, a) => go(f, d, idx, k) || go(a, d, idx, k),
-            Tm::Id(a, x, y) => {
-                go(a, d, idx, k) || go(x, d, idx, k) || go(y, d, idx, k)
-            }
-            Tm::Pi(_, a, b) => go(a, d, idx, k) || go(b, d + 1, idx, k),
-            Tm::Lam(ps, b) => go(b, d + num_pvars(ps).0, idx, k),
-            Tm::Let(_, a, v, b) => {
-                go(a, d, idx, k) || go(v, d, idx, k) || go(b, d + 1, idx, k)
-            }
+            Tm::App(f, a) => go(f, d, idx) || go(a, d, idx),
+            Tm::Id(a, x, y) => go(a, d, idx) || go(x, d, idx) || go(y, d, idx),
+            Tm::Pi(_, a, b) => go(a, d, idx) || go(b, d + 1, idx),
+            Tm::Lam(ps, b) => go(b, d + num_pvars(ps).0, idx),
+            Tm::Let(_, a, v, b) => go(a, d, idx) || go(v, d, idx) || go(b, d + 1, idx),
         }
     }
-    go(t, 0, idx, k)
+    go(t, 0, idx)
 }
 
 /// Elaborate `data D params : ty where c1 : t1; ... ; body`.
@@ -761,7 +768,7 @@ pub fn elab_data(
         let pvs: Spine = (0..k).map(|i| Val::vvar(Lvl(ctx.lvl.0 + 1 + i))).collect();
         let mut infos = Vec::with_capacity(ctors.len());
         for (cname, craw) in ctors {
-            let (tm, _ty_val, _) = infer_type(&ctx_d, craw)?;
+            let (tm, _ty_val, clvl) = infer_type(&ctx_d, craw)?;
 
             // Walk the constructor's telescope on values: collect the argument
             // domains and the result.
@@ -833,6 +840,23 @@ pub fn elab_data(
                         )
                     }
                 }
+            }
+
+            // Predicativity: the constructor type must not live in a higher
+            // universe than the datatype.  A Pi type lives at the max of its
+            // domain and codomain levels, and the (checked) result is exactly
+            // `D ps`, which sits at the datatype's own level -- so `clvl >
+            // level` can only mean some argument domain stores elements from
+            // a higher universe, and this single comparison guards every
+            // argument at once.
+            if clvl > level {
+                return report(
+                    ctx,
+                    format!(
+                        "constructor {} of {} may not store arguments from a higher universe (declare {} in a higher universe)",
+                        cname, name, name
+                    ),
+                );
             }
 
             // The stored public type.  First, references to enclosing
@@ -969,8 +993,9 @@ fn occurs_data(t: &Tm, def: &Rc<IndDef>) -> bool {
 ///
 /// * `Some(true)`  -- the argument is `D params`, a recursive argument.
 /// * `Some(false)` -- `D` does not occur, or occurs only as the final
-///   codomain of a chain of function types (`Nat -> D`): a legal but
-///   non-recursive argument, which the eliminator gives no hypothesis for.
+///   codomain of a chain of function types (`Nat -> D`, and the same verdict
+/// when the chain ends in `D params` itself): a legal but non-recursive
+///   argument, which the eliminator gives no hypothesis for.
 /// * `None`        -- `D` occurs in a domain (or anywhere else it may not),
 ///   so the constructor is not strictly positive.
 ///
@@ -994,7 +1019,14 @@ fn classify_arg(v: &Val, def: &Rc<IndDef>, pvs: &Spine, l: Lvl) -> Option<bool> 
             if occurs_data(&quote_val(l, a), def) {
                 return None;
             }
-            classify_arg(&frc(&cl.apply(Val::vvar(l))), def, pvs, l.inc())
+            // Whatever the codomain classification is, the argument is a
+            // function type, not `D params` itself, so it is never a
+            // recursive argument: an occurrence at the codomain of a chain
+            // of function types is legal but gets no induction hypothesis.
+            match classify_arg(&frc(&cl.apply(Val::vvar(l))), def, pvs, l.inc()) {
+                None => None,
+                Some(_) => Some(false),
+            }
         }
         _ => {
             if occurs_data(&quote_val(l, v), def) {

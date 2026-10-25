@@ -1,0 +1,7 @@
+-- plus-assoc, (1+2)+3 = 1+(2+3) instance: both sides normalise to 6
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let e : Id Nat (plus (plus (suc zero) (suc (suc zero))) (suc (suc (suc zero))))
+              (plus (suc zero) (plus (suc (suc zero)) (suc (suc (suc zero))))) = refl;
+e

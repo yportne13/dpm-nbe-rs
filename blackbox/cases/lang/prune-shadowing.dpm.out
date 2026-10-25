@@ -1,0 +1,4 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let f : Nat -> Nat = λ n . zero;
+let zero : Nat = suc zero;
+f zero

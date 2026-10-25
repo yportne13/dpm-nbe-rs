@@ -1,0 +1,7 @@
+-- List map through the generated eliminator: (+2) over [0,1] = [2,3]
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+data List (A : U) : U where nil : List A; cons : A -> List A -> List A;
+let map : (A : U) (B : U) -> (A -> B) -> List A -> List B =
+  \ A B f xs . elim List A (\ _ . List B) (nil B)
+                (\ a as r . cons B (f a) r) xs;
+map Nat Nat (\ x . suc (suc x)) (cons Nat zero (cons Nat (suc zero) (nil Nat)))

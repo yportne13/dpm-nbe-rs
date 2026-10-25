@@ -1,0 +1,3 @@
+λ n . refl
+  :
+(n : Nat) → Id Nat (elim Nat (λ _ . Nat) zero (λ m r . m) n) (elim Nat (λ _ . Nat) zero (λ m r . m) n)

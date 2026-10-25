@@ -1,0 +1,6 @@
+-- pattern-matching on refl transports P x to P y: the proof term px
+-- is retyped by the refinement y := x
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let transport : (A : U) (P : A -> U) (x y : A) -> Id A x y -> P x -> P y =
+  \ A P x y refl px . px;
+transport Nat (\ _ . Nat) zero zero refl (suc zero)

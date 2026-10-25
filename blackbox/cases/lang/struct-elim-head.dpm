@@ -1,0 +1,5 @@
+-- the generated eliminator type of a two-field struct: the method's
+-- binders carry the field names
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Pt : U where px : Nat; py : Nat;
+elim Pt

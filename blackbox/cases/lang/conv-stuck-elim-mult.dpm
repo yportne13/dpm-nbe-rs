@@ -1,0 +1,9 @@
+-- the same corner through mult: mult n zero is stuck, and refl still
+-- proves it equal to itself
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let mult : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) zero (\ m r . plus b r) a;
+let q : (n : Nat) -> Id Nat (mult n zero) (mult n zero) = \ n . refl;
+q

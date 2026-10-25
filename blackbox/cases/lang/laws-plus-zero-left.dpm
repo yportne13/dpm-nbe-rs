@@ -1,0 +1,8 @@
+-- 0+n: the eliminator recurses on its FIRST argument, so plus zero n
+-- fires on the zero constructor even for a NEUTRAL n; the law holds
+-- definitionally and the printed Id type reduces to Id Nat n n
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let e : (n : Nat) -> Id Nat (plus zero n) n = \ n . refl;
+e

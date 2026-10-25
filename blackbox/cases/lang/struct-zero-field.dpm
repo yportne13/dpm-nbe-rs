@@ -1,0 +1,4 @@
+-- the empty struct is the singleton type: one constructor, no fields
+struct Unit : U where
+let u : Unit = mkUnit;
+u

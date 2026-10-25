@@ -1,0 +1,5 @@
+-- cumulativity: Nat : U also inhabits U1, so the polymorphic identity
+-- instantiated at U1 still applies to zero
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let f : (A : U1) -> A -> A = \ A x . x;
+f Nat zero

@@ -1,0 +1,2 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+struct Box : U where n : Nat; b : Box; let tl : Box -> Box = \ b . b.b; U

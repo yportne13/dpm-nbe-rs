@@ -1,0 +1,9 @@
+-- one generic projection used at two different parameter instantiations
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+struct Pr (A : U) (B : U) : U where left : A; right : B;
+let getS : (A : U) (B : U) -> Pr A B -> B = \ A B p . p.right;
+plus (getS Nat Nat (mkPr Nat Nat (suc zero) (suc (suc (suc zero)))))
+     (getS Nat (Pr Nat Nat) (mkPr Nat (Pr Nat Nat) zero
+                         (mkPr Nat Nat (suc (suc zero)) zero))).right

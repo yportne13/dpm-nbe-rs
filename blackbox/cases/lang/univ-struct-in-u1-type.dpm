@@ -1,0 +1,3 @@
+-- a struct with a U-valued field must be declared in U1, and is
+struct Box : U1 where carrier : U;
+Box

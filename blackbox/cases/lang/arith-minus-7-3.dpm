@@ -1,0 +1,6 @@
+-- truncated subtraction: minus 7 3 = 4
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let minus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) a (\ m r . pred r) b;
+minus (suc (suc (suc (suc (suc (suc (suc zero))))))) (suc (suc (suc zero)))

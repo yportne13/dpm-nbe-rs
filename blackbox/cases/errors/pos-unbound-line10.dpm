@@ -1,0 +1,10 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ m n . elim Nat (\ _ . Nat) n (\ _ r . suc r) m;
+let v1 : Nat = zero;
+let v2 : Nat = zero;
+let v3 : Nat = zero;
+let v4 : Nat = zero;
+let v5 : Nat = zero;
+let v6 : Nat = zero;
+  yy

@@ -1,0 +1,12 @@
+-- equality decision by elimination: eqb compares the two truncated
+-- differences; both empty means equal, so eqb 2 2 = true
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let minus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) a (\ m r . pred r) b;
+data Bool : U where true : Bool; false : Bool;
+let is0 : Nat -> Bool = \ n . elim Nat (\ _ . Bool) true (\ m r . false) n;
+let eqb : Nat -> Nat -> Bool = \ a b . is0 (plus (minus a b) (minus b a));
+eqb (suc (suc zero)) (suc (suc zero))

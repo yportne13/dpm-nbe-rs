@@ -1,0 +1,2 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+struct S : U where a : Nat; b : Id Nat a a; U

@@ -71,7 +71,9 @@ implementation).
 
 Items 1-3, 5-7 and 13 fix defects that make the original diverge, panic, lose
 information or reject valid programs; item 4 restores the complexity that
-laziness gave the original; items 8-12 are interface and robustness choices.
+laziness gave the original; items 8-12 are interface and robustness choices;
+item 17 keeps constructor declarations inside their universe; item 18 adds a
+CLI mode the original does not have.
 Every item is covered by tests (see the end of this file).
 
 ### 1. Forcing a lambda terminates (`eval::frc_ne`)
@@ -224,11 +226,18 @@ the user's whole identifier.
   and `atom` recursion, the number of arguments in an application, the number
   of `(x : A)` binder groups and the number of lambda patterns -- and reports
   "expression nesting is too deep" instead of overflowing the stack.  The
-  budget is shared, so a construct that goes through several of these spends
-  several units per level (`suc (...)` spends three, i.e. ~170 levels; a bare
-  `suc suc ...` chain reaches 512; `(((...)))` reaches ~256; chained top-level
-  `let`s reach ~500).  Before this was enforced on all paths, `suc `×5000 or
-  `zero `×20000 aborted the process with exit 0xC0000409.
+  budget is shared, and forms spend it at different rates: parenthesised
+  nesting (applications, `(...)`, `suc (suc (... zero))` literals) costs ~2
+  units per level, binder bodies (`λ`, `let`) ~1, while projections, data
+  parameter groups and flat argument width have their own `> 512` counters.
+  Measured last-pass/first-fail on the release binary: `(((...)))` 255/256,
+  `λ`s nested in one `let` 509/510, chained `let`s 510/511, projection chains
+  512/513 and flat argument width 511/512; a program prelude shifts the
+  nesting forms down by the units it has already spent (253/254, 506/507,
+  507/508 there).  The `blackbox/` suite pins both sides of every boundary;
+  `blackbox/findings-stress.md` is the executable source of truth.  Before
+  this was enforced on all paths, `suc `×5000 or `zero `×20000 aborted the
+  process with exit 0xC0000409.
 * Because parsing, elaboration, evaluation and quotation all recurse over the
   program structure, the CLI additionally runs the whole pipeline on a thread
   with a 64 MiB stack (`lib::STACK_SIZE`, `main.rs`); library users processing
@@ -258,21 +267,22 @@ position of the *start* of that token, while the original reports megaparsec's
 furthest-failure position (just after the token): `suc let` is `1:5` in the port
 and `1:8` in the original.  This is cosmetic -- the message is the same.
 
-### 12. Surface-syntax extensions for reading back printed terms
+### 12. Printed terms read back: `suc` everywhere, `'` in identifiers
 
-The printer writes `succ` (as the original's `Pretty.hs` does) while the parser
-accepts `suc`, so the original's output is not valid input.  The port accepts
-`succ` as a synonym, and accepts `'` inside identifiers, because `Pretty.hs`
+The original's `Pretty.hs` writes `succ` while its parser accepts only `suc`,
+so the original's printed output is not valid input.  The port prints what it
+parses: numerals are written `suc zero`, `suc (suc zero)`.  `succ` is not a
+reserved word -- with `Nat` declared, `succ zero` fails with `unbound
+variable: succ`, and `let succ : Nat = zero; succ` elaborates like any other
+name.  The port also accepts `'` inside identifiers, because `Pretty.hs`
 freshens names by appending apostrophes (`A'`).
 
-The first of these is not purely additive: `succ` becomes a reserved word, so
-`let succ : Nat = zero; succ` (which the original accepts as an ordinary
-variable) no longer parses.  The alternative -- printing `suc` -- would change
-every printed numeral, which is a much more visible difference, so the port
-keeps the original's spelling and reserves the word.  `'` in identifiers is
+The cost is a visible spelling difference against the original (`suc zero`
+where `Pretty.hs` writes `succ zero`); the gain is that the port's output
+round-trips as input without reserving any word.  `'` in identifiers is
 purely additive.
 
-### 13. Conversion of stuck `plus` neutrals (`eval::conv_ne`)
+### 13. Conversion of stuck neutrals (`eval::conv_ne`)
 
 Haskell's `convNe` has cases for `NVar` and `NLam` only, so two syntactically
 identical stuck `plus` neutrals are *not* convertible.  Conversion is therefore
@@ -283,8 +293,14 @@ let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \ n m . refl; f
 ```
 
 is rejected with the self-contradictory "expecting plus n m equals to plus n m,
-but it is not".  The port compares `Ne::Plus` structurally, which restores
-reflexivity for neutrals without affecting anything that reduces.
+but it is not".  The port compares stuck neutrals structurally -- `Ne::Plus`
+originally, and since deviation 14 the `Ne::Data`/`Ne::Ctor`/`Ne::Elim` heads,
+so the same program with a *declared* `Nat` and a defined `plus` is again
+accepted -- which restores reflexivity for neutrals without affecting anything
+that reduces.  Conversion is nonetheless **beta-only**: there is no eta, so a
+lambda is never convertible to a neutral of function type -- `Id (Nat -> Nat)
+(\ x . f x) f` is rejected with "expecting λ x . f x equals to f, but it is
+not", and `Id (Nat -> Nat) (\ x . suc x) suc` likewise -- as in the original.
 
 ### 14. User-declared inductive types replace the built-in `Nat`
 
@@ -333,7 +349,9 @@ types, and universes above `U`.
 The original has a single self-filled universe (`U : U`), which makes its
 theory inconsistent.  The port replaces it with a tower: `Tm::U(l)` /
 `Val::U(l)`, written `U` for level 0 and `U1`, `U2`, ... above it, with
-`U l : U (l+1)`.
+`U l : U (l+1)`.  Level numerals are bounded: `parse::MAX_LEVEL = 2^30 - 1`
+is the largest the parser accepts (every level stays below 2^30), and
+`U1073741824` up is a parse error.
 
 * **Where levels come from.**  A function type lives at the maximum of its
   domain's and codomain's levels; `Id A x y` lives where `A` lives; a `data`
@@ -366,9 +384,90 @@ constructor domain under those parameter values -- which keeps concrete
 (non-variable) parameters working where term-level index remapping would not.
 
 Restrictions that follow: a field type may not depend on an earlier field
-(the projection would be untypeable, and the declaration is rejected when
-the generated projection is checked), and `x.f` requires `x`'s type to be a
+(the projection would be untypeable, and the declaration is rejected when the
+generated projection is checked), the declaration must sit in a
+universe at least as high as its field types (`struct Wrap : U1 where
+carrier : U;` is accepted; at `U` the field type `U : U1` does not fit, and
+the declaration is rejected), and `x.f` requires `x`'s type to be a
 single-constructor declaration.  The empty struct is the singleton type.
+
+### 17. A datatype sits at least as high as what its constructors store (`elab::elab_data`)
+
+A constructor's type is a telescope of function types ending in `D ps`.  A
+function type lives at the maximum of its domain's and codomain's levels, and
+the result `D ps` sits at `D`'s own level, so the level of the constructor
+type is bounded below by every argument domain: whatever a constructor stores
+forces the declaration's level at least that high.  The port enforces this
+with a single comparison (`clvl > level`) while checking the declaration:
+
+```
+data Wrap : U where mk : U -> Wrap; Wrap
+```
+
+is rejected at the declaration with `constructor mk of Wrap may not store
+arguments from a higher universe (declare Wrap in a higher universe)` -- the
+stored `U` lives in `U1`.  The legal shape moves the declaration up:
+
+```
+data R : U1 where base : R; mk : (U -> R) -> R; R
+```
+
+Here the argument type `(U -> R)` lives in `U1`, exactly where `R` sits, and
+the declaration elaborates (`R : U1`).  The comparison is on levels, so a
+*smaller* argument is fine (`data W : U1 where mk : Nat -> W;` checks, since
+`Nat : U`), every rung of the tower is guarded (`mk : U1 -> W` needs `W : U2`)
+and parameters are covered (`data Box (A : U1) : U where mk : A -> Box A` is
+rejected the same way).  `struct` declarations meet the same guard through
+their generated constructor: `struct Wrap : U where carrier : U;` reports
+`constructor mkWrap of Wrap ...`, while `struct Wrap : U1 where carrier : U;`
+is accepted -- the "universe at least as high as its field types" restriction
+of deviation 16 is this guard.
+
+`R` also shows how a `D`-occurrence behind a function *codomain* is treated:
+strictly positive, but not a recursive argument, so the generated
+eliminator's method for `mk` takes exactly the constructor's one argument and
+no induction hypothesis:
+
+```
+elim R : (P : R → U1) → P base → ((U → R) → P (mk _)) → (x : R) → P x
+```
+
+### 18. `prune`: the unreached declarations, removed (`prune`, `main.rs`)
+
+The original has two CLI modes; the port adds a third, `dpm-nbe prune`, which
+the original does not have.  A program is a linear chain of top-level
+declarations ending in the goal expression; `prune` keeps exactly the
+declarations the goal can still name -- those it mentions, those *they*
+mention, and so on -- and prints the program back as surface syntax.
+
+Resolution is lexical, innermost declaration first, exactly as
+`Ctx::lookup` elaborates a variable.  That is also the argument that pruning
+preserves meaning: a use is resolved by the innermost declaration that binds
+it, and that declaration is kept whenever the use is, while a dropped
+declaration binds nothing any kept part resolves against (if it did, it would
+have been the resolver and been kept).  Dropped declarations therefore never
+rebind a name, and the pruned program elaborates to the same term and type.
+What a declaration *binds* follows the elaborator: a `let` binds its name (a
+`let _` nothing), a `data` its type and constructors, a `struct` those plus
+the `mkS` and per-field projections its sugar generates; parameters stay
+local, and a constructor type sees the datatype but not its siblings.
+
+`prune` parses but never typechecks, so a broken declaration survives as long
+as nothing reachable names it -- that is the point:
+
+```
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let broken : Nat = U;
+suc zero
+```
+
+prints the `Nat` declaration and `suc zero` and exits 0, where `nf` reports
+the type mismatch in `broken`.  Parse errors are reported as in the other
+modes.  The printed form re-parses to the pruned tree (the declaration chain
+serialises naturally: each declaration's body is the next line), pruning is
+idempotent, and `prune::tests::pruned_programs_elaborate_identically` pins
+the nf/type-preservation property on the README program, arithmetic and
+struct programs; `blackbox/cases/lang/prune-*.dpm` pin the CLI bytes.
 
 ## Inherited limitations
 
@@ -393,9 +492,10 @@ single-constructor declaration.  The empty struct is the singleton type.
   syntax for it, so the normal form of an absurd-pattern lambda cannot be fed
   back in.  The original cannot print such a value at all.
 * `parse::MAX_DEPTH` is deliberately conservative (512 units, shared across
-  nesting forms), because the parser itself runs on the caller's stack: about
-  256 nested parentheses, ~170 `suc (...)` levels, or 512 flat arguments /
-  patterns / binders.  The CLI's 64 MiB thread is defence in depth, not the
+  nesting forms), because the parser itself runs on the caller's stack: 255
+  nested parentheses, 254 `suc (...)` levels under a minimal `Nat` prelude,
+  ~509 nested binder bodies or 511 flat arguments (deviation 10 records the
+  measured boundaries).  The CLI's 64 MiB thread is defence in depth, not the
   limit.
 * A program can still *build* an exponentially large normal form, and then
   evaluation, quotation and printing exhaust time and stack by construction:
@@ -405,7 +505,7 @@ single-constructor declaration.  The empty struct is the singleton type.
 
 ## Tests
 
-`cargo test` runs 147 unit tests inside `src/` plus the `tests/golden.rs`
+`cargo test` runs 167 unit tests inside `src/` plus the `tests/golden.rs`
 black-box suite (7 tests, ~120 table checks: success cases including the
 arithmetic prelude, `Bool`/`List` elimination, the README programs and
 generated transitivity proofs, declaration errors, elaboration errors with
@@ -425,6 +525,9 @@ printing (precedence, freshness), and the whole elaboration pipeline: the
 README examples, declarations (scoping, shadowing, nominal typing, positivity,
 indexed families rejected, enclosing binders rejected), `Bool`/`List`
 elimination, `genTransN` for n = 1..12 plus a scaling test up to n = 30, every
-error message, the definitional-equality cases, the two output modes, and the
-fixed regressions described above.  The LSP suite adds 25 integration tests,
-the web IDE 39 + 29 smoke checks.
+error message, the definitional-equality cases, the output modes, and the
+fixed regressions described above.  The `prune` module's tests cover the
+reachability analysis (dropping, transitive dependencies, shadowing
+resolution, generated struct names), surface printing (round-trip,
+idempotence) and the nf/type-preservation property (deviation 18).  The LSP
+suite adds 25 integration tests, the web IDE 39 + 29 smoke checks.

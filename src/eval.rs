@@ -87,9 +87,20 @@ pub fn subst_cl(s: &Sub, cl: &Closure) -> Closure {
 
 /// Force `v` to weak head normal form: resolve delayed substitutions, run
 /// primitive reductions and apply stuck lambdas.
+///
+/// Forcing stops at the *head*: a rigid neutral -- a variable, a data former,
+/// a constructor -- is in weak head normal form whatever its arguments are,
+/// so its arguments are left untouched (they may be delayed substitutions)
+/// and forced by whoever consumes them.  Eagerly walking the whole spine
+/// instead, as an earlier version of the port did, makes a single `frc` cost
+/// the size of the entire value: building `suc (suc ... zero)` numerals then
+/// forces a depth-n chain once per eliminator step, i.e. quadratically in
+/// the successor count.  (The original writes `frcS sb <$> sp` under these
+/// heads as well, but laziness means it never runs.)
 pub fn frc(v: &Val) -> Val {
     match v {
         Val::Sub(v, s) => frc_s(s, v),
+        Val::Ne(n) if matches!(&**n, Ne::Var(..) | Ne::Data(..) | Ne::Ctor(..)) => v.clone(),
         Val::Ne(n) => frc_ne(n),
         _ => v.clone(),
     }
@@ -132,7 +143,10 @@ pub fn frc_s(s: &Sub, v: &Val) -> Val {
 pub fn frc_ne(n: &Ne) -> Val {
     match n {
         Ne::Sub(n2, s) => frc_ne_s(s, n2),
-        Ne::Var(v, sp) => Val::ne(Ne::Var(*v, frc_sp(sp))),
+        // Rigid heads carry no pending substitution and cannot reduce, so
+        // they are already in weak head normal form; their arguments are
+        // left as they are and forced on demand (see [`frc`]).
+        Ne::Var(..) | Ne::Data(..) | Ne::Ctor(..) => Val::ne(n.clone()),
         Ne::Lam(ps, k, cl, sp) if sp.is_empty() => {
             // A lambda is a semantic value: with no arguments to match there
             // is nothing to reduce, so it is already in weak head normal form.
@@ -144,9 +158,10 @@ pub fn frc_ne(n: &Ne) -> Val {
             let lam = Val::ne(Ne::Lam(ps.clone(), *k, cl.clone(), Vec::new()));
             frc_res(&napp(&lam, &frc_sp(sp)))
         }
-        Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), frc_sp(sp))),
-        Ne::Ctor(d, i, sp) => Val::ne(Ne::Ctor(d.clone(), *i, frc_sp(sp))),
-        Ne::Elim(d, sp) => frc_res(&elim_step(d, &frc_sp(sp))),
+        // The eliminator forces the target itself, and the methods it applies
+        // are forced by the `napp` that applies them, so the spine needs no
+        // pre-forcing here either.
+        Ne::Elim(d, sp) => frc_res(&elim_step(d, sp)),
     }
 }
 
@@ -376,7 +391,8 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
 }
 
 // ---------------------------------------------------------------------------
-// Conversion checking (beta-eta)
+// Conversion checking (beta only; eta is deliberately absent -- NOTES.md,
+// deviation 13)
 // ---------------------------------------------------------------------------
 
 /// Cumulative subtyping: like [`conv`], except that a universe `U i` is
@@ -396,7 +412,8 @@ pub fn conv_le(l: Lvl, t: &Val, u: &Val) -> bool {
     }
 }
 
-/// Beta-eta conversion.  Precondition: both values have the same type.
+/// Beta conversion (no eta; see NOTES.md, deviation 13).  Precondition:
+/// both values have the same type.
 pub fn conv(l: Lvl, t: &Val, u: &Val) -> bool {
     let t = frc(t);
     let u = frc(u);

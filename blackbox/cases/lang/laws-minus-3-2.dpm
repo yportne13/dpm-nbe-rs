@@ -1,0 +1,7 @@
+-- truncated-minus, 3-2 = 1 instance: holds literally, both sides are 1
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let minus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) a (\ m r . pred r) b;
+let e : Id Nat (minus (suc (suc (suc zero))) (suc (suc zero))) (suc zero) = refl;
+e

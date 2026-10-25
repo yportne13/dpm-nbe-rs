@@ -1,0 +1,6 @@
+-- symmetry, applied: matching the refl argument swaps the endpoints,
+-- and the result is refl again
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let sym : (A : U) (a b : A) -> Id A a b -> Id A b a =
+  \ A a b refl . refl;
+sym Nat zero zero refl

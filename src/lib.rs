@@ -20,6 +20,7 @@ pub mod elab;
 pub mod eval;
 pub mod parse;
 pub mod pretty;
+pub mod prune;
 pub mod subst;
 pub mod syntax;
 
@@ -45,6 +46,8 @@ pub enum Mode {
     Nf,
     /// Type of the program.
     Type,
+    /// The program without the declarations the goal cannot reach.
+    Prune,
 }
 
 /// Stack size used by the CLI for the elaborator thread.
@@ -98,6 +101,7 @@ pub fn run_named(src: &str, file: &str, mode: Mode) -> Result<String, Error> {
             let (_, a) = typecheck_named(src, file)?;
             Ok(pretty::show_tm(&eval::quote_val(Lvl::ZERO, &a)))
         }
+        Mode::Prune => prune::prune_named(src, file),
     }
 }
 
@@ -382,9 +386,11 @@ leaf : Tree; node : (Nat -> Tree) -> Tree; U"
             "{msg}"
         );
         // ... and so are enclosing *definitions*: inline the type instead
+        // (at the datatype's own level, since a constructor may not store
+        // arguments from a higher universe)
         assert_eq!(
-            normal_form("let A : U1 = U; data D : U where mk : U -> D; D"),
-            "D"
+            normal_form("let A : U1 = U; data D1 : U1 where mk : U -> D1; D1"),
+            "D1"
         );
     }
 
@@ -850,6 +856,42 @@ f (suc1 (suc1 zero1))"
         assert_eq!(type_of("U1000"), "U1001");
     }
 
+    #[test]
+    fn function_typed_arguments_get_no_induction_hypothesis() {
+        // `mk : (U -> R) -> R` stores a function *into* R: strictly positive
+        // but not recursive, so the elim method binds only the function (and
+        // the eliminator reduces; R itself must live in U1, where the
+        // argument's type lives).
+        let src = format!(
+            "{NAT} data R : U1 where base : R; mk : (U -> R) -> R; \
+elim R (λ _ . Nat) zero (λ f . zero) (mk (λ u . base))"
+        );
+        assert_eq!(normal_form(&src), "zero");
+        // a method that also expects an induction hypothesis for `f` is a
+        // type error: the argument is a function, not an R
+        let src = format!(
+            "{NAT} data R : U1 where base : R; mk : (U -> R) -> R; \
+elim R (λ _ . Nat) zero (λ f r . r) (mk (λ u . base))"
+        );
+        assert_eq!(error(&src), "Too many patterns.");
+    }
+
+    #[test]
+    fn constructors_may_not_store_higher_universe_arguments() {
+        // `U -> Wrap` lives in U1, so a level-0 datatype may not store it
+        // (predicativity, as in Coq/Agda).
+        assert_eq!(
+            error("data Wrap : U where mk : U -> Wrap; Wrap"),
+            "constructor mk of Wrap may not store arguments from a higher universe \
+             (declare Wrap in a higher universe)"
+        );
+        // one level up, storing a U1-sized parameter is fine
+        assert_eq!(
+            type_of("data Wrap1 (A : U1) : U1 where mk : A -> Wrap1 A; Wrap1 U"),
+            "U1"
+        );
+    }
+
     // -- structs (sugar over single-constructor declarations) ---------------
 
     const PAIR: &str = "struct Pair (A : U) (B : U) : U where fst : A; snd : B;";
@@ -921,11 +963,45 @@ proj2 Nat Nat (mkPair Nat Nat zero (suc zero))"
     }
 
     #[test]
+    fn structs_reject_duplicate_field_names() {
+        assert_eq!(
+            error(&format!("{NAT} struct S : U where a : Nat; a : Nat; U")),
+            "struct S has duplicate field a"
+        );
+    }
+
+    #[test]
+    fn struct_fields_may_be_recursive() {
+        // `b : Box` is a recursive field: the eliminator's method type
+        // interleaves an induction hypothesis after it, which the projection
+        // must bind along with the fields.  No closed Box value exists, so
+        // this checks the elaboration only.
+        let src = format!(
+            "{NAT} struct Box : U where n : Nat; b : Box; \
+let hd : Box -> Nat = λ b . b.n; U"
+        );
+        assert_eq!(normal_form(&src), "U");
+    }
+
+    #[test]
+    fn struct_parameters_do_not_capture_the_projection_binder() {
+        // the generated projection used to hardcode a binder named `p`, which
+        // captured a parameter of the same name
+        let src = format!(
+            "{NAT} struct Foo (p : U) : U where f : p; \
+let x : Foo Nat = mkFoo Nat zero; x.f"
+        );
+        assert_eq!(normal_form(&src), "zero");
+    }
+
+    #[test]
     fn struct_fields_cannot_depend_on_earlier_fields() {
         // A dependent field type makes the generated projection ill-typed
         // (the earlier field is only in scope inside the constructor, not in
         // the projection's type), so the declaration itself is rejected.
-        let msg = error("struct Dep : U where carrier : U; elem : carrier; U");
+        // The carrier lives in U, so the struct must be declared in U1 (a
+        // constructor may not store arguments from a higher universe).
+        let msg = error("struct Dep : U1 where carrier : U; elem : carrier; U");
         assert!(
             msg.contains("type mismatch") || msg.contains("unbound variable"),
             "{msg}"
@@ -977,6 +1053,23 @@ proj2 Nat Nat (mkPair Nat Nat zero (suc zero))"
         assert_eq!(
             run(&format!("{NAT_PLUS} plus zero zero"), Mode::Type).unwrap(),
             "Nat"
+        );
+    }
+
+    #[test]
+    fn run_prune_drops_unreachable_declarations() {
+        let src = format!(
+            "{NAT_PLUS} \
+data Unused : U where mk : Unused; \
+let dead : Nat = zero; \
+plus (suc zero) (suc zero)"
+        );
+        assert_eq!(
+            run(&src, Mode::Prune).unwrap(),
+            "data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n\
+             let plus : Nat -> Nat -> Nat = \
+             λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n\
+             plus (suc zero) (suc zero)"
         );
     }
 

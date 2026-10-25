@@ -1,0 +1,4 @@
+-- the suc-method ignores its induction hypothesis: the result does not
+-- depend on the target beyond it being a suc
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+elim Nat (\ _ . Nat) (suc (suc zero)) (\ n r . suc (suc zero)) (suc (suc (suc zero)))

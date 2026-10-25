@@ -13,13 +13,20 @@ const APP: u8 = 2; // application
 const PI: u8 = 1; // Π
 const LET: u8 = 0; // let, lambda
 
-/// Wrap in parentheses if the expression precedence is lower than the
-/// enclosing expression precedence.
-fn par(p: u8, p2: u8, s: String) -> String {
+/// Run `f`, wrapping its output in parentheses when the inner precedence
+/// `p2` is lower than the enclosing expression precedence `p`.
+///
+/// Everything appends into one caller-owned `String`: the printer used to
+/// build a fresh `String` per node and concatenate, which is quadratic on
+/// deep application spines (a ten-thousand-successor numeral copied its
+/// prefix once per level).
+fn with_par(p: u8, p2: u8, out: &mut String, f: impl FnOnce(&mut String)) {
     if p2 < p {
-        format!("({s})")
+        out.push('(');
+        f(out);
+        out.push(')');
     } else {
-        s
+        f(out);
     }
 }
 
@@ -44,96 +51,130 @@ fn push(ns: &[Name], x: &str) -> Vec<Name> {
 /// Print a core term at the given precedence, using `names` for its free
 /// variables.
 pub fn pretty_tm(prec: u8, names: &[Name], tm: &Tm) -> String {
-    go(prec, names, tm)
+    let mut out = String::new();
+    go(prec, names, tm, &mut out);
+    out
 }
 
-fn pi_bind(ns: &[Name], x: &str, a: &Tm) -> String {
-    format!("({} : {})", x, go(LET, ns, a))
+fn pi_bind(ns: &[Name], x: &str, a: &Tm, out: &mut String) {
+    out.push('(');
+    out.push_str(x);
+    out.push_str(" : ");
+    go(LET, ns, a, out);
+    out.push(')');
 }
 
-fn go_pi(ns: &[Name], b: &Tm) -> String {
+fn go_pi(ns: &[Name], b: &Tm, out: &mut String) {
     match b {
         Tm::Pi(x, a, b2) if x == "_" => {
-            format!(" → {} → {}", go(APP, ns, a), go(PI, &push(ns, "_"), b2))
+            out.push_str(" → ");
+            go(APP, ns, a, out);
+            out.push_str(" → ");
+            go(PI, &push(ns, "_"), b2, out);
         }
         Tm::Pi(x, a, b2) => {
             let x = fresh(ns, x);
-            format!("{}{}", pi_bind(ns, &x, a), go_pi(&push(ns, &x), b2))
+            pi_bind(ns, &x, a, out);
+            go_pi(&push(ns, &x), b2, out);
         }
-        _ => format!(" → {}", go(PI, ns, b)),
+        _ => {
+            out.push_str(" → ");
+            go(PI, ns, b, out);
+        }
     }
 }
 
-fn go_lam(t: &Tm, ns: &[Name], ps: &[Pn]) -> String {
+fn go_lam(t: &Tm, ns: &[Name], ps: &[Pn], out: &mut String) {
     match ps.split_first() {
-        None => format!(". {}", go(LET, ns, t)),
+        None => {
+            out.push_str(". ");
+            go(LET, ns, t, out);
+        }
         Some((Pn::Var(x), rest)) => {
             let x = fresh(ns, x);
-            format!("{} {}", x, go_lam(t, &push(ns, &x), rest))
+            out.push_str(&x);
+            out.push(' ');
+            go_lam(t, &push(ns, &x), rest, out);
         }
-        Some((Pn::Refl, rest)) => format!("refl {}", go_lam(t, ns, rest)),
-        Some((Pn::Abs, rest)) => format!("(!) {}", go_lam(t, ns, rest)),
+        Some((Pn::Refl, rest)) => {
+            out.push_str("refl ");
+            go_lam(t, ns, rest, out);
+        }
+        Some((Pn::Abs, rest)) => {
+            out.push_str("(!) ");
+            go_lam(t, ns, rest, out);
+        }
     }
 }
 
-fn go(p: u8, ns: &[Name], tm: &Tm) -> String {
+fn go(p: u8, ns: &[Name], tm: &Tm, out: &mut String) {
     match tm {
-        Tm::Var(Ix(x)) => ns.get(*x).cloned().unwrap_or_else(|| format!("#{x}")),
+        Tm::Var(Ix(x)) => match ns.get(*x) {
+            Some(n) => out.push_str(n),
+            None => out.push_str(&format!("#{x}")),
+        },
 
-        Tm::App(t, u) => par(p, APP, format!("{} {}", go(APP, ns, t), go(ATOM, ns, u))),
+        Tm::App(t, u) => with_par(p, APP, out, |out| {
+            go(APP, ns, t, out);
+            out.push(' ');
+            go(ATOM, ns, u, out);
+        }),
 
-        Tm::U(0) => "U".to_string(),
-        Tm::U(l) => format!("U{l}"),
+        Tm::U(0) => out.push_str("U"),
+        Tm::U(l) => out.push_str(&format!("U{l}")),
 
-        Tm::Pi(x, a, b) if x == "_" => par(
-            p,
-            PI,
-            format!("{} → {}", go(APP, ns, a), go(PI, &push(ns, "_"), b)),
-        ),
+        Tm::Pi(x, a, b) if x == "_" => with_par(p, PI, out, |out| {
+            go(APP, ns, a, out);
+            out.push_str(" → ");
+            go(PI, &push(ns, "_"), b, out);
+        }),
         Tm::Pi(x, a, b) => {
             let x = fresh(ns, x);
-            let mut s = pi_bind(ns, &x, a);
-            s.push_str(&go_pi(&push(ns, &x), b));
-            par(p, PI, s)
+            with_par(p, PI, out, |out| {
+                pi_bind(ns, &x, a, out);
+                go_pi(&push(ns, &x), b, out);
+            })
         }
 
         Tm::Let(x, a, t, u) => {
             let x = fresh(ns, x);
-            par(
-                p,
-                LET,
-                format!(
-                    "let {} : {}\n    = {}\n;\n{}",
-                    x,
-                    go(LET, ns, a),
-                    go(LET, ns, t),
-                    go(LET, &push(ns, &x), u)
-                ),
-            )
+            with_par(p, LET, out, |out| {
+                out.push_str("let ");
+                out.push_str(&x);
+                out.push_str(" : ");
+                go(LET, ns, a, out);
+                out.push_str("\n    = ");
+                go(LET, ns, t, out);
+                out.push_str("\n;\n");
+                go(LET, &push(ns, &x), u, out);
+            })
         }
 
-        Tm::Lam(ps, t) => par(p, LET, format!("λ {}", go_lam(t, ns, ps))),
+        Tm::Lam(ps, t) => with_par(p, LET, out, |out| {
+            out.push_str("λ ");
+            go_lam(t, ns, ps, out);
+        }),
 
-        Tm::Id(a, x, y) => par(
-            p,
-            APP,
-            format!(
-                "Id {} {} {}",
-                go(ATOM, ns, a),
-                go(ATOM, ns, x),
-                go(ATOM, ns, y)
-            ),
-        ),
+        Tm::Id(a, x, y) => with_par(p, APP, out, |out| {
+            out.push_str("Id ");
+            go(ATOM, ns, a, out);
+            out.push(' ');
+            go(ATOM, ns, x, out);
+            out.push(' ');
+            go(ATOM, ns, y, out);
+        }),
 
-        Tm::Refl => "refl".to_string(),
-        Tm::Data(def) => def.name.clone(),
-        Tm::Ctor(def, i) => def
-            .ctors
-            .get(*i)
-            .map(|c| c.name.clone())
-            .unwrap_or_else(|| format!("{}#{}", def.name, i)),
-        Tm::Elim(def) => format!("elim {}", def.name),
-        Tm::Bot => "⊥".to_string(),
+        Tm::Refl => out.push_str("refl"),
+        Tm::Data(def) => out.push_str(&def.name),
+        Tm::Ctor(def, i) => match def.ctors.get(*i) {
+            Some(c) => out.push_str(&c.name),
+            None => out.push_str(&format!("{}#{}", def.name, i)),
+        },
+        Tm::Elim(def) => {
+            out.push_str("elim ");
+            out.push_str(&def.name);
+        }
+        Tm::Bot => out.push_str("⊥"),
     }
 }
 

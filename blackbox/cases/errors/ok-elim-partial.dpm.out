@@ -1,0 +1,3 @@
+elim Nat
+  :
+(P : Nat → U) → P zero → ((n : Nat)(n' : P n) → P (suc n)) → (x : Nat) → P x

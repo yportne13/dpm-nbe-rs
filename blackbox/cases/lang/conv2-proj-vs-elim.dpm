@@ -1,0 +1,8 @@
+-- a stuck surface projection p . fst is convertible to the manual
+-- eliminator it desugars to: NOTES.md deviation 16 says x.f IS the
+-- eliminator, so both sides are the same stuck neutral and refl checks
+-- under the binder p
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Pair : U where fst : Nat; snd : Nat;
+let q : (p : Pair) -> Id Nat (p . fst) (elim Pair (\ _ . Nat) (\ fst snd . fst) p) = \ p . refl;
+q

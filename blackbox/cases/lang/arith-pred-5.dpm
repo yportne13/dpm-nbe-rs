@@ -1,0 +1,4 @@
+-- predecessor: the suc-method returns the outer argument, so pred 5 = 4
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+pred (suc (suc (suc (suc (suc zero)))))
