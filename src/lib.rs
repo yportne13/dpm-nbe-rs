@@ -766,6 +766,117 @@ let F : (x : Nat) -> Id Nat x x -> A -> Nat = \\ x refl refl . zero; U"
         assert_eq!(e.msg, "expected an atom");
     }
 
+
+    // -- structs (sugar over single-constructor declarations) ---------------
+
+    const PAIR: &str = "struct Pair (A : U) (B : U) : U where fst : A; snd : B;";
+
+    #[test]
+    fn structs_desugar_to_single_constructor_declarations() {
+        let src = format!("{NAT} {PAIR} Pair Nat Nat");
+        assert_eq!(type_of(&src), "U");
+        // the generated constructor and projections are ordinary bindings
+        let src = format!("{NAT} {PAIR} mkPair Nat Nat zero (suc zero)");
+        assert_eq!(type_of(&src), "Pair Nat Nat");
+        let src = format!(
+            "{NAT} {PAIR} \
+let p : Pair Nat Nat = mkPair Nat Nat (suc zero) (suc (suc zero)); \
+suc (p.snd)"
+        );
+        assert_eq!(normal_form(&src), "suc (suc (suc zero))");
+    }
+
+    #[test]
+    fn projections_work_generically_and_reduce() {
+        let src = format!(
+            "{NAT} {PAIR} \
+let swap : (A : U) (B : U) -> Pair A B -> Pair B A = \
+  λ A B p . mkPair B A (p.snd) (p.fst); \
+(swap Nat Nat (mkPair Nat Nat zero (suc zero))).snd"
+        );
+        // the swapped second component is the original first one
+        assert_eq!(normal_form(&src), "zero");
+        // projections are functions too (the generated `fst`)
+        let src = format!(
+            "{NAT} {PAIR} \
+fst Nat Nat (mkPair Nat Nat (suc zero) zero)"
+        );
+        assert_eq!(normal_form(&src), "suc zero");
+    }
+
+    #[test]
+    fn projections_chain_and_apply() {
+        let src = format!(
+            "{NAT_PLUS} {PAIR} \
+struct Point : U where px : Nat; py : Nat; \
+struct Line : U where start : Point; end : Point; \
+let a : Point = mkPoint zero (suc zero); \
+let b : Point = mkPoint (suc (suc zero)) zero; \
+let l : Line = mkLine a b; \
+plus (l.start.py) (l.end.px)"
+        );
+        assert_eq!(normal_form(&src), "suc (suc (suc zero))");
+    }
+
+    #[test]
+    fn zero_field_structs_and_elim_still_work() {
+        // a zero-field struct is a singleton
+        assert_eq!(
+            normal_form("struct Unit1 : U where mkUnit1"),
+            "mkUnit1"
+        );
+        // elim works on the desugared declaration
+        assert_eq!(
+            normal_form(&format!(
+                "{NAT} {PAIR} \
+let proj2 : (A : U) (B : U) -> Pair A B -> B = \
+  λ A B p . elim Pair A B (λ _ . B) (λ x y . y) p; \
+proj2 Nat Nat (mkPair Nat Nat zero (suc zero))"
+            )),
+            "suc zero"
+        );
+    }
+
+    #[test]
+    fn struct_fields_cannot_depend_on_earlier_fields() {
+        // A dependent field type makes the generated projection ill-typed
+        // (the earlier field is only in scope inside the constructor, not in
+        // the projection's type), so the declaration itself is rejected.
+        let msg = error("struct Dep : U where carrier : U; elem : carrier; U");
+        assert!(
+            msg.contains("type mismatch") || msg.contains("unbound variable"),
+            "{msg}"
+        );
+        let msg = error(&format!(
+            "{NAT} struct P : U where n : Nat; m : n; let p : P = mkP zero zero; p.m"
+        ));
+        assert!(
+            msg.contains("type mismatch")
+                || msg.contains("unbound variable")
+                || msg.contains("may not depend on an earlier field"),
+            "{msg}"
+        );
+    }
+
+    #[test]
+    fn projections_are_only_for_single_constructor_types() {
+        let msg = error(&format!(
+            "{NAT} data Nat : U where zero : Nat; suc : (n : Nat) -> Nat; zero.suc"
+        ));
+        // zero : Nat, but Nat has two constructors
+        assert!(
+            msg.contains("more than one constructor") || msg.contains("no field"),
+            "{msg}"
+        );
+        let msg = error(&format!("{NAT} {PAIR} let p : Nat = zero; p.fst"));
+        assert!(
+            msg.contains("more than one constructor")
+                || msg.contains("is not a declared type")
+                || msg.contains("needs a struct"),
+            "{msg}"
+        );
+    }
+
     // -- modes -------------------------------------------------------------
 
     #[test]

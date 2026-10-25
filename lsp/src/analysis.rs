@@ -153,7 +153,7 @@ impl Token {
 
 /// Words the grammar reserves (`is_keyword` in `dpm-nbe`'s `src/parse.rs`).
 pub const KEYWORDS: &[&str] = &[
-    "let", "in", "λ", "U", "refl", "Id", "data", "where", "elim",
+    "let", "in", "λ", "U", "refl", "Id", "data", "struct", "where", "elim",
 ];
 
 /// Multi-character punctuation, checked before the single characters.
@@ -569,7 +569,7 @@ impl<'a> Scanner<'a> {
         }
         match self.text(self.i) {
             "let" => self.let_expr(stop),
-            "data" => self.data_expr(stop),
+            "data" | "struct" => self.data_expr(stop),
             "(" if self.looks_like_pi() => self.pi_expr(stop),
             _ => self.fun_or_spine(stop),
         }
@@ -708,6 +708,18 @@ impl<'a> Scanner<'a> {
             }
             _ => {
                 self.bump();
+            }
+        }
+        // `x.f1.f2`: a projection is a dot followed by an identifier, and
+        // belongs to the atom (so the field name is not read as a new head).
+        while self.at(".") {
+            let dot = self.i;
+            self.bump();
+            if self.i < self.n() && (self.text(self.i) == "_" || self.is_ident(self.i)) {
+                self.bump();
+            } else {
+                self.i = dot;
+                break;
             }
         }
         self.i
@@ -925,6 +937,7 @@ pub fn keyword_doc(word: &str) -> Option<&'static str> {
         "Id" => "`Id A x y` — the identity (propositional equality) type of `A` at `x` and `y`.",
         "refl" => "`refl` — the constructor of `Id A x x`.\n\nAs a λ pattern it refines the context by unifying the indices of the identity type.",
         "data" => "`data D (params) : U where c : ty; ...` — declare an inductive type.  No data types are built in: `Nat` is a declaration like any other.",
+        "struct" => "`struct S (params) : U where f : ty; ...` — sugar for a single-constructor `data`: it binds the constructor `mkS` and, per field, a projection `f`.  Fields are read with `x.f`.",
         "where" => "`where` — introduces the constructor list of a `data` declaration.",
         "elim" => "`elim D` — the eliminator generated for a data type `D`: parameters, a motive, one method per constructor, then the target.",
         "let" => "`let x : A = t; u` — a local definition, transparent when evaluating.",

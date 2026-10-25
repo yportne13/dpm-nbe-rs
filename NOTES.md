@@ -328,6 +328,24 @@ Deliberately *not* supported: constructor patterns in λ (the original has no
 case syntax either — elimination is `elim`), mutual or indexed inductive
 types, and universes above `U`.
 
+### 16. `struct` declarations and `x.f` projections are surface sugar
+
+`struct S ps : U where f1 : T1; ...; fn : Tn; body` never reaches the core:
+the elaborator rewrites it into the single-constructor declaration
+`data S ps : U where mkS : (f1 : T1) -> .. -> (fn : Tn) -> S ps`, wrapped
+around one `let` per field binding the projection
+`fi : Pi ps (p : S ps) -> Ti = \u03bb ps p . elim S ps (\u03bb _ . Ti) (\u03bb f1 .. fn . fi) p`
+(both written as surface syntax and re-elaborated).  A postfix `x.f` is
+elaborated to the same eliminator on the spot: the parameters are read off
+`x`'s type, and the field's type is computed by *evaluating* the stored
+constructor domain under those parameter values -- which keeps concrete
+(non-variable) parameters working where term-level index remapping would not.
+
+Restrictions that follow: a field type may not depend on an earlier field
+(the projection would be untypeable, and the declaration is rejected when
+the generated projection is checked), and `x.f` requires `x`'s type to be a
+single-constructor declaration.  The empty struct is the singleton type.
+
 ## Inherited limitations
 
 * There is **no occurs check** (`Elab.hs` marks it as a TODO), so unification
@@ -363,7 +381,7 @@ types, and universes above `U`.
 
 ## Tests
 
-`cargo test` runs 135 unit tests inside `src/` plus the `tests/golden.rs`
+`cargo test` runs 142 unit tests inside `src/` plus the `tests/golden.rs`
 black-box suite (7 tests, ~120 table checks: success cases including the
 arithmetic prelude, `Bool`/`List` elimination, the README programs and
 generated transitivity proofs, declaration errors, elaboration errors with

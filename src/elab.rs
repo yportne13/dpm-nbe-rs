@@ -384,6 +384,16 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
             elab_data(ctx, x, params, ty, ctors, body)
         }
 
+        Raw::Struct(..) => {
+            let (x, params, ty, fields, body) = match r {
+                Raw::Struct(x, ps, ty, fs, b) => (x, ps, ty, fs, b),
+                _ => unreachable!("guarded by the match arm"),
+            };
+            elab_struct(ctx, x, params, ty, fields, body)
+        }
+
+        Raw::Proj(x, f) => infer_proj(ctx, x, f),
+
         Raw::Elim(a) => {
             let (t, _) = infer(ctx, a)?;
             let v = frc(&eval(&ctx.env, &t));
@@ -418,6 +428,233 @@ fn fmt(template: &str, args: &[&str]) -> String {
 // ---------------------------------------------------------------------------
 // Inductive declarations
 // ---------------------------------------------------------------------------
+
+/// `struct S ps : ty where f1 : T1; ...; fn : Tn; body` is pure sugar.  It
+/// elaborates to the single-constructor declaration
+///
+/// ```text
+/// data S ps : ty where mkS : (f1 : T1) -> ... -> (fn : Tn) -> S ps;
+/// ```
+///
+/// followed, still in scope for `body`, by one projection per field:
+///
+/// ```text
+/// let fi : Pi ps (p : S ps) -> Ti =
+///   λ ps p . elim S ps (λ _ . Ti) (λ f1 ... fn . fi) p;
+/// ```
+///
+/// Because `Ti` appears under `(p : S ps)`, a field type may not depend on an
+/// earlier field: the projection's type would have no binding for it, and the
+/// declaration is rejected right there.
+pub fn elab_struct(
+    ctx: &Ctx,
+    name: &Name,
+    params: &[(Name, Raw)],
+    ty_raw: &Raw,
+    fields: &[(Name, Raw)],
+    body: &Raw,
+) -> M<(Tm, Val)> {
+    // `S p1 .. pk`, with the parameters as variables of the surrounding binders.
+    let s_app = |acc: Option<Raw>| -> Raw {
+        let mut acc = acc.unwrap_or_else(|| Raw::Var(name.clone()));
+        for (p, _) in params {
+            acc = Raw::App(Box::new(acc), Box::new(Raw::Var(p.clone())));
+        }
+        acc
+    };
+
+    // The constructor: `mkS : (f1 : T1) -> ... -> (fn : Tn) -> S ps`.
+    let mut ctor_ty = s_app(None);
+    for (f, t) in fields.iter().rev() {
+        ctor_ty = Raw::Pi(f.clone(), Box::new(t.clone()), Box::new(ctor_ty));
+    }
+    let ctor = (format!("mk{name}"), Box::new(ctor_ty));
+
+    // The projections, wrapped around the body.
+    let mut body_out = body.clone();
+    for (f, t) in fields.iter() {
+        // type: Pi ps (p : S ps) -> T
+        let mut p_ty = Raw::Pi(
+            "p".to_string(),
+            Box::new(s_app(None)),
+            Box::new(t.clone()),
+        );
+        for (p, a) in params.iter().rev() {
+            p_ty = Raw::Pi(p.clone(), Box::new(a.clone()), Box::new(p_ty));
+        }
+        // value: λ ps p . elim S ps (λ _ . T) (λ f1 .. fn . f_idx) p
+        // (the selector saturates every field so the eta-expanded method
+        // reduces to the wanted one -- here simply `f_idx` applied to all
+        // field variables is written directly as the projection body)
+        let sel = Raw::Var(f.clone());
+        let mut proj_body = Raw::Elim(Box::new(Raw::Var(name.clone())));
+        proj_body = s_app(Some(proj_body));
+        proj_body = Raw::App(
+            Box::new(proj_body),
+            Box::new(Raw::Lam(
+                vec![Pn::Var("_".to_string())],
+                Box::new(t.clone()),
+            )),
+        );
+        proj_body = Raw::App(
+            Box::new(proj_body),
+            Box::new(Raw::Lam(
+                fields.iter().map(|(g, _)| Pn::Var(g.clone())).collect(),
+                Box::new(sel),
+            )),
+        );
+        proj_body = Raw::App(Box::new(proj_body), Box::new(Raw::Var("p".to_string())));
+        let mut lams = params
+            .iter()
+            .map(|(p, _)| Pn::Var(p.clone()))
+            .collect::<Vec<_>>();
+        lams.push(Pn::Var("p".to_string()));
+        let value = Raw::Lam(lams, Box::new(proj_body));
+
+        body_out = Raw::Let(f.clone(), Box::new(p_ty), Box::new(value), Box::new(body_out));
+    }
+
+    let desugared =
+        Raw::Data(name.clone(), params.to_vec(), Box::new(ty_raw.clone()), vec![(ctor.0.clone(), *ctor.1)], Box::new(body_out));
+    infer(ctx, &desugared)
+}
+
+/// `x.f`: project the field named `f` out of `x`, whose type must be a
+/// single-constructor data type (a struct).  Elaborates to its eliminator:
+/// `elim S ps (λ _ . T_f) (λ f1 .. fn . f_idx) x`, with the parameters `ps`
+/// read off `x`'s type.
+fn infer_proj(ctx: &Ctx, x: &Raw, f: &Name) -> M<(Tm, Val)> {
+    let (t, ty) = infer(ctx, x)?;
+    let ty = frc(&ty);
+    let (def, ps) = match &ty {
+        Val::Ne(n) => match &**n {
+            Ne::Data(d, sp) => (d.clone(), sp.clone()),
+            _ => {
+                return report(
+                    ctx,
+                    format!(
+                        "{}.{} : {} is not a declared type, so it has no fields",
+                        show_val(ctx, &eval(&ctx.env, &t)),  // placeholder, refined below
+                        f,
+                        show_val(ctx, &ty)
+                    ),
+                )
+            }
+        },
+        _ => {
+            return report(
+                ctx,
+                format!(
+                    "a projection .{} needs a struct, but the type is\n\n  {}",
+                    f,
+                    show_val(ctx, &ty)
+                ),
+            )
+        }
+    };
+    let _ = &def;
+    let (def, ps) = (def, ps);
+    if def.ctors.len() != 1 {
+        return report(
+            ctx,
+            format!(
+                "{} has more than one constructor, so its values have no fields to project",
+                def.name
+            ),
+        );
+    }
+    let c0 = &def.ctors[0];
+    let k = def.num_params();
+    let args = &split_pis(&c0.ty)[k..];
+    let idx = match args.iter().position(|(n, _)| n.as_str() == f.as_str()) {
+        Some(i) => i,
+        None => {
+            let names: Vec<&str> = args.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>();
+            return report(
+                ctx,
+                format!(
+                    "{} has no field {} (its fields are: {})",
+                    def.name,
+                    f,
+                    if names.is_empty() {
+                        "none".to_string()
+                    } else {
+                        names.join(", ")
+                    }
+                ),
+            );
+        }
+    };
+
+    // A field type may not mention an earlier field (there is nothing to
+    // instantiate it with at the projection site).
+    if field_depends_on_earlier(args[idx].1, idx, k) {
+        return report(
+            ctx,
+            format!(
+                "the type of field {} may not depend on an earlier field of {}",
+                f, def.name
+            ),
+        );
+    }
+    // The field's type: evaluate the stored domain in an environment shaped
+    // like its stored context `[.., D, p_{k-1} .. p_0, f_{idx-1} .. f_0]`,
+    // with the parameters' *values* (as read off `x`'s type) in the parameter
+    // slots.  Working with values sidesteps term-level index arithmetic and
+    // keeps concrete (non-variable) parameters working.
+    let mut env = ctx.env.push(Val::data(&def));
+    for p in ps.iter() {
+        env = env.push(p.clone());
+    }
+    for j in 0..idx {
+        env = env.push(Val::vvar(ctx.lvl.plus(j)));
+    }
+    let field_ty = eval(&env, args[idx].1);
+
+    // The motive quotes that value one level down (under the motive's own
+    // binder); the method selects the wanted field.
+    let motive = Tm::Lam(
+        vec![Pn::Var("_".to_string())],
+        Box::new(quote_val(ctx.lvl.inc(), &field_ty)),
+    );
+    let method = Tm::Lam(
+        args.iter().map(|(n, _)| Pn::Var(n.to_string())).collect(),
+        Box::new(Tm::Var(Ix(args.len() - 1 - idx))),
+    );
+
+    // `elim S ps motive method x`
+    let mut term = Tm::Elim(def.clone());
+    for p in &ps {
+        term = Tm::App(Box::new(term), Box::new(quote_val(ctx.lvl, p)));
+    }
+    term = Tm::App(Box::new(term), Box::new(motive));
+    term = Tm::App(Box::new(term), Box::new(method));
+    term = Tm::App(Box::new(term), Box::new(t));
+    Ok((term, field_ty))
+}
+
+/// Whether a stored field type (at position `idx`, over `k` parameters) has a
+/// free variable among the earlier fields.  The stored context from the
+/// inside out is `[f_{idx-1}, .., f_0, p_{k-1}, .., p_0, D]`, so slots below
+/// `idx` are fields.
+fn field_depends_on_earlier(t: &Tm, idx: usize, k: usize) -> bool {
+    fn go(t: &Tm, d: usize, idx: usize, k: usize) -> bool {
+        match t {
+            Tm::Var(i) => i.0 >= d && (i.0 - d) < idx,
+            Tm::U | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) => false,
+            Tm::App(f, a) => go(f, d, idx, k) || go(a, d, idx, k),
+            Tm::Id(a, x, y) => {
+                go(a, d, idx, k) || go(x, d, idx, k) || go(y, d, idx, k)
+            }
+            Tm::Pi(_, a, b) => go(a, d, idx, k) || go(b, d + 1, idx, k),
+            Tm::Lam(ps, b) => go(b, d + num_pvars(ps).0, idx, k),
+            Tm::Let(_, a, v, b) => {
+                go(a, d, idx, k) || go(v, d, idx, k) || go(b, d + 1, idx, k)
+            }
+        }
+    }
+    go(t, 0, idx, k)
+}
 
 /// Elaborate `data D params : ty where c1 : t1; ... ; body`.
 ///
