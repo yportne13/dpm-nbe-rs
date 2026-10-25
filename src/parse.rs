@@ -82,7 +82,8 @@ fn is_keyword(s: &str) -> bool {
     // accepts it; keeping it here means `in` is rejected as a variable too.
     matches!(
         s,
-        "let" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "where" | "elim"
+        "let" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "struct"
+            | "where" | "elim"
     )
 }
 
@@ -364,6 +365,7 @@ impl<'a> Parser<'a> {
             Some('λ') | Some('\\') => self.lam(),
             _ if self.peek_word_is("let") => self.let_expr(),
             _ if self.peek_word_is("data") => self.data_decl(),
+            _ if self.peek_word_is("struct") => self.struct_decl(),
             Some('(') => match self.alt(Self::pi) {
                 Ok(x) => Ok(x),
                 Err(()) => self.fun_or_spine(),
@@ -372,11 +374,26 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// `data D groups* : Raw where Ctor* Raw`.
+    /// `data D groups* ':' Raw where Ctor* Raw`.
     fn data_decl(&mut self) -> PResult<Raw> {
         self.skip_ws();
         self.word()?; // "data"
+        self.decl_tail(false)
+    }
+
+    /// `struct S groups* ':' Raw where Field* Raw` -- parsed exactly like a
+    /// `data` declaration; the elaborator is what makes the difference.
+    fn struct_decl(&mut self) -> PResult<Raw> {
+        self.skip_ws();
+        self.word()?; // "struct"
+        self.decl_tail(true)
+    }
+
+    /// The shared tail of a `data`/`struct` declaration:
+    /// `name groups* ':' Raw where (name ':' Raw ';')* Raw`.
+    fn decl_tail(&mut self, is_struct: bool) -> PResult<Raw> {
         let name = self.ident()?;
+
         let mut params: Vec<(Name, Raw)> = Vec::new();
         while self
             .alt(|p| p.param_group(&mut params))
@@ -407,7 +424,11 @@ impl<'a> Parser<'a> {
         }
         // Zero constructors is allowed: it declares the empty type.
         let body = self.raw()?;
-        Ok(Raw::Data(name, params, Box::new(ty), ctors, Box::new(body)))
+        Ok(if is_struct {
+            Raw::Struct(name, params, Box::new(ty), ctors, Box::new(body))
+        } else {
+            Raw::Data(name, params, Box::new(ty), ctors, Box::new(body))
+        })
     }
 
     /// `'(' binder+ ':' Raw ')'`, appending `(name, type)` pairs to `out`.
@@ -623,6 +644,30 @@ impl<'a> Parser<'a> {
             }
             _ => return self.fail("expected an atom"),
         };
+        // Postfix projections: `x.f1.f2`, as long as a `.` is followed by a
+        // plain identifier (the `.` of a lambda comes after patterns, never
+        // after a complete atom, so there is no ambiguity).
+        let mut r = r;
+        let mut projections = 0usize;
+        loop {
+            let s = self.save();
+            if self.expect_char('.').is_err() {
+                break;
+            }
+            match self.ident() {
+                Ok(f) => {
+                    projections += 1;
+                    if projections > MAX_DEPTH {
+                        return self.too_deep();
+                    }
+                    r = Raw::Proj(Box::new(r), f);
+                }
+                Err(()) => {
+                    self.restore(s);
+                    break;
+                }
+            }
+        }
         Ok(Raw::SrcPos(pos, Box::new(r)))
     }
 
@@ -907,6 +952,39 @@ U\n";
             parse(src).is_ok(),
             "the README example program should parse"
         );
+    }
+
+
+    #[test]
+    fn parses_struct_declarations_and_projections() {
+        assert_eq!(
+            strip("struct Pair (A : U) : U where fst : A; snd : A; snd"),
+            Raw::Struct(
+                "Pair".into(),
+                vec![("A".into(), Raw::U(0))],
+                Box::new(Raw::U(0)),
+                vec![
+                    ("fst".into(), *var("A")),
+                    ("snd".into(), *var("A")),
+                ],
+                var("snd"),
+            )
+        );
+        // postfix projections, chained
+        assert_eq!(
+            strip("p.fst.snd"),
+            Raw::Proj(
+                Box::new(Raw::Proj(var("p"), "fst".into())),
+                "snd".into()
+            )
+        );
+        // the lambda dot is not a projection (a projection needs an
+        // identifier after the dot)
+        assert_eq!(
+            strip("\\ x . x"),
+            Raw::Lam(vec![Pn::Var("x".into())], var("x"))
+        );
+        assert!(parse("p.").is_err());
     }
 
     #[test]

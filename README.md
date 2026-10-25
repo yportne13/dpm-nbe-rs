@@ -2,14 +2,15 @@
 
 A Rust re-implementation of the Haskell project
 [`KonjacSource/dpm-nbe`](../Haskell/dpm-nbe) (**dependent pattern matching
-under a normalization-by-evaluation setup**), upgraded twice over the
+under a normalization-by-evaluation setup**), upgraded over the
 original: **user-declared inductive types** (nothing is built in any more,
-`Nat` is a declaration like any other) and a **predicative hierarchy of
-universes** `U : U1 : U2 : ...` with cumulativity.
+`Nat` is a declaration like any other), **structs** -- records as sugar over
+single-constructor declarations, with `x.f` projections -- and a
+**predicative hierarchy of universes** `U : U1 : U2 : ...` with cumulativity.
 
 * ~3k lines of implementation, **no dependencies** (standard library only).
 * Library + `dpm-nbe` command-line tool.
-* 140 unit tests + 7 black-box tests + 25 LSP integration tests.
+* 147 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 
@@ -96,6 +97,7 @@ replaces `Content-Length` framing with a function call.
 | `t u` | application (juxtaposition) |
 | `Id A x y`, `refl` | identity type and its constructor |
 | `data D params : U where c : ty; ...` | inductive type declaration |
+| `struct S params : U where f : ty; ...`, `x.f` | single-constructor sugar, field projection |
 | `elim D` | the eliminator generated for `D` |
 | `-- ...`, `{- ... -}` | comments |
 
@@ -143,6 +145,24 @@ elim Nat : (P : Nat → U)
         → ((n : Nat)(n' : P n) → P (suc n))
         → (x : Nat) → P x
 ```
+
+### Structs
+
+A `struct` is sugar for a single-constructor declaration, so it lives entirely
+in the surface syntax:
+
+```
+struct Pair (A : U) (B : U) : U where fst : A; snd : B;
+let p : Pair Nat Nat = mkPair Nat Nat (suc zero) (suc (suc zero));
+suc (p.snd)                      -- suc (suc (suc zero))
+```
+
+It elaborates to `data Pair ... where mkPair : (fst : A) -> (snd : B) ->
+Pair A B` plus one projection function per field (`fst`, `snd`, each
+`(A : U) (B : U) -> Pair A B -> T_i`, defined with the eliminator); `x.f`
+elaborates to that eliminator applied to `x`'s type's parameters.  Field
+types may not depend on earlier fields (a projection could not be typed);
+use a plain `data` if you need that.
 
 Declarations may take parameters, and the eliminator abstracts them first:
 

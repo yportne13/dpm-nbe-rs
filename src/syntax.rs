@@ -105,6 +105,18 @@ pub enum Raw {
         Vec<(Name, Raw)>,
         Box<Raw>,
     ),
+    /// `struct S params : ty where f1 : t1; ... ; body` -- sugar for a
+    /// single-constructor `data` plus one projection function per field.
+    Struct(
+        Name,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+    ),
+    /// `x.f` -- field projection, sugar for the eliminator of the field's
+    /// single-constructor type.
+    Proj(Box<Raw>, Name),
     /// `elim D` -- the eliminator (recursor) generated for a data type.
     Elim(Box<Raw>),
     /// `\ (!)` -- only ever built by the parser for an absurd lambda.
@@ -150,6 +162,18 @@ impl Raw {
                 Box::new(body.strip_pos()),
             ),
             Raw::Elim(a) => Raw::Elim(Box::new(a.strip_pos())),
+            Raw::Struct(d, ps, ty, fs, body) => Raw::Struct(
+                d.clone(),
+                ps.iter()
+                    .map(|(x, a)| (x.clone(), a.strip_pos()))
+                    .collect(),
+                Box::new(ty.strip_pos()),
+                fs.iter()
+                    .map(|(x, t)| (x.clone(), t.strip_pos()))
+                    .collect(),
+                Box::new(body.strip_pos()),
+            ),
+            Raw::Proj(x, f) => Raw::Proj(Box::new(x.strip_pos()), f.clone()),
             Raw::Bot => Raw::Bot,
         }
     }

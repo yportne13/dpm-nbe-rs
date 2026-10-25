@@ -39,6 +39,14 @@ U
       + '  λ A xs . elim List A (λ _ . Nat) zero (λ a as r . suc r) xs;\n'
       + 'length Nat (cons Nat zero (cons Nat (suc zero) (nil Nat)))\n',
   },
+  structs: {
+    label: 'Structs (records as sugar)',
+    text: NAT
+      + 'struct Pair (A : U) (B : U) : U where fst : A; snd : B;\n'
+      + 'let swap : (A : U) (B : U) -> Pair A B -> Pair B A =\n'
+      + '  λ A B p . mkPair B A (p.snd) (p.fst);\n'
+      + 'swap Nat Nat (mkPair Nat Nat zero (suc zero))\n',
+  },
   arithmetic: {
     label: 'Arithmetic (plus normalizes)',
     text: NAT + 'plus (suc (suc zero)) (suc (suc (suc zero)))\n',
