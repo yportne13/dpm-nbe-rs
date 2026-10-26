@@ -1,0 +1,7 @@
+-- eta boundary, constructor head: (lambda x . suc x) equals
+-- (lambda y . suc y) because both sides are lambdas and the bodies
+-- agree up to alpha; the bare constructor suc is a NEUTRAL and is not
+-- convertible to either side (parked finding eta-var-head)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let e : Id (Nat -> Nat) (\ x . suc x) (\ y . suc y) = refl;
+e

@@ -1,0 +1,8 @@
+-- the generated projection (params first) and the surface x.f projection
+-- denote the same function: 3 + 1 = 4
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+struct Pr (A : U) (B : U) : U where left : A; right : B;
+let p : Pr Nat Nat = mkPr Nat Nat (suc (suc (suc zero))) (suc zero);
+plus (left Nat Nat p) (p.right)

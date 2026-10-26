@@ -1,0 +1,5 @@
+-- the eliminator computes under the binder: pred (suc n) is the identity
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let f : Nat -> Nat = \ n . pred (suc n);
+f

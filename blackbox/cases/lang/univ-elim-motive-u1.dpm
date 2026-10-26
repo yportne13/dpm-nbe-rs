@@ -1,0 +1,5 @@
+-- the motive of a U1 datatype's eliminator eliminates into U1, so
+-- U itself is a legitimate motive; the method is the identity on U
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+data W : U1 where mk : U -> W;
+elim W (\ _ . U) (\ u . u) (mk Nat)

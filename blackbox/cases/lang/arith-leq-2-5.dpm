@@ -1,0 +1,8 @@
+-- 2 <= 5 holds exactly when the truncated difference 2-5 is zero
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let minus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) a (\ m r . pred r) b;
+data Bool : U where true : Bool; false : Bool;
+let is0 : Nat -> Bool = \ n . elim Nat (\ _ . Bool) true (\ m r . false) n;
+is0 (minus (suc (suc zero)) (suc (suc (suc (suc (suc zero))))))

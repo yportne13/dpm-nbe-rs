@@ -87,9 +87,20 @@ pub fn subst_cl(s: &Sub, cl: &Closure) -> Closure {
 
 /// Force `v` to weak head normal form: resolve delayed substitutions, run
 /// primitive reductions and apply stuck lambdas.
+///
+/// Forcing stops at the *head*: a rigid neutral -- a variable, a data former,
+/// a constructor -- is in weak head normal form whatever its arguments are,
+/// so its arguments are left untouched (they may be delayed substitutions)
+/// and forced by whoever consumes them.  Eagerly walking the whole spine
+/// instead, as an earlier version of the port did, makes a single `frc` cost
+/// the size of the entire value: building `suc (suc ... zero)` numerals then
+/// forces a depth-n chain once per eliminator step, i.e. quadratically in
+/// the successor count.  (The original writes `frcS sb <$> sp` under these
+/// heads as well, but laziness means it never runs.)
 pub fn frc(v: &Val) -> Val {
     match v {
         Val::Sub(v, s) => frc_s(s, v),
+        Val::Ne(n) if matches!(&**n, Ne::Var(..) | Ne::Data(..) | Ne::Ctor(..)) => v.clone(),
         Val::Ne(n) => frc_ne(n),
         _ => v.clone(),
     }
@@ -132,7 +143,17 @@ pub fn frc_s(s: &Sub, v: &Val) -> Val {
 pub fn frc_ne(n: &Ne) -> Val {
     match n {
         Ne::Sub(n2, s) => frc_ne_s(s, n2),
-        Ne::Var(v, sp) => Val::ne(Ne::Var(*v, frc_sp(sp))),
+        // An unsolved metavariable is in weak head normal form (nothing can
+        // unfold it yet); a solved one is *flexible*, not rigid: forcing
+        // applies the solution to the spine and forces the result.
+        Ne::Meta(m, sp) => match crate::meta::get(*m) {
+            crate::meta::MetaEntry::Solved { val, .. } => frc_res(&napp(&val, sp)),
+            crate::meta::MetaEntry::Unsolved { .. } => Val::ne(n.clone()),
+        },
+        // Rigid heads carry no pending substitution and cannot reduce, so
+        // they are already in weak head normal form; their arguments are
+        // left as they are and forced on demand (see [`frc`]).
+        Ne::Var(..) | Ne::Data(..) | Ne::Ctor(..) => Val::ne(n.clone()),
         Ne::Lam(ps, k, cl, sp) if sp.is_empty() => {
             // A lambda is a semantic value: with no arguments to match there
             // is nothing to reduce, so it is already in weak head normal form.
@@ -144,9 +165,10 @@ pub fn frc_ne(n: &Ne) -> Val {
             let lam = Val::ne(Ne::Lam(ps.clone(), *k, cl.clone(), Vec::new()));
             frc_res(&napp(&lam, &frc_sp(sp)))
         }
-        Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), frc_sp(sp))),
-        Ne::Ctor(d, i, sp) => Val::ne(Ne::Ctor(d.clone(), *i, frc_sp(sp))),
-        Ne::Elim(d, sp) => frc_res(&elim_step(d, &frc_sp(sp))),
+        // The eliminator forces the target itself, and the methods it applies
+        // are forced by the `napp` that applies them, so the spine needs no
+        // pre-forcing here either.
+        Ne::Elim(d, sp) => frc_res(&elim_step(d, sp)),
     }
 }
 
@@ -154,6 +176,8 @@ pub fn frc_ne(n: &Ne) -> Val {
 pub fn frc_ne_s(s: &Sub, n: &Ne) -> Val {
     match n {
         Ne::Sub(n2, s2) => frc_ne_s(&subst_sub(s, s2), n2),
+        // The solution is closed, so only the spine needs substituting.
+        Ne::Meta(m, sp) => frc(&Val::ne(Ne::Meta(*m, subst_sp(s, sp)))),
         Ne::Var(v, sp) => frc_res(&napp(&lookup_sub(s, *v), &frc_sp_s(s, sp))),
         Ne::Lam(ps, k, cl, sp) => frc_res(&match_(ps, *k, &subst_cl(s, cl), &frc_sp_s(s, sp))),
         Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), subst_sp(s, sp))),
@@ -279,6 +303,11 @@ pub fn napp(v: &Val, sp: &Spine) -> Res {
                 args.extend_from_slice(sp);
                 elim_step(d, &args)
             }
+            Ne::Meta(m, sp0) => {
+                let mut args = sp0.clone();
+                args.extend_from_slice(sp);
+                block(Val::ne(Ne::Meta(*m, args)))
+            }
             Ne::Sub(..) => panic!("napp: impossible (unforced neutral)"),
         },
         _ => panic!("napp: impossible (applying a non-neutral value)"),
@@ -368,6 +397,10 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
         Tm::Data(def) => Val::data(def),
         Tm::Ctor(def, i) => Val::ctor(def, *i),
         Tm::Elim(def) => Val::elim(def),
+        Tm::Meta(m) => match crate::meta::get(*m) {
+            crate::meta::MetaEntry::Solved { val, .. } => val,
+            crate::meta::MetaEntry::Unsolved { .. } => Val::ne(Ne::Meta(*m, Vec::new())),
+        },
         // DEVIATION 7: `Bot` is the (unreachable) body of an absurd pattern.
         // The original panics here, which makes an absurd-pattern lambda crash
         // as soon as it is evaluated, e.g. `let C : ... = λ A (!); C`.
@@ -376,7 +409,8 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
 }
 
 // ---------------------------------------------------------------------------
-// Conversion checking (beta-eta)
+// Conversion checking (beta only; eta is deliberately absent -- NOTES.md,
+// deviation 13)
 // ---------------------------------------------------------------------------
 
 /// Cumulative subtyping: like [`conv`], except that a universe `U i` is
@@ -396,7 +430,8 @@ pub fn conv_le(l: Lvl, t: &Val, u: &Val) -> bool {
     }
 }
 
-/// Beta-eta conversion.  Precondition: both values have the same type.
+/// Beta conversion (no eta; see NOTES.md, deviation 13).  Precondition:
+/// both values have the same type.
 pub fn conv(l: Lvl, t: &Val, u: &Val) -> bool {
     let t = frc(t);
     let u = frc(u);
@@ -442,6 +477,13 @@ pub fn conv_ne(l: Lvl, n: &Ne, n2: &Ne) -> bool {
             d == d2 && i == i2 && conv_sp(l, sp, sp2)
         }
         (Ne::Elim(d, sp), Ne::Elim(d2, sp2)) => d == d2 && conv_sp(l, sp, sp2),
+        // Both values reach `conv` already forced, so an unsolved
+        // metavariable can only be convertible to itself applied to a
+        // convertible spine.  Comparing it to anything else -- including a
+        // *different* meta -- is the caller's business: conversion cannot
+        // solve, so this stays `false` and check positions route through
+        // [`crate::unify::conv_or_unify`] instead.
+        (Ne::Meta(m, sp), Ne::Meta(m2, sp2)) => m == m2 && conv_sp(l, sp, sp2),
         _ => false,
     }
 }
@@ -483,6 +525,7 @@ pub fn un_sub_ne_s(sub: &Sub, n: &Ne) -> Ne {
         Ne::Data(d, sp) => Ne::Data(d.clone(), subst_sp(sub, sp)),
         Ne::Ctor(d, i, sp) => Ne::Ctor(d.clone(), *i, subst_sp(sub, sp)),
         Ne::Elim(d, sp) => Ne::Elim(d.clone(), subst_sp(sub, sp)),
+        Ne::Meta(m, sp) => Ne::Meta(*m, subst_sp(sub, sp)),
     }
 }
 
@@ -584,6 +627,7 @@ pub fn quote_ne(l: Lvl, n: &Ne) -> Tm {
         Ne::Data(d, sp) => quote_app(l, Tm::Data(d), &sp),
         Ne::Ctor(d, i, sp) => quote_app(l, Tm::Ctor(d, i), &sp),
         Ne::Elim(d, sp) => quote_app(l, Tm::Elim(d), &sp),
+        Ne::Meta(m, sp) => quote_app(l, Tm::Meta(m), &sp),
     }
 }
 

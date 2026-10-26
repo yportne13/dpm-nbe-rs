@@ -18,10 +18,12 @@
 pub mod context;
 pub mod elab;
 pub mod eval;
+pub mod meta;
 pub mod parse;
 pub mod pretty;
 pub mod subst;
 pub mod syntax;
+pub mod unify;
 
 #[cfg(test)]
 pub mod testdata;
@@ -56,10 +58,28 @@ pub enum Mode {
 pub const STACK_SIZE: usize = 64 * 1024 * 1024;
 
 /// Elaborate a program from `src`, reporting positions as `file`.
+///
+/// The metacontext is per program: it is reset here, and a program whose
+/// holes stay unsolved is an error (the position is the hole's).
 pub fn typecheck_named(src: &str, file: &str) -> Result<(Tm, Val), Error> {
+    meta::reset();
     let raw = parse::parse_named(src, file).map_err(Error::from)?;
     let ctx = Ctx::empty(Pos::initial(file));
-    elab::infer(&ctx, &raw)
+    let res = elab::infer(&ctx, &raw);
+    if let Ok((t, a)) = &res {
+        if let Some(&m) = meta::unsolved().first() {
+            if let meta::MetaEntry::Unsolved { pos, .. } = meta::get(m) {
+                return Err(Error {
+                    msg: format!("unsolved metavariable ?{m}"),
+                    pos,
+                });
+            }
+            unreachable!("meta::unsolved only reports unsolved entries");
+        }
+        Ok((t.clone(), a.clone()))
+    } else {
+        res
+    }
 }
 
 /// Elaborate a program, reporting positions as `<stdin>`.
@@ -382,9 +402,11 @@ leaf : Tree; node : (Nat -> Tree) -> Tree; U"
             "{msg}"
         );
         // ... and so are enclosing *definitions*: inline the type instead
+        // (at the datatype's own level, since a constructor may not store
+        // arguments from a higher universe)
         assert_eq!(
-            normal_form("let A : U1 = U; data D : U where mk : U -> D; D"),
-            "D"
+            normal_form("let A : U1 = U; data D1 : U1 where mk : U -> D1; D1"),
+            "D1"
         );
     }
 
@@ -623,8 +645,13 @@ let f : (n m : Nat) -> Id Nat (plus n m) (plus n m) = \\ n m . refl; f"
     }
 
     #[test]
-    fn cannot_infer_lambdas_or_refl() {
-        assert_eq!(error("\\ x . x"), "Can't infer type for lambda expression");
+    fn cannot_infer_pattern_lambdas_or_refl() {
+        // A variable-only lambda infers through a fresh meta domain now; a
+        // lambda with `refl`/`(!)` patterns still needs a checked position.
+        assert_eq!(
+            error("\\ x refl . x"),
+            "Can't infer type for lambda expression"
+        );
         assert_eq!(error("refl"), "Can't infer type for refl");
     }
 
@@ -850,6 +877,42 @@ f (suc1 (suc1 zero1))"
         assert_eq!(type_of("U1000"), "U1001");
     }
 
+    #[test]
+    fn function_typed_arguments_get_no_induction_hypothesis() {
+        // `mk : (U -> R) -> R` stores a function *into* R: strictly positive
+        // but not recursive, so the elim method binds only the function (and
+        // the eliminator reduces; R itself must live in U1, where the
+        // argument's type lives).
+        let src = format!(
+            "{NAT} data R : U1 where base : R; mk : (U -> R) -> R; \
+elim R (λ _ . Nat) zero (λ f . zero) (mk (λ u . base))"
+        );
+        assert_eq!(normal_form(&src), "zero");
+        // a method that also expects an induction hypothesis for `f` is a
+        // type error: the argument is a function, not an R
+        let src = format!(
+            "{NAT} data R : U1 where base : R; mk : (U -> R) -> R; \
+elim R (λ _ . Nat) zero (λ f r . r) (mk (λ u . base))"
+        );
+        assert_eq!(error(&src), "Too many patterns.");
+    }
+
+    #[test]
+    fn constructors_may_not_store_higher_universe_arguments() {
+        // `U -> Wrap` lives in U1, so a level-0 datatype may not store it
+        // (predicativity, as in Coq/Agda).
+        assert_eq!(
+            error("data Wrap : U where mk : U -> Wrap; Wrap"),
+            "constructor mk of Wrap may not store arguments from a higher universe \
+             (declare Wrap in a higher universe)"
+        );
+        // one level up, storing a U1-sized parameter is fine
+        assert_eq!(
+            type_of("data Wrap1 (A : U1) : U1 where mk : A -> Wrap1 A; Wrap1 U"),
+            "U1"
+        );
+    }
+
     // -- structs (sugar over single-constructor declarations) ---------------
 
     const PAIR: &str = "struct Pair (A : U) (B : U) : U where fst : A; snd : B;";
@@ -921,11 +984,45 @@ proj2 Nat Nat (mkPair Nat Nat zero (suc zero))"
     }
 
     #[test]
+    fn structs_reject_duplicate_field_names() {
+        assert_eq!(
+            error(&format!("{NAT} struct S : U where a : Nat; a : Nat; U")),
+            "struct S has duplicate field a"
+        );
+    }
+
+    #[test]
+    fn struct_fields_may_be_recursive() {
+        // `b : Box` is a recursive field: the eliminator's method type
+        // interleaves an induction hypothesis after it, which the projection
+        // must bind along with the fields.  No closed Box value exists, so
+        // this checks the elaboration only.
+        let src = format!(
+            "{NAT} struct Box : U where n : Nat; b : Box; \
+let hd : Box -> Nat = λ b . b.n; U"
+        );
+        assert_eq!(normal_form(&src), "U");
+    }
+
+    #[test]
+    fn struct_parameters_do_not_capture_the_projection_binder() {
+        // the generated projection used to hardcode a binder named `p`, which
+        // captured a parameter of the same name
+        let src = format!(
+            "{NAT} struct Foo (p : U) : U where f : p; \
+let x : Foo Nat = mkFoo Nat zero; x.f"
+        );
+        assert_eq!(normal_form(&src), "zero");
+    }
+
+    #[test]
     fn struct_fields_cannot_depend_on_earlier_fields() {
         // A dependent field type makes the generated projection ill-typed
         // (the earlier field is only in scope inside the constructor, not in
         // the projection's type), so the declaration itself is rejected.
-        let msg = error("struct Dep : U where carrier : U; elem : carrier; U");
+        // The carrier lives in U, so the struct must be declared in U1 (a
+        // constructor may not store arguments from a higher universe).
+        let msg = error("struct Dep : U1 where carrier : U; elem : carrier; U");
         assert!(
             msg.contains("type mismatch") || msg.contains("unbound variable"),
             "{msg}"
@@ -959,6 +1056,119 @@ proj2 Nat Nat (mkPair Nat Nat zero (suc zero))"
                 || msg.contains("needs a struct"),
             "{msg}"
         );
+    }
+
+    // -- metavariables and pruning (the elaboration-zoo port) --------------
+
+    /// Leibniz equality and its reflexivity, both explicit-only: enough to
+    /// pose unification problems through `refl`, as the zoo's example.txt
+    /// does with implicit `{A}`.
+    const EQ_PRELUDE: &str = "\
+let Eq : (A : U) -> A -> A -> U1 = \\ A x y . (P : A -> U) -> P x -> P y; \
+let rf : (A : U)(x : A) -> Eq A x x = \\ A x P px . px;";
+
+    #[test]
+    fn holes_solve_from_the_expected_type() {
+        // the hole in a let annotation is pinned by the value
+        assert_eq!(
+            normal_form(&format!("{NAT} let x : _ = zero; suc x")),
+            "suc zero"
+        );
+        // ... and one under a binder picks the binder up as its spine
+        assert_eq!(
+            normal_form(&format!("{NAT} let f : Nat -> _ = \\ n . zero; f zero")),
+            "zero"
+        );
+    }
+
+    #[test]
+    fn refl_solves_holes_in_identity_types() {
+        // checking `refl` against `Id Nat _ zero` solves the hole to `zero`
+        let src = format!("{NAT} let p : Id Nat _ zero = refl; p");
+        assert_eq!(type_of(&src), "Id Nat zero zero");
+        assert_eq!(normal_form(&src), "refl");
+    }
+
+    #[test]
+    fn lambdas_infer_through_fresh_meta_domains() {
+        // zoo example 4 (`λ f . f U`): the application refines `f`'s type
+        // meta to a fresh function type, pruning `f` off both refinement
+        // metas; the argument then solves domain and codomain.
+        assert_eq!(
+            normal_form(&format!("{NAT} (\\ f . f zero) suc")),
+            "suc zero"
+        );
+        // the zoo's own shape, with the domain refining to a function type
+        assert_eq!(
+            type_of("(\\ f . f U) (let g : (A : U1) -> U1 = \\ A . A; g)"),
+            "U1"
+        );
+    }
+
+    #[test]
+    fn non_linear_spines_solve_by_pruning() {
+        // zoo example 1: `m A A =? λ x y . y` is solvable because m's type
+        // does not use the duplicated arguments, so both are pruned.
+        let src = format!(
+            "{NAT} {EQ_PRELUDE} \
+let m : (A : U)(B : U) -> Nat -> Nat -> Nat = _; \
+let test : (A : U) -> Eq (Nat -> Nat -> Nat) (m A A) (\\ x y . y) = \
+\\ A . rf (Nat -> Nat -> Nat) (\\ x y . y); \
+U"
+        );
+        assert_eq!(normal_form(&src), "U");
+        // zoo example 2: the type *does* use the duplicated argument, the
+        // pruned solution would be ill-typed, so the equation is rejected
+        let src = format!(
+            "{NAT} {EQ_PRELUDE} \
+let m : (A : U)(B : U) -> A -> B -> B = _; \
+let test : (A : U) -> Eq (A -> A -> A) (m A A) (\\ x y . y) = \
+\\ A . rf (A -> A -> A) (\\ x y . y); \
+U"
+        );
+        assert!(error(&src).contains("type mismatch"));
+    }
+
+    #[test]
+    fn intersections_prune_disagreeing_arguments() {
+        // zoo example 3: `m a b c =? m c b a` with both spines renamings
+        // prunes the first and third arguments off `m`.  The equation fixes
+        // the *shape* of the solution, not the function: `m` is solved to
+        // `λ x y z . m' y` with `m' : Nat -> Nat` left unsolved, which the
+        // end-of-program check reports.
+        let src = format!(
+            "{NAT} {EQ_PRELUDE} \
+let m : Nat -> Nat -> Nat -> Nat = _; \
+let test : (a : Nat)(b : Nat)(c : Nat) -> Eq Nat (m a b c) (m c b a) = \
+\\ a b c . rf Nat (m a b c); \
+U"
+        );
+        let msg = error(&src);
+        assert!(msg.starts_with("unsolved metavariable"), "{msg}");
+        // meta 0 is `m`, solved by the intersection; its solution is the
+        // pruned projection onto the middle argument (the binders print as
+        // `_` because m's type was written with anonymous arrows).  The
+        // fresh pruned meta (?1 : Nat -> Nat) is the unsolved one.
+        match meta::get(0) {
+            meta::MetaEntry::Solved { val, .. } => assert_eq!(
+                pretty::show_tm(&eval::quote_val(Lvl::ZERO, &val)),
+                "λ _ . λ _ . λ _ . ?1 _"
+            ),
+            other => panic!("m should be solved by the intersection: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unsolved_holes_are_reported_at_the_hole() {
+        // an inferred lambda whose domain nothing constrains
+        let msg = error("\\ x . x");
+        assert!(msg.starts_with("unsolved metavariable ?0"), "{msg}");
+        assert_eq!(error_pos("\\ x . x"), (1, 1));
+        // a checked hole nothing pins down, reported at the `_`
+        let src = format!("{NAT}\nlet m : Nat = _; zero");
+        let msg = error(&src);
+        assert!(msg.starts_with("unsolved metavariable"), "{msg}");
+        assert_eq!(error_pos(&src), (2, 15));
     }
 
     // -- modes -------------------------------------------------------------

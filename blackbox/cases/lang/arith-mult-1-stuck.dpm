@@ -1,0 +1,8 @@
+-- mult 1 n reduces to plus n zero, which is STUCK on the neutral n:
+-- the normal form is the stuck eliminator itself, not the identity
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let mult : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) zero (\ m r . plus b r) a;
+let f : Nat -> Nat = \ n . mult (suc zero) n; f

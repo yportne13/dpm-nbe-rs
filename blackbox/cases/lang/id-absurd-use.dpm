@@ -1,0 +1,5 @@
+-- an absurd pattern on the contradictory equation 0 = 1 discharges the
+-- definition without a body
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let f : (x : Nat) -> Id Nat zero (suc zero) -> Nat = \ x (!);
+U

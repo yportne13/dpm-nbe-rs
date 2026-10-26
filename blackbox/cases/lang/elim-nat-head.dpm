@@ -1,0 +1,3 @@
+-- the eliminator as a value: motive, one method per constructor, target
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+elim Nat

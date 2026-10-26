@@ -1,0 +1,8 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
+let mult : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) zero (λ _ r . plus n r) m;
+struct Pair : U where a : Nat; b : Nat;
+let fib : Nat -> Nat = λ n . (elim Nat (λ _ . Pair) (mkPair zero (suc zero)) (λ _ r . mkPair r.b (plus r.a r.b)) n).a;
+fib (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))))))))))

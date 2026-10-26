@@ -4,6 +4,7 @@
 
 use crate::eval::{subst_env, subst_val};
 use crate::syntax::{Env, Ix, Lvl, Name, Pos, Sub, Val};
+use std::rc::Rc;
 
 /// A typing context.  Since substitutions never delete entries, `lvl` is the
 /// total number of bindings ever introduced.
@@ -13,6 +14,11 @@ pub struct Ctx {
     /// Kept for parity with `Context.hs`; only `types` is read.
     pub names: Vec<Name>,
     pub types: Vec<(Name, Val)>,
+    /// The context chain as quoted terms, newest first, parallel to
+    /// `types`: this is the zoo's `Locals`, kept so closing a fresh meta's
+    /// type over the context costs no re-quotation (which would make deeply
+    /// nested binders with holes cubic).
+    pub locals: Vec<crate::meta::LocalEntry>,
     pub env: Env,
     pub pos: Pos,
 }
@@ -104,6 +110,7 @@ impl Ctx {
             lvl: Lvl::ZERO,
             names: Vec::new(),
             types: Vec::new(),
+            locals: Vec::new(),
             env: Env::empty(),
             pos,
         }
@@ -129,16 +136,23 @@ impl Ctx {
     /// Introduce a fresh variable of type `a`.
     pub fn bind(&self, x: Name, a: Val) -> Ctx {
         let v = Val::vvar(self.lvl);
-        self.push_binding(x, a, v)
+        let local = crate::meta::LocalEntry::Bind(Rc::new(crate::eval::quote_val(
+            self.lvl, &a,
+        )));
+        self.push_binding(x, a, v, local)
     }
 
     /// Introduce a definition: a new binding whose value is `t`.
     pub fn define(&self, x: Name, t: Val, a: Val) -> Ctx {
-        self.push_binding(x, a, t)
+        let local = crate::meta::LocalEntry::Define {
+            ty: Rc::new(crate::eval::quote_val(self.lvl, &a)),
+            val: Rc::new(crate::eval::quote_val(self.lvl, &t)),
+        };
+        self.push_binding(x, a, t, local)
     }
 
     /// Extend the context with one binding, newest first.
-    fn push_binding(&self, x: Name, ty: Val, value: Val) -> Ctx {
+    fn push_binding(&self, x: Name, ty: Val, value: Val, local: crate::meta::LocalEntry) -> Ctx {
         let mut names = Vec::with_capacity(self.names.len() + 1);
         names.push(x.clone());
         names.extend(self.names.iter().cloned());
@@ -147,10 +161,15 @@ impl Ctx {
         types.push((x, ty));
         types.extend(self.types.iter().cloned());
 
+        let mut locals = Vec::with_capacity(self.locals.len() + 1);
+        locals.push(local);
+        locals.extend(self.locals.iter().cloned());
+
         Ctx {
             lvl: self.lvl.inc(),
             names,
             types,
+            locals,
             env: self.env.push(value),
             pos: self.pos.clone(),
         }
@@ -170,7 +189,8 @@ impl Ctx {
 }
 
 /// Substitute in a context.  Note that `lvl` is *not* changed: substitutions
-/// restrict the values, not the number of binders.
+/// restrict the values, not the number of binders.  The quoted `locals` are
+/// dropped: they picture the types as they were *before* the refinement.
 pub fn subst_ctx(s: &Sub, ctx: &Ctx) -> Ctx {
     Ctx {
         lvl: ctx.lvl,
@@ -180,6 +200,7 @@ pub fn subst_ctx(s: &Sub, ctx: &Ctx) -> Ctx {
             .iter()
             .map(|(x, ty)| (x.clone(), subst_val(s, ty)))
             .collect(),
+        locals: ctx.locals.iter().map(|_| crate::meta::LocalEntry::Stale).collect(),
         env: subst_env(s, &ctx.env),
         pos: ctx.pos.clone(),
     }

@@ -1,0 +1,4 @@
+-- a U1 datatype may store small type codes in its constructors
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+data Code : U1 where nat : Code; wrap : U -> Code;
+wrap Nat

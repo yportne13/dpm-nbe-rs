@@ -1,0 +1,8 @@
+-- quotation performs its own eta-expansion (NOTES.md deviation 3):
+-- the normal form of the bare 2-pattern lambda plus saturates the
+-- stuck match with fresh variables and prints the fully eta-expanded
+-- lambda (the source binder names a b are preserved)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+plus

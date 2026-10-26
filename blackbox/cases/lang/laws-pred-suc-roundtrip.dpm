@@ -1,0 +1,8 @@
+-- pred (suc n) = n holds definitionally for a NEUTRAL n: the
+-- eliminator fires on the suc constructor even though its argument is
+-- a variable, so the round trip is refl under the binder (the printed
+-- Id type has already reduced to Id Nat n n)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let pred : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . m) n;
+let e : (n : Nat) -> Id Nat (pred (suc n)) n = \ n . refl;
+e

@@ -1,0 +1,3 @@
+mkPr Nat Nat (suc zero) (suc (suc zero))
+  :
+Pr Nat Nat

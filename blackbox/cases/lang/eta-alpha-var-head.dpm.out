@@ -1,0 +1,3 @@
+λ f . refl
+  :
+(f : Nat → Nat) → Id (Nat → Nat) (λ x . f x) (λ y . f y)

@@ -1,0 +1,4 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+struct S : U where a : Nat;
+let s : S = mkS zero;
+s.a

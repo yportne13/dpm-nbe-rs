@@ -1,0 +1,4 @@
+-- a motive into a function type: the eliminator result is itself applied
+-- to an extra argument (motive P n = Nat -> Nat, so elim 2 = identity)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+elim Nat (\ _ . Nat -> Nat) (\ x . x) (\ n r . r) (suc (suc zero)) zero

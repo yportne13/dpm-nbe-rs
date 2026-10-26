@@ -1,0 +1,11 @@
+-- eta boundary, eliminator-defined head: the fully eta-expanded
+-- (lambda x y . plus x y) IS convertible to plus, because plus is
+-- itself a lambda and conv opens both closures under two fresh
+-- binders, where the stuck elim bodies agree up to alpha.  The
+-- PARTIAL expansion (lambda x . plus x) is a shorter lambda and is
+-- rejected (parked finding eta-var-head).
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let e : Id (Nat -> Nat -> Nat) (\ x y . plus x y) plus = refl;
+e

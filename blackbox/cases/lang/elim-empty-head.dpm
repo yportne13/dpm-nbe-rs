@@ -1,0 +1,3 @@
+-- the eliminator of the empty type: methods for zero constructors,
+-- so it goes straight from the motive to the target
+data Empty : U where elim Empty

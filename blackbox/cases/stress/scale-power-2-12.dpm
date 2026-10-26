@@ -1,0 +1,7 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let plus : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;
+let mult : Nat -> Nat -> Nat =
+  λ m n . elim Nat (λ _ . Nat) zero (λ _ r . plus n r) m;
+let power : Nat -> Nat -> Nat = λ m n . elim Nat (λ _ . Nat) (suc zero) (λ _ r . mult m r) n;
+power (suc (suc zero)) (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))))))

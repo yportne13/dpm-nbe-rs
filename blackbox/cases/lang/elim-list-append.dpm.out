@@ -1,0 +1,3 @@
+cons Nat (suc zero) (cons Nat (suc (suc zero)) (cons Nat zero (nil Nat)))
+  :
+List Nat

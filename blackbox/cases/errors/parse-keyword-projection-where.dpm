@@ -1,0 +1,1 @@
+let p : Nat = zero; p.where

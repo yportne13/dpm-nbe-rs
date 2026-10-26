@@ -1,0 +1,4 @@
+-- the same recursor applied: idb false = false (motive picks the 2nd method)
+data Bool : U where true : Bool; false : Bool;
+let idb : Bool -> Bool = elim Bool (\ _ . Bool) true false;
+idb false

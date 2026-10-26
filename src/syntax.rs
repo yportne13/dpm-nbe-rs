@@ -15,6 +15,9 @@ use std::rc::Rc;
 
 pub type Name = String;
 
+/// A metavariable (hole) identifier; `?{m}` in printed terms.
+pub type MetaId = usize;
+
 /// De Bruijn index: counts binders from a variable outwards.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Ix(pub usize);
@@ -119,6 +122,10 @@ pub enum Raw {
     Proj(Box<Raw>, Name),
     /// `elim D` -- the eliminator (recursor) generated for a data type.
     Elim(Box<Raw>),
+    /// `_` in expression position: a hole, elaborated to a fresh
+    /// metavariable (a `_` in binder or pattern position is a wildcard
+    /// instead, and never becomes a `Hole`).
+    Hole,
     /// `\ (!)` -- only ever built by the parser for an absurd lambda.
     Bot,
     /// Source position attached for error reporting.
@@ -174,6 +181,7 @@ impl Raw {
                 Box::new(body.strip_pos()),
             ),
             Raw::Proj(x, f) => Raw::Proj(Box::new(x.strip_pos()), f.clone()),
+            Raw::Hole => Raw::Hole,
             Raw::Bot => Raw::Bot,
         }
     }
@@ -260,6 +268,10 @@ pub enum Tm {
     Ctor(Rc<IndDef>, usize),
     /// The eliminator of a data type.
     Elim(Rc<IndDef>),
+    /// A metavariable (hole), awaiting its solution.  Its type and solution
+    /// live in [`crate::meta`]'s metacontext; evaluation reads through solved
+    /// metas on demand.
+    Meta(MetaId),
     Bot,
 }
 
@@ -468,6 +480,10 @@ pub enum Ne {
     /// reduces once the spine is complete *and* the target is a saturated
     /// constructor; otherwise it stays stuck (see [`crate::eval::elim_step`]).
     Elim(Rc<IndDef>, Spine),
+    /// A metavariable applied to a (possibly partial) spine.  *Flexible*: it
+    /// unstucks as soon as the meta is solved, which is why it must never be
+    /// treated as rigid by [`crate::eval::frc`].
+    Meta(MetaId, Spine),
 }
 
 /// Result of a reduction step: a value plus whether progress was made.

@@ -1,0 +1,3 @@
+elim Empty
+  :
+(P : Empty → U)(x : Empty) → P x

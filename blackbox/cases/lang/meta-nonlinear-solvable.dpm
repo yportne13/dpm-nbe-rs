@@ -1,0 +1,7 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let Eq : (A : U) -> A -> A -> U1 = \ A x y . (P : A -> U) -> P x -> P y;
+let rf : (A : U)(x : A) -> Eq A x x = \ A x P px . px;
+let m : (A : U)(B : U) -> Nat -> Nat -> Nat = _;
+let test : (A : U) -> Eq (Nat -> Nat -> Nat) (m A A) (\ x y . y) =
+  \ A . rf (Nat -> Nat -> Nat) (\ x y . y);
+U

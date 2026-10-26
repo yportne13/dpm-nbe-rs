@@ -1,0 +1,8 @@
+-- refl checks even when the two endpoints are only convertible, not
+-- syntactically equal: plus 2 2 versus the numeral 4
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let p : Id Nat (plus (suc (suc zero)) (suc (suc zero)))
+                (suc (suc (suc (suc zero)))) = refl;
+p

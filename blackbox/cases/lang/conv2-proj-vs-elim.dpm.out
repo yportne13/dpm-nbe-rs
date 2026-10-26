@@ -1,0 +1,3 @@
+λ p . refl
+  :
+(p : Pair) → Id Nat (elim Pair (λ _ . Nat) (λ fst snd . fst) p) (elim Pair (λ _ . Nat) (λ fst snd . fst) p)

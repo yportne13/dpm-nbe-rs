@@ -1,0 +1,11 @@
+-- a six-link chain of DISTINCT let names: conversion must unfold
+-- a5 -> a4 -> ... -> a0 -> zero to prove refl at the bottom
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let a0 : Nat = zero;
+let a1 : Nat = a0;
+let a2 : Nat = a1;
+let a3 : Nat = a2;
+let a4 : Nat = a3;
+let a5 : Nat = a4;
+let e : Id Nat a5 zero = refl;
+e

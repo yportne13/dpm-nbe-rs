@@ -1,0 +1,4 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let ok : Nat = zero;
+	let bad : Nat = U;
+U

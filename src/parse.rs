@@ -69,9 +69,10 @@ pub fn parse_named(src: &str, file: &str) -> Result<Raw, ParseError> {
 /// level.
 pub const MAX_DEPTH: usize = 512;
 
-/// Highest universe level the parser accepts (keeps `U999...9` from
-/// overflowing while staying far above anything a program needs).
-pub const MAX_LEVEL: u32 = 1 << 30;
+/// Highest universe level the parser accepts: 2^30 - 1, so every accepted
+/// level is strictly below 2^30 (keeps `U999...9` from overflowing while
+/// staying far above anything a program needs).
+pub const MAX_LEVEL: u32 = (1 << 30) - 1;
 
 fn parse_level(digits: &str) -> Option<u32> {
     digits.parse::<u32>().ok().filter(|l| *l <= MAX_LEVEL)
@@ -604,6 +605,14 @@ impl<'a> Parser<'a> {
                 self.expect_char(')')?;
                 r
             }
+            // `_` in expression position is a hole (a `_` in binder or
+            // pattern position is consumed by `binder`/`pn` before an atom
+            // is ever tried, so the two never meet).
+            Some('_') => {
+                self.bump();
+                self.skip_ws();
+                Raw::Hole
+            }
             Some(c) if is_ident_start(c) => {
                 let start = self.i;
                 let name = self.word()?;
@@ -717,6 +726,8 @@ mod tests {
         assert_eq!(strip("U1"), Raw::U(1));
         assert_eq!(strip("U23"), Raw::U(23));
         assert!(parse("U99999999999").is_err(), "level overflow rejected");
+        assert_eq!(strip("U1073741823"), Raw::U(1073741823));
+        assert!(parse("U1073741824").is_err(), "level 2^30 rejected");
         assert_eq!(strip("refl"), Raw::Refl);
         assert_eq!(strip("zero"), *var("zero"));
         assert_eq!(strip("Nat"), *var("Nat"));

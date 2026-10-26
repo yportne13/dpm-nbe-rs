@@ -1,0 +1,3 @@
+λ n . elim Nat (λ _ . Nat) zero (λ n' r . suc r) n
+  :
+Nat → Nat

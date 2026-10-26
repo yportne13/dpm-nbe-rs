@@ -1,0 +1,8 @@
+-- struct desugars to a single-constructor data declaration, so elim works
+-- on it directly: the method binds the two fields positionally
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+struct Pr (A : U) (B : U) : U where left : A; right : B;
+elim Pr Nat Nat (\ _ . Nat) (\ a b . plus a b)
+     (mkPr Nat Nat (suc zero) (suc (suc zero)))

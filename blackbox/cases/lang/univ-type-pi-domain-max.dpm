@@ -1,0 +1,2 @@
+-- a Pi lives at the max of its parts: the domain U1 pushes it to U2
+(A : U1) -> A -> A

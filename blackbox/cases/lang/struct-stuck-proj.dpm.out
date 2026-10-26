@@ -1,0 +1,3 @@
+λ p . elim Pair (λ _ . Nat) (λ fst snd . snd) p
+  :
+Pair → Nat

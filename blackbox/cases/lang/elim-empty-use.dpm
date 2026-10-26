@@ -1,0 +1,4 @@
+-- from Empty anything follows: the eliminator needs no method at all
+data Empty : U where
+let ex : (A : U) -> Empty -> A = \ A e . elim Empty (\ _ . A) e;
+U

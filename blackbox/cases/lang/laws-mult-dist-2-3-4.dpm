@@ -1,0 +1,11 @@
+-- mult-distributes-over-plus, 2*(3+4) = 2*3 + 2*4 instance:
+-- both sides normalise to 14
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+let mult : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) zero (\ m r . plus b r) a;
+let e : Id Nat (mult (suc (suc zero)) (plus (suc (suc (suc zero))) (suc (suc (suc (suc zero))))))
+              (plus (mult (suc (suc zero)) (suc (suc (suc zero))))
+                    (mult (suc (suc zero)) (suc (suc (suc (suc zero)))))) = refl;
+e

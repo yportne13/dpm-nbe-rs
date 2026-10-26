@@ -1,0 +1,3 @@
+elim Nat (λ _ . Nat)
+  :
+Nat → ((n : Nat) → Nat → Nat) → Nat → Nat

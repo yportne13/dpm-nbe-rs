@@ -1,0 +1,14 @@
+-- six lets that all shadow the same name x: each definition sees the
+-- previous x, and conversion must see through the whole chain to
+-- recognise x as the numeral 6 (the first probe with a 5 on the right
+-- was rejected with "expecting <6 sucs> equals to <5 sucs>", which is
+-- how the chain was confirmed transparent)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let x : Nat = suc zero;
+let x : Nat = suc x;
+let x : Nat = suc x;
+let x : Nat = suc x;
+let x : Nat = suc x;
+let x : Nat = suc x;
+let e : Id Nat x (suc (suc (suc (suc (suc (suc zero)))))) = refl;
+e

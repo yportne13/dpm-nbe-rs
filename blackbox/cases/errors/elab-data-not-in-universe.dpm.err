@@ -1,0 +1,1 @@
+an inductive type must be declared in a universe, but D's type is

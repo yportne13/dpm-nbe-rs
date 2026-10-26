@@ -1,0 +1,3 @@
+elim Bool (λ _ . Bool) true false
+  :
+Bool → Bool

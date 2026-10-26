@@ -1,0 +1,7 @@
+-- parameters may depend on earlier parameters; fields then mention both
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+struct D (A : U) (x : A) : U where v : A; w : Nat;
+let d : D Nat (suc zero) = mkD Nat (suc zero) (suc (suc zero)) (suc zero);
+plus d.v d.w

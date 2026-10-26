@@ -17,7 +17,7 @@ it reports comes from `dpm_nbe::parse` / `dpm_nbe::typecheck_named` /
 | Feature | Protocol | Notes |
 | --- | --- | --- |
 | Diagnostics | `textDocument/publishDiagnostics` (push) | Parse errors are reported as `parse-error`, elaboration failures as `type-error`, each with the position the CLI would use (`<uri>:line:col`) and, in `data.rendered`, the CLI's caret diagram. |
-| Hover | `textDocument/hover` | The inferred/written type of the name under the cursor (`x : A`, for `let`, λ-pattern and `(x : A) ->` binders), or the documentation of a keyword (`U`, `refl`, `data`, `elim`, `(!)`, …). |
+| Hover | `textDocument/hover` | The inferred/written type of the name under the cursor (`x : A`, for `let`, λ-pattern and `(x : A) ->` binders), or the documentation of a keyword (`U`, `U1`-style universes, `refl`, `data`, `struct`, `elim`, `(!)`, …). |
 | Completion | `textDocument/completion` | The fixed vocabulary plus every name actually in scope at the cursor — de Bruijn scoping, so a `let` binder is *not* offered inside its own type or value. |
 | Go to definition | `textDocument/definition` | The binder token, innermost scope first. |
 | Outline | `textDocument/documentSymbol` | One symbol per `let`, nested the way the syntax nests them, with the written type as `detail`. |

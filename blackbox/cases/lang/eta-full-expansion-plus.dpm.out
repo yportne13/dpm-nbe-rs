@@ -1,0 +1,3 @@
+refl
+  :
+Id (Nat → Nat → Nat) (λ x y . elim Nat (λ _ . Nat) y (λ n r . suc r) x) (λ a b . elim Nat (λ _ . Nat) b (λ n r . suc r) a)

@@ -1,0 +1,5 @@
+-- plus 4 zero is the numeral 4: the eliminator fires on the closed target
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let plus : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ n r . suc r) a;
+plus (suc (suc (suc (suc zero)))) zero

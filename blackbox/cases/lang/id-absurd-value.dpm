@@ -1,0 +1,5 @@
+-- the absurd lambda has no right-hand side; as a value it prints its
+-- patterns and the bottom atom
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let C : (A : U) -> Id Nat (suc zero) zero -> A = \ A (!);
+C

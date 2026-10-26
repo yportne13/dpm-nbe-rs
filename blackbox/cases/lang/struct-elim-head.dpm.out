@@ -1,0 +1,3 @@
+elim Pt
+  :
+(P : Pt → U) → ((px : Nat)(py : Nat) → P (mkPt px py)) → (x : Pt) → P x

@@ -1,0 +1,2 @@
+-- Id over a small A stays small, but the U domain lifts the whole Pi
+(A : U) (a : A) -> Id A a a

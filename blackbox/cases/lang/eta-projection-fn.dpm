@@ -1,0 +1,9 @@
+-- eta boundary, struct projection head: the surface projection
+-- (lambda p . p . fst) is convertible to the projection function fst
+-- bound by the struct declaration, because both are literally lambdas
+-- whose bodies elaborate to the same eliminator application (NOTES.md
+-- deviation 16)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Pair : U where fst : Nat; snd : Nat;
+let e : Id (Pair -> Nat) (\ p . p . fst) fst = refl;
+e

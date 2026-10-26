@@ -1,0 +1,2 @@
+-- codomain U (level 1) over a small domain: still U1
+(A : U) -> A -> U

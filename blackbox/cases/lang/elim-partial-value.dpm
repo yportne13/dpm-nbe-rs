@@ -1,0 +1,6 @@
+-- the normal form of a motive-first partial application is the stuck
+-- eliminator neutral carrying just the motive
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let e : Nat -> ((n : Nat) -> Nat -> Nat) -> Nat -> Nat =
+  elim Nat (\ _ . Nat);
+e

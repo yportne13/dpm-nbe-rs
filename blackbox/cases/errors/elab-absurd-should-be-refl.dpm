@@ -1,0 +1,2 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let f : (x : Nat) -> Id Nat zero zero -> Nat = \ x (!); U

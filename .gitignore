@@ -12,6 +12,11 @@
 /reviews/blackbox-2/fuzz/
 /reviews/blackbox-2/*.jsonl
 
+# 黑盒测试的可再生产物（日志由 run.sh 重建；fuzz 复现输入按 blackbox/README
+# 的约定分流进 cases/ 或 .skip 停放后即删除，不作为原始语料提交）
+/blackbox/logs/
+/blackbox/fuzz-corpus/
+
 # 语言服务器 / 网页版 / 编辑器扩展的构建产物
 # （源码都在仓库里：lsp/、web/api/、web/www/、vscode/client/src、
 #   vscode/syntaxes；下面这些全部由 `node web/build.mjs` 与

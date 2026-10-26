@@ -1,0 +1,6 @@
+-- a struct declared one universe up may store a type code as a field;
+-- projecting it yields Nat : U
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Box : U1 where carrier : U;
+let b : Box = mkBox Nat;
+b.carrier

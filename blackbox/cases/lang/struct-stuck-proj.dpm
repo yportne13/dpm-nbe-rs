@@ -1,0 +1,6 @@
+-- under a binder the projection stays the underlying eliminator;
+-- the method lambda shows the desugaring directly
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+struct Pair : U where fst : Nat; snd : Nat;
+let g : Pair -> Nat = \ p . p.snd;
+g

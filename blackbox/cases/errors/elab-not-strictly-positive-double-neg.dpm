@@ -1,0 +1,1 @@
+data Bad : U where mk : ((Bad -> U) -> U) -> Bad; U

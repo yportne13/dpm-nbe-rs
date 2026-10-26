@@ -1,0 +1,7 @@
+-- eta boundary: with BOTH sides lambdas, conversion goes under the
+-- binder and compares the bodies, so the alpha-renamed eta-expansions
+-- of a neutral f are convertible (it is the lambda/neutral boundary
+-- that fails, not the comparison under binders)
+data Nat : U where zero : Nat; suc : Nat -> Nat;
+let e : (f : Nat -> Nat) -> Id (Nat -> Nat) (\ x . f x) (\ y . f y) = \ f . refl;
+e
