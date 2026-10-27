@@ -1,0 +1,8 @@
+# The black-box suite is a byte-level oracle and its runner is bash: on a
+# core.autocrlf=true checkout every multi-line .out sidecar gains \r and the
+# whole suite false-fails (observed: 270 spurious failures on a fresh
+# worktree of an otherwise-green commit).  Pin LF for the suite, its inputs
+# and sidecars, and for shell scripts generally.
+*.sh  text eol=lf
+*.dpm text eol=lf
+blackbox/cases/** text eol=lf
