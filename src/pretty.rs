@@ -175,6 +175,7 @@ fn go(p: u8, ns: &[Name], tm: &Tm, out: &mut String) {
             out.push_str(&def.name);
         }
         Tm::Meta(m) => out.push_str(&format!("?{m}")),
+        Tm::FixRef(id) => out.push_str(&crate::fix::name_of(*id)),
         Tm::Bot => out.push_str("⊥"),
     }
 }

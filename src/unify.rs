@@ -282,6 +282,7 @@ fn rename(pren: &PRen, v: &Val) -> Option<Tm> {
                 rename_sp(pren, Tm::Var(lvl2ix(pren.dom, x2)), sp)
             }
             Ne::Data(d, sp) => rename_sp(pren, Tm::Data(d.clone()), sp),
+            Ne::Fix(id, sp) => rename_sp(pren, Tm::FixRef(*id), sp),
             Ne::Ctor(d, i, sp) => rename_sp(pren, Tm::Ctor(d.clone(), *i), sp),
             Ne::Elim(d, sp) => rename_sp(pren, Tm::Elim(d.clone()), sp),
             Ne::Lam(ps, k, cl, sp) => {

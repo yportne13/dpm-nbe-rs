@@ -25,7 +25,7 @@ pub fn lift(t: &Tm, cutoff: usize, by: usize) -> Tm {
                 t.clone()
             }
         }
-        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) => t.clone(),
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) | Tm::FixRef(_) => t.clone(),
         Tm::App(f, a) => Tm::App(Box::new(lift(f, cutoff, by)), Box::new(lift(a, cutoff, by))),
         Tm::Id(a, x, y) => Tm::Id(
             Box::new(lift(a, cutoff, by)),

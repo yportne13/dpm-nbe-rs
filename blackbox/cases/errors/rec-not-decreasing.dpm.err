@@ -1,0 +1,5 @@
+<stdin>:2:1:
+  |
+2 | let rec bad : Nat -> Nat = \ n . bad (suc n);
+  | ^
+let rec bad: cannot prove termination -- every recursive call must be on a strict subterm (a constructor argument, through an eliminator's method) of one inductive argument, applied in full

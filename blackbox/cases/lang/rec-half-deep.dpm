@@ -1,0 +1,5 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let rec half : Nat -> Nat =
+  \ n . elim Nat (\ _ . Nat) zero
+       (\ m r . elim Nat (\ _ . Nat) zero (\ k r2 . suc (half k)) m) n;
+half (suc (suc (suc (suc (suc (suc (suc (suc zero))))))))

@@ -270,6 +270,378 @@ fn infer_type(ctx: &Ctx, raw: &Raw) -> M<(Tm, Val, u32)> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// `let rec`: checked fixpoints
+// ---------------------------------------------------------------------------
+
+/// Elaborate the declaration part of `let rec f : A = body`.
+///
+/// Returns the elaborated annotation `A`, its value, the context extended
+/// with `f` bound to the fixpoint, and the fixpoint's id.  The caller
+/// elaborates the rest of the program in that context and builds
+/// `Tm::Let(f, A, FixRef(id), rest)`.
+///
+/// The body is checked with `f` bound as a fresh *variable*; the stored
+/// definition is then the quotation of the body's value with that variable
+/// replaced by `FixRef(id)` -- closed, the same convention stored
+/// constructor types use.  Any other free variable that survives quoting
+/// is an enclosing binder, which a fixpoint may not capture (as with
+/// constructor types); the check happens on the quoted term, so a `let rec`
+/// under binders is fine as long as it really is closed.
+fn elab_let_rec_decl(
+    ctx: &Ctx,
+    name: &Name,
+    a_raw: &Raw,
+    t_raw: &Raw,
+) -> M<(Tm, Val, Ctx, crate::fix::FixId)> {
+    let (a_tm, va, _) = infer_type(ctx, a_raw)?;
+
+    // the type must close: free variables in it are enclosing binders
+    let ty_lf = quote_val(ctx.lvl, &va);
+    if let Some(i) = free_var(&ty_lf) {
+        return report(
+            ctx,
+            format!(
+                "let rec {}: the type may not depend on an enclosing binder \
+                 (free variable #{i}); move the definition to the top level",
+                name
+            ),
+        );
+    }
+
+    // check the body with f as a fresh variable
+    let lf = ctx.lvl;
+    let ctx2 = ctx.bind(name.clone(), va.clone());
+    let body_tm = check(&ctx2, t_raw, &va)?;
+
+    // close: quote the value (inlining defines), replace f by FixRef
+    let body_val = eval(&ctx2.env, &body_tm);
+    let quoted = quote_val(ctx2.lvl, &body_val);
+    let id = crate::fix::reserve();
+    let closed = match close_fix_body(&quoted, lf, id) {
+        Ok(t) => t,
+        Err(i) => {
+            return report(
+                ctx,
+                format!(
+                    "let rec {}: the body may not depend on an enclosing binder \
+                     (free variable #{i}); move the definition to the top level",
+                    name
+                ),
+            )
+        }
+    };
+
+    // the termination check: try every inductive argument position
+    let candidates = data_arg_positions(&va, ctx.lvl);
+    let rec_arg = candidates
+        .iter()
+        .copied()
+        .find(|&j| calls_decrease(&closed, id, j))
+        .unwrap_or(0);
+    let has_self_call = contains_fix(&closed, id);
+
+    if has_self_call && !candidates.iter().any(|&j| calls_decrease(&closed, id, j)) {
+        return if candidates.is_empty() {
+            report(
+                ctx,
+                format!(
+                    "let rec {}: cannot prove termination -- \
+                     f is called recursively but has no argument of an \
+                     inductive type to decrease on",
+                    name
+                ),
+            )
+        } else {
+            report(
+                ctx,
+                format!(
+                    "let rec {}: cannot prove termination -- every recursive \
+                     call must be on a strict subterm (a constructor argument, \
+                     through an eliminator's method) of one inductive argument, \
+                     applied in full",
+                    name
+                ),
+            )
+        };
+    }
+
+    crate::fix::fill(
+        id,
+        crate::fix::FixDef {
+            name: name.clone(),
+            ty: ty_lf,
+            body: closed,
+            rec_arg,
+        },
+    );
+
+    let fix_val = Val::ne(Ne::Fix(id, Vec::new()));
+    let ctx3 = ctx.define(name.clone(), fix_val, va.clone());
+    Ok((a_tm, va, ctx3, id))
+}
+
+/// Replace every occurrence of the variable at level `lf` (the fixpoint's
+/// own slot) by `FixRef(id)`; fail on any other free variable.
+///
+/// `f` is the newest binder at quoting time, so under `d` binders its index
+/// is exactly `d` (see `elab_let_rec_decl`).
+fn close_fix_body(t: &Tm, lf: Lvl, id: crate::fix::FixId) -> Result<Tm, usize> {
+    let _ = lf;
+    fn go(t: &Tm, d: usize, id: crate::fix::FixId) -> Result<Tm, usize> {
+        Ok(match t {
+            Tm::Var(i) => {
+                if i.0 == d {
+                    Tm::FixRef(id)
+                } else if i.0 > d {
+                    Err(i.0 - d - 1)?
+                } else {
+                    t.clone()
+                }
+            }
+            Tm::App(f, a) => Tm::App(Box::new(go(f, d, id)?), Box::new(go(a, d, id)?)),
+            Tm::Pi(x, a, b) => Tm::Pi(
+                x.clone(),
+                Box::new(go(a, d, id)?),
+                Box::new(go(b, d + 1, id)?),
+            ),
+            Tm::Lam(ps, b) => {
+                Tm::Lam(ps.clone(), Box::new(go(b, d + num_pvars(ps).0, id)?))
+            }
+            Tm::Let(x, a, v, b) => Tm::Let(
+                x.clone(),
+                Box::new(go(a, d, id)?),
+                Box::new(go(v, d, id)?),
+                Box::new(go(b, d + 1, id)?),
+            ),
+            Tm::Id(a, x, y) => Tm::Id(
+                Box::new(go(a, d, id)?),
+                Box::new(go(x, d, id)?),
+                Box::new(go(y, d, id)?),
+            ),
+            _ => t.clone(),
+        })
+    }
+    go(t, 0, id)
+}
+
+/// A free variable of a closed-for-storage term: an index that sticks out
+/// at its binder depth.
+fn free_var(t: &Tm) -> Option<usize> {
+    fn go(t: &Tm, d: usize) -> Option<usize> {
+        match t {
+            Tm::Var(i) if i.0 >= d => Some(i.0 - d),
+            Tm::App(a, b) => go(a, d).or(go(b, d)),
+            Tm::Pi(_, a, b) => go(a, d).or(go(b, d + 1)),
+            Tm::Lam(ps, b) => go(b, d + num_pvars(ps).0),
+            Tm::Let(_, a, v, b) => go(a, d).or(go(v, d)).or(go(b, d + 1)),
+            Tm::Id(a, x, y) => go(a, d).or(go(x, d)).or(go(y, d)),
+            _ => None,
+        }
+    }
+    go(t, 0)
+}
+
+/// The argument positions of a Pi-telescope whose domain is a declared
+/// datatype -- the candidates a recursive call could decrease on.
+fn data_arg_positions(va: &Val, lvl: Lvl) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut ty = frc(va);
+    let mut l = lvl;
+    let mut i = 0;
+    loop {
+        let (a, b) = match ty {
+            Val::Pi(_, ref a, ref b) => ((**a).clone(), b.clone()),
+            _ => break,
+        };
+        if matches!(&frc(&a), Val::Ne(n) if matches!(&**n, Ne::Data(..))) {
+            out.push(i);
+        }
+        ty = frc(&b.apply(Val::vvar(l)));
+        l = l.inc();
+        i += 1;
+    }
+    out
+}
+
+/// Whether the closed fixpoint body contains a self-call at all.
+fn contains_fix(t: &Tm, id: crate::fix::FixId) -> bool {
+    match t {
+        Tm::FixRef(i) => *i == id,
+        Tm::Var(_) | Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..)
+        | Tm::Elim(_) | Tm::Meta(_) => false,
+        Tm::App(f, a) => contains_fix(f, id) || contains_fix(a, id),
+        Tm::Pi(_, a, b) => contains_fix(a, id) || contains_fix(b, id),
+        Tm::Lam(_, b) => contains_fix(b, id),
+        Tm::Let(_, a, v, b) => {
+            contains_fix(a, id) || contains_fix(v, id) || contains_fix(b, id)
+        }
+        Tm::Id(a, x, y) => {
+            contains_fix(a, id) || contains_fix(x, id) || contains_fix(y, id)
+        }
+    }
+}
+
+/// **The termination check.**  Every self-call of the fixpoint `id` must be
+/// a full application whose argument `pos` is a *strict subterm* of the
+/// fixpoint's argument: a variable introduced as a constructor argument by
+/// an eliminator method whose target was itself in the decreasing chain
+/// (depth 0 is the fixpoint's own argument, so calls need depth >= 1).
+///
+/// Subterm depths are tracked structurally -- no type information is
+/// consulted: the root binder of the telescope at position `pos` gets depth
+/// 0, and each eliminator method's recursive-pattern binders get their
+/// target's depth plus one.  Occurrences of `f` that are not saturated
+/// applications (or that hide behind a metavariable) are rejected.
+fn calls_decrease(body: &Tm, id: crate::fix::FixId, pos: usize) -> bool {
+    // descend the λ-telescope, giving position `pos` depth 0
+    let mut env: Vec<Option<u32>> = Vec::new();
+    let mut t = body;
+    let mut i = 0usize;
+    loop {
+        match t {
+            Tm::Lam(ps, b) => {
+                for _p in ps.iter() {
+                    env.insert(0, if i == pos { Some(0) } else { None });
+                    if matches!(_p, Pn::Var(_)) {
+                        i += 1;
+                    } else {
+                        return false; // pattern lambdas cannot be the telescope
+                    }
+                }
+                t = b;
+            }
+            _ => break,
+        }
+    }
+    dec_go(t, &env, id, pos)
+}
+
+fn dec_go(t: &Tm, env: &Vec<Option<u32>>, id: crate::fix::FixId, pos: usize) -> bool {
+    match t {
+        Tm::FixRef(i) => *i != id, // a bare self-reference is not saturated
+        Tm::App(..) => {
+            let (head, args) = spine_of(t);
+            match head {
+                Tm::FixRef(i) if *i == id => {
+                    if args.len() <= pos {
+                        return false;
+                    }
+                    match args[pos] {
+                        Tm::Var(v) => match env.get(v.0).and_then(|d| *d) {
+                            Some(d) if d >= 1 => {}
+                            _ => return false,
+                        },
+                        _ => return false,
+                    }
+                    args.iter().all(|a| dec_go(a, env, id, pos))
+                }
+                Tm::Elim(def) => {
+                    let k = def.num_params();
+                    let n = def.ctors.len();
+                    let target_at = k + n + 1;
+                    // the eliminator's target, when it is a variable, seeds
+                    // the depths its methods' recursive arguments grow from
+                    let tdepth = match args.get(target_at) {
+                        Some(Tm::Var(v)) => env.get(v.0).and_then(|d| *d),
+                        _ => None,
+                    };
+                    for (idx, arg) in args.iter().enumerate() {
+                        if idx >= k + 1 && idx < k + 1 + n {
+                            // a method: descend its pattern telescope,
+                            // giving recursive-constructor-argument binders
+                            // depth `tdepth + 1`
+                            if !dec_method(arg, env, id, pos, &def.ctors[idx - k - 1], tdepth) {
+                                return false;
+                            }
+                        } else if !dec_go(arg, env, id, pos) {
+                            return false;
+                        }
+                    }
+                    true
+                }
+                _ => dec_go(head, env, id, pos) && args.iter().all(|a| dec_go(a, env, id, pos)),
+            }
+        }
+        Tm::Lam(ps, b) => {
+            let mut env2 = env.clone();
+            for _ in 0..num_pvars(ps).0 {
+                env2.insert(0, None);
+            }
+            dec_go(b, &env2, id, pos)
+        }
+        Tm::Pi(_, a, b) => {
+            let mut env2 = env.clone();
+            env2.insert(0, None);
+            dec_go(a, env, id, pos) && dec_go(b, &env2, id, pos)
+        }
+        Tm::Let(_, a, v, b) => {
+            let mut env2 = env.clone();
+            env2.insert(0, None);
+            dec_go(a, env, id, pos)
+                && dec_go(v, env, id, pos)
+                && dec_go(b, &env2, id, pos)
+        }
+        Tm::Id(a, x, y) => {
+            dec_go(a, env, id, pos) && dec_go(x, env, id, pos) && dec_go(y, env, id, pos)
+        }
+        _ => true,
+    }
+}
+
+/// Walk one eliminator method: its pattern telescope binds the
+/// constructor's arguments, and after each *recursive* one an induction
+/// hypothesis; recursive-argument binders get `tdepth + 1`.
+fn dec_method(
+    m: &Tm,
+    env: &Vec<Option<u32>>,
+    id: crate::fix::FixId,
+    pos: usize,
+    ctor: &CtorInfo,
+    tdepth: Option<u32>,
+) -> bool {
+    let Tm::Lam(ps, b) = m else {
+        return dec_go(m, env, id, pos);
+    };
+    // The method's telescope is the constructor's arguments with an
+    // induction hypothesis after each recursive one -- and the pattern list
+    // already contains them all; pushing them in order, each at the front,
+    // leaves the newest (innermost) binder at index 0.
+    let expected = ctor.num_args + ctor.recursive.iter().filter(|r| **r).count();
+    let mut env2 = env.clone();
+    if ps.len() == expected && ps.iter().all(|p| matches!(p, Pn::Var(_))) {
+        let mut entries: Vec<Option<u32>> = Vec::with_capacity(expected);
+        for rec in ctor.recursive.iter() {
+            entries.push(if *rec { tdepth.map(|d| d + 1) } else { None });
+            if *rec {
+                entries.push(None); // the induction hypothesis
+            }
+        }
+        for e in entries.iter() {
+            env2.insert(0, *e);
+        }
+    } else {
+        // shape mismatch (should not happen for elaborated methods): all
+        // unknown, which can only reject
+        for _ in 0..num_pvars(ps).0 {
+            env2.insert(0, None);
+        }
+    }
+    dec_go(b, &env2, id, pos)
+}
+
+/// Peel an application spine into its head and arguments.
+fn spine_of(t: &Tm) -> (&Tm, Vec<&Tm>) {
+    let mut args = Vec::new();
+    let mut h = t;
+    while let Tm::App(f, a) = h {
+        args.push(&**a);
+        h = f;
+    }
+    args.reverse();
+    (h, args)
+}
+
 /// Check `r` against `ty`, returning its core term.
 pub fn check(ctx: &Ctx, r: &Raw, ty: &Val) -> M<Tm> {
     let ty = frc(ty);
@@ -282,6 +654,18 @@ pub fn check(ctx: &Ctx, r: &Raw, ty: &Val) -> M<Tm> {
             let vt = eval(&ctx.env, &t);
             let u = check(&ctx.define(x.clone(), vt, va), u, &ty)?;
             Ok(Tm::Let(x.clone(), Box::new(a), Box::new(t), Box::new(u)))
+        }
+        // A checked fixpoint: elaborate the declaration (termination check
+        // included), then bind `f` to the fixpoint value for the rest.
+        Raw::LetRec(x, a, t, u) => {
+            let (a, _va, ctx3, id) = elab_let_rec_decl(ctx, x, a, t)?;
+            let u = check(&ctx3, u, &ty)?;
+            Ok(Tm::Let(
+                x.clone(),
+                Box::new(a),
+                Box::new(Tm::FixRef(id)),
+                Box::new(u),
+            ))
         }
         // A hole in checking position becomes a fresh metavariable of the
         // expected type; unification solves it from the context.
@@ -588,6 +972,20 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
             ))
         }
 
+        Raw::LetRec(x, a, t, u) => {
+            let (a, _va, ctx3, id) = elab_let_rec_decl(ctx, x, a, t)?;
+            let (u, uty) = infer(&ctx3, u)?;
+            Ok((
+                Tm::Let(
+                    x.clone(),
+                    Box::new(a),
+                    Box::new(Tm::FixRef(id)),
+                    Box::new(u),
+                ),
+                uty,
+            ))
+        }
+
         Raw::Refl => report(ctx, "Can't infer type for refl".to_string()),
 
         Raw::Id(a, x, y) => {
@@ -878,6 +1276,8 @@ fn field_depends_on_earlier(t: &Tm, idx: usize) -> bool {
             // A meta head is closed; its arguments ride along as `App`s and
             // are visited as ordinary subterms.
             Tm::Meta(_) => false,
+            // So is a fixpoint reference.
+            Tm::FixRef(_) => false,
             Tm::App(f, a) => go(f, d, idx) || go(a, d, idx),
             Tm::Id(a, x, y) => go(a, d, idx) || go(x, d, idx) || go(y, d, idx),
             Tm::Pi(_, a, b) => go(a, d, idx) || go(b, d + 1, idx),
@@ -1148,7 +1548,7 @@ fn subst_outer(t: &Tm, d: usize, k: usize, ctx: &Ctx) -> Tm {
                 crate::subst::lift(&quote_val(ctx.lvl, &v), 0, 1)
             }
         }
-        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) => t.clone(),
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) | Tm::FixRef(_) => t.clone(),
         Tm::App(f, a) => Tm::App(
             Box::new(subst_outer(f, d, k, ctx)),
             Box::new(subst_outer(a, d, k, ctx)),
@@ -1188,6 +1588,7 @@ fn occurs_data(t: &Tm, def: &Rc<IndDef>) -> bool {
         // to something mentioning `D`, because an unsolved meta at the end
         // of the program is an error.
         Tm::Meta(_) => false,
+        Tm::FixRef(_) => false,
         Tm::App(f, a) => occurs_data(f, def) || occurs_data(a, def),
         Tm::Id(a, x, y) => {
             occurs_data(a, def) || occurs_data(x, def) || occurs_data(y, def)
@@ -1256,7 +1657,7 @@ fn classify_arg(v: &Val, def: &Rc<IndDef>, pvs: &Spine, l: Lvl) -> Option<bool> 
 fn free_vars_only_d(t: &Tm, d: usize) -> bool {
     match t {
         Tm::Var(i) => i.0 <= d,
-        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) => true,
+        Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) | Tm::FixRef(_) => true,
         Tm::App(f, a) => free_vars_only_d(f, d) && free_vars_only_d(a, d),
         Tm::Id(a, x, y) => free_vars_only_d(a, d) && free_vars_only_d(x, d) && free_vars_only_d(y, d),
         Tm::Pi(_, a, b) => free_vars_only_d(a, d) && free_vars_only_d(b, d + 1),
@@ -1275,7 +1676,7 @@ pub fn close_data(t: &Tm, def: &Rc<IndDef>) -> Tm {
         match t {
             Tm::Var(i) if i.0 >= d => Tm::Data(def.clone()),
             Tm::Var(i) => Tm::Var(*i),
-            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) => t.clone(),
+            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) | Tm::FixRef(_) => t.clone(),
             Tm::App(f, a) => Tm::App(Box::new(go(f, d, def)), Box::new(go(a, d, def))),
             Tm::Id(a, x, y) => Tm::Id(
                 Box::new(go(a, d, def)),
@@ -1466,7 +1867,7 @@ fn remap_free(t: &Tm, map: &[Option<usize>], def: &Rc<IndDef>) -> Tm {
                     }
                 }
             }
-            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) => t.clone(),
+            Tm::U(_) | Tm::Refl | Tm::Bot | Tm::Data(_) | Tm::Ctor(..) | Tm::Elim(_) | Tm::Meta(_) | Tm::FixRef(_) => t.clone(),
             Tm::App(f, a) => Tm::App(Box::new(go(f, d, map, def)), Box::new(go(a, d, map, def))),
             Tm::Id(a, x, y) => Tm::Id(
                 Box::new(go(a, d, map, def)),

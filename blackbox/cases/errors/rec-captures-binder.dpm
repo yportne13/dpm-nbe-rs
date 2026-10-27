@@ -1,0 +1,3 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let f : (A : U) -> U = \ A . let rec h : A -> A = \ x . x; U;
+U

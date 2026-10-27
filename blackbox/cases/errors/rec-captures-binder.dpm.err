@@ -1,0 +1,5 @@
+<stdin>:2:30:
+  |
+2 | let f : (A : U) -> U = \ A . let rec h : A -> A = \ x . x; U;
+  |                              ^
+let rec h: the type may not depend on an enclosing binder (free variable #0); move the definition to the top level

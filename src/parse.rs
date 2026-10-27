@@ -83,7 +83,7 @@ fn is_keyword(s: &str) -> bool {
     // accepts it; keeping it here means `in` is rejected as a variable too.
     matches!(
         s,
-        "let" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "struct"
+        "let" | "rec" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "struct"
             | "where" | "elim"
     )
 }
@@ -694,6 +694,19 @@ impl<'a> Parser<'a> {
     fn let_expr(&mut self) -> PResult<Raw> {
         self.skip_ws();
         self.word()?; // "let"
+        // `let rec f : A = t; u` -- a general recursive definition, gated by
+        // the termination check.
+        if self.peek_word_is("rec") {
+            self.word()?; // "rec"
+            let x = self.binder()?;
+            self.expect_char(':')?;
+            let a = self.raw()?;
+            self.expect_char('=')?;
+            let t = self.raw()?;
+            self.expect_char(';')?;
+            let u = self.raw()?;
+            return Ok(Raw::LetRec(x, Box::new(a), Box::new(t), Box::new(u)));
+        }
         let x = self.binder()?;
         self.expect_char(':')?;
         let a = self.raw()?;
@@ -816,6 +829,21 @@ mod tests {
         assert_eq!(
             strip("let _ : Nat = zero; U"),
             Raw::Let("_".into(), var("Nat"), var("zero"), Box::new(Raw::U(0)))
+        );
+    }
+
+    #[test]
+    fn parses_let_rec_expressions() {
+        assert_eq!(
+            strip("let rec f : Nat = zero; f"),
+            Raw::LetRec("f".into(), var("Nat"), var("zero"), var("f"))
+        );
+        // `rec` is a keyword: an identifier may not be spelled `rec`
+        assert!(parse("rec").is_err());
+        // ... but `let recx` still names an ordinary binder
+        assert_eq!(
+            strip("let recx : Nat = zero; recx"),
+            Raw::Let("recx".into(), var("Nat"), var("zero"), var("recx"))
         );
     }
 

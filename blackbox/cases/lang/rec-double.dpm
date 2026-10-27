@@ -1,0 +1,3 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let rec double : Nat -> Nat = \ n . elim Nat (\ _ . Nat) zero (\ m r . suc (suc (double m))) n;
+double (suc (suc (suc zero)))

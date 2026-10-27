@@ -1,0 +1,4 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+let rec swap : Nat -> Nat -> Nat =
+  \ a b . elim Nat (\ _ . Nat) b (\ m r . swap a m) b;
+swap (suc (suc zero)) (suc (suc (suc (suc zero))))

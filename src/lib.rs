@@ -18,6 +18,7 @@
 pub mod context;
 pub mod elab;
 pub mod eval;
+pub mod fix;
 pub mod meta;
 pub mod parse;
 pub mod pretty;
@@ -63,6 +64,7 @@ pub const STACK_SIZE: usize = 64 * 1024 * 1024;
 /// holes stay unsolved is an error (the position is the hole's).
 pub fn typecheck_named(src: &str, file: &str) -> Result<(Tm, Val), Error> {
     meta::reset();
+    fix::reset();
     let raw = parse::parse_named(src, file).map_err(Error::from)?;
     let ctx = Ctx::empty(Pos::initial(file));
     let res = elab::infer(&ctx, &raw);
@@ -1169,6 +1171,101 @@ U"
         let msg = error(&src);
         assert!(msg.starts_with("unsolved metavariable"), "{msg}");
         assert_eq!(error_pos(&src), (2, 15));
+    }
+
+    // -- let rec: checked fixpoints (NOTES.md deviation 19) ------------------
+
+    /// The classic structural recursion, but written as a *general*
+    /// recursive definition: the call is on the eliminator method's
+    /// constructor argument, not the induction hypothesis.
+    const REC_DOUBLE: &str = "let rec double : Nat -> Nat = \
+\\ n . elim Nat (\\ _ . Nat) zero (\\ m r . suc (suc (double m))) n;";
+
+    #[test]
+    fn structural_recursion_checks_and_computes() {
+        assert_eq!(
+            normal_form(&format!("{NAT} {REC_DOUBLE} double (suc (suc zero))")),
+            "suc (suc (suc (suc zero)))"
+        );
+        // deep subterm recursion: half descends two levels per unfolding
+        let src = format!(
+            "{NAT} \
+let rec half : Nat -> Nat = \
+\\ n . elim Nat (\\ _ . Nat) zero \
+     (\\ m r . elim Nat (\\ _ . Nat) zero (\\ k r2 . suc (half k)) m) n; \
+half (suc (suc (suc (suc zero))))"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+    }
+
+    #[test]
+    fn the_check_tries_every_inductive_argument_position() {
+        // swap decreases in its *second* argument; position 0 fails (the
+        // call passes the induction hypothesis there) but position 1 passes.
+        let src = format!(
+            "{NAT} \
+let rec swap : Nat -> Nat -> Nat = \
+\\ a b . elim Nat (\\ _ . Nat) b (\\ m r . swap a m) b; \
+swap zero (suc (suc zero))"
+        );
+        assert_eq!(normal_form(&src), "zero");
+    }
+
+    #[test]
+    fn non_terminating_shapes_are_rejected() {
+        // a call on the argument itself (depth 0)
+        assert!(error(&format!(
+            "{NAT} let rec bad : Nat -> Nat = \\ n . bad n; zero"
+        ))
+        .contains("cannot prove termination"));
+        // a call on a constructed term, not a subterm variable
+        assert!(error(&format!(
+            "{NAT} let rec bad : Nat -> Nat = \\ n . bad (suc n); zero"
+        ))
+        .contains("cannot prove termination"));
+        // recursion but no inductive argument to decrease on
+        assert!(error(&format!(
+            "{NAT} let rec bad : (A : U) -> A -> A = \\ A x . bad A x; zero"
+        ))
+        .contains("no argument of an inductive type"));
+    }
+
+    #[test]
+    fn fixpoints_may_not_capture_enclosing_binders() {
+        // the *type* mentions the enclosing binder
+        let msg = error(&format!(
+            "{NAT} let f : (A : U) -> U = \
+\\ A . let rec h : A -> A = \\ x . x; U; U"
+        ));
+        assert!(msg.contains("type may not depend on an enclosing binder"), "{msg}");
+        // ... but a local let rec whose definition is closed is fine, and
+        // usable right away
+        assert_eq!(
+            normal_form(&format!(
+                "{NAT} let f : (A : U) -> Nat = \
+\\ A . let rec h : Nat -> Nat = \\ n . zero; h (suc zero); f Nat"
+            )),
+            "zero"
+        );
+    }
+
+    #[test]
+    fn fixpoints_are_convertible_when_stuck() {
+        // `double n` for a variable n is a stuck fixpoint; it is convertible
+        // with itself, so refl checks, and it prints under its own name.
+        let src = format!(
+            "{NAT} {REC_DOUBLE} \
+let p : (n : Nat) -> Id Nat (double n) (double n) = \\ n . refl; \
+double"
+        );
+        assert_eq!(type_of(&src), "Nat → Nat");
+        assert_eq!(normal_form(&src), "double");
+        // and reduction agrees with the eliminator formulation
+        let src = format!(
+            "{NAT} {REC_DOUBLE} \
+let p : Id Nat (double (suc zero)) (suc (suc zero)) = refl; p"
+        );
+        assert_eq!(normal_form(&src), "refl");
     }
 
     // -- modes -------------------------------------------------------------

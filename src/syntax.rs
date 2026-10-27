@@ -18,6 +18,10 @@ pub type Name = String;
 /// A metavariable (hole) identifier; `?{m}` in printed terms.
 pub type MetaId = usize;
 
+/// A checked fixpoint identifier; the definition lives in [`crate::fix`]'s
+/// fixcontext, like a metavariable in [`crate::meta`].
+pub type FixId = usize;
+
 /// De Bruijn index: counts binders from a variable outwards.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Ix(pub usize);
@@ -92,6 +96,10 @@ pub enum Raw {
     U(u32),
     /// `let x : A = t; u`
     Let(Name, Box<Raw>, Box<Raw>, Box<Raw>),
+    /// `let rec f : A = t; u` -- a general recursive definition, admitted
+    /// only after the structural termination check passes (NOTES.md
+    /// deviation 19).
+    LetRec(Name, Box<Raw>, Box<Raw>, Box<Raw>),
     /// `(x : A) -> B`
     Pi(Name, Box<Raw>, Box<Raw>),
     /// `\ p1 p2 ... . t`
@@ -141,12 +149,18 @@ impl Raw {
             Raw::Var(x) => Raw::Var(x.clone()),
             Raw::App(t, u) => Raw::App(Box::new(t.strip_pos()), Box::new(u.strip_pos())),
             Raw::U(l) => Raw::U(*l),
-            Raw::Let(x, a, t, u) => Raw::Let(
-                x.clone(),
-                Box::new(a.strip_pos()),
-                Box::new(t.strip_pos()),
-                Box::new(u.strip_pos()),
-            ),
+        Raw::Let(x, a, t, u) => Raw::Let(
+            x.clone(),
+            Box::new(a.strip_pos()),
+            Box::new(t.strip_pos()),
+            Box::new(u.strip_pos()),
+        ),
+        Raw::LetRec(x, a, t, u) => Raw::LetRec(
+            x.clone(),
+            Box::new(a.strip_pos()),
+            Box::new(t.strip_pos()),
+            Box::new(u.strip_pos()),
+        ),
             Raw::Pi(x, a, b) => {
                 Raw::Pi(x.clone(), Box::new(a.strip_pos()), Box::new(b.strip_pos()))
             }
@@ -272,6 +286,10 @@ pub enum Tm {
     /// live in [`crate::meta`]'s metacontext; evaluation reads through solved
     /// metas on demand.
     Meta(MetaId),
+    /// A checked fixpoint (a `let rec` definition): a closed λ-telescope
+    /// whose recursive self-calls go through this very node.  Its type and
+    /// body live in [`crate::fix`]'s fixcontext.
+    FixRef(FixId),
     Bot,
 }
 
@@ -484,6 +502,11 @@ pub enum Ne {
     /// unstucks as soon as the meta is solved, which is why it must never be
     /// treated as rigid by [`crate::eval::frc`].
     Meta(MetaId, Spine),
+    /// A checked fixpoint applied to a (possibly partial) spine.  Rigid
+    /// like an eliminator, but it *reduces* once the designated recursive
+    /// argument (the first spine entry) forces to a constructor: the
+    /// termination check is what makes that well-founded.
+    Fix(FixId, Spine),
 }
 
 /// Result of a reduction step: a value plus whether progress was made.

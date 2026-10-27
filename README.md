@@ -7,12 +7,13 @@ original: **user-declared inductive types** (nothing is built in any more,
 `Nat` is a declaration like any other), **structs** -- records as sugar over
 single-constructor declarations, with `x.f` projections -- a
 **predicative hierarchy of universes** `U : U1 : U2 : ...` with cumulativity,
-and **holes** `_` solved by pattern unification with **pruning** (a port of
-the elaboration zoo's `05-pruning`).
+**holes** `_` solved by pattern unification with **pruning** (a port of
+the elaboration zoo's `05-pruning`), and **`let rec`** general recursive
+definitions admitted by a structural **termination check**.
 
 * ~3k lines of implementation, **no dependencies** (standard library only).
 * Library + `dpm-nbe` command-line tool.
-* 163 unit tests + 7 black-box tests + 25 LSP integration tests.
+* 170 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
 * [`docs/paper.md`](docs/paper.md) — a paper-form analysis of the two prune

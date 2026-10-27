@@ -169,6 +169,9 @@ pub fn frc_ne(n: &Ne) -> Val {
         // are forced by the `napp` that applies them, so the spine needs no
         // pre-forcing here either.
         Ne::Elim(d, sp) => frc_res(&elim_step(d, sp)),
+        // Likewise the fixpoint: it only needs the recursive argument forced,
+        // which `fix_step` does itself.
+        Ne::Fix(id, sp) => frc_res(&fix_step(*id, sp)),
     }
 }
 
@@ -183,6 +186,9 @@ pub fn frc_ne_s(s: &Sub, n: &Ne) -> Val {
         Ne::Data(d, sp) => Val::ne(Ne::Data(d.clone(), subst_sp(s, sp))),
         Ne::Ctor(d, i, sp) => Val::ne(Ne::Ctor(d.clone(), *i, subst_sp(s, sp))),
         Ne::Elim(d, sp) => frc_res(&elim_step(d, &subst_sp(s, sp))),
+        // The closed body does not mention the substitution, so only the
+        // spine needs substituting before the step is retried.
+        Ne::Fix(id, sp) => frc_res(&fix_step(*id, &subst_sp(s, sp))),
     }
 }
 
@@ -194,6 +200,30 @@ pub fn frc_sp(sp: &Spine) -> Spine {
 /// Force every element of a spine under the substitution s.
 pub fn frc_sp_s(s: &Sub, sp: &Spine) -> Spine {
     sp.iter().map(|v| frc_s(s, v)).collect()
+}
+
+// ---------------------------------------------------------------------------
+// Reduction of checked fixpoints
+// ---------------------------------------------------------------------------
+
+/// Try to fire the fixpoint `id` on the spine it has collected.
+///
+/// It reduces when the designated recursive argument (the first spine
+/// entry, by the `FixRef` construction) is a constructor application --
+/// the guard that, together with the termination check (every self-call on
+/// a strict subterm), keeps unfolding well-founded.  Anything else -- an
+/// empty spine, a neutral or metavariable argument -- stays stuck.
+pub fn fix_step(id: FixId, sp: &Spine) -> Res {
+    let stuck = || block(Val::ne(Ne::Fix(id, sp.to_vec())));
+    let Some(rec_arg) = sp.first() else {
+        return stuck();
+    };
+    if !matches!(&frc(rec_arg), Val::Ne(n) if matches!(&**n, Ne::Ctor(..))) {
+        return stuck();
+    }
+    let def = crate::fix::get(id);
+    let body = eval(&Env::empty(), &def.body);
+    napp(&body, sp)
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +338,11 @@ pub fn napp(v: &Val, sp: &Spine) -> Res {
                 args.extend_from_slice(sp);
                 block(Val::ne(Ne::Meta(*m, args)))
             }
+            Ne::Fix(id, sp0) => {
+                let mut args = sp0.clone();
+                args.extend_from_slice(sp);
+                fix_step(*id, &args)
+            }
             Ne::Sub(..) => panic!("napp: impossible (unforced neutral)"),
         },
         _ => panic!("napp: impossible (applying a non-neutral value)"),
@@ -401,6 +436,7 @@ pub fn eval(env: &Env, t: &Tm) -> Val {
             crate::meta::MetaEntry::Solved { val, .. } => val,
             crate::meta::MetaEntry::Unsolved { .. } => Val::ne(Ne::Meta(*m, Vec::new())),
         },
+        Tm::FixRef(id) => Val::ne(Ne::Fix(*id, Vec::new())),
         // DEVIATION 7: `Bot` is the (unreachable) body of an absurd pattern.
         // The original panics here, which makes an absurd-pattern lambda crash
         // as soon as it is evaluated, e.g. `let C : ... = λ A (!); C`.
@@ -477,6 +513,10 @@ pub fn conv_ne(l: Lvl, n: &Ne, n2: &Ne) -> bool {
             d == d2 && i == i2 && conv_sp(l, sp, sp2)
         }
         (Ne::Elim(d, sp), Ne::Elim(d2, sp2)) => d == d2 && conv_sp(l, sp, sp2),
+        // Two fixpoints are convertible when they are the same definition
+        // applied to convertible spines; distinct definitions are distinct
+        // (the checker makes each well-founded on its own).
+        (Ne::Fix(id, sp), Ne::Fix(id2, sp2)) => id == id2 && conv_sp(l, sp, sp2),
         // Both values reach `conv` already forced, so an unsolved
         // metavariable can only be convertible to itself applied to a
         // convertible spine.  Comparing it to anything else -- including a
@@ -526,6 +566,7 @@ pub fn un_sub_ne_s(sub: &Sub, n: &Ne) -> Ne {
         Ne::Ctor(d, i, sp) => Ne::Ctor(d.clone(), *i, subst_sp(sub, sp)),
         Ne::Elim(d, sp) => Ne::Elim(d.clone(), subst_sp(sub, sp)),
         Ne::Meta(m, sp) => Ne::Meta(*m, subst_sp(sub, sp)),
+        Ne::Fix(id, sp) => Ne::Fix(*id, subst_sp(sub, sp)),
     }
 }
 
@@ -628,6 +669,7 @@ pub fn quote_ne(l: Lvl, n: &Ne) -> Tm {
         Ne::Ctor(d, i, sp) => quote_app(l, Tm::Ctor(d, i), &sp),
         Ne::Elim(d, sp) => quote_app(l, Tm::Elim(d), &sp),
         Ne::Meta(m, sp) => quote_app(l, Tm::Meta(m), &sp),
+        Ne::Fix(id, sp) => quote_app(l, Tm::FixRef(id), &sp),
     }
 }
 

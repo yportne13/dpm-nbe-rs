@@ -556,6 +556,24 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "let p : Id Nat _ zero = refl; p",
         "refl\n  :\nId Nat zero zero\n",
     ),
+    // -- checked fixpoints (NOTES.md deviation 19) ---------------------------
+    //
+    // A general recursive definition admitted by the structural termination
+    // check: the call is on the eliminator method's constructor argument
+    // (a strict subterm), not the induction hypothesis.  `half` descends
+    // two levels per unfolding -- the deep-subterm case.
+    (
+        "nf_rec_double",
+        "nf",
+        "let rec double : Nat -> Nat = \\ n . elim Nat (\\ _ . Nat) zero (\\ m r . suc (suc (double m))) n; plus (double (suc zero)) (double (suc (suc zero)))",
+        "suc (suc (suc (suc (suc (suc zero)))))\n  :\nNat\n",
+    ),
+    (
+        "nf_rec_half_deep",
+        "nf",
+        "let rec half : Nat -> Nat = \\ n . elim Nat (\\ _ . Nat) zero (\\ m r . elim Nat (\\ _ . Nat) zero (\\ k r2 . suc (half k)) m) n; half (suc (suc (suc (suc (suc (suc zero))))))",
+        "suc (suc (suc zero))\n  :\nNat\n",
+    ),
 ];
 
 /// (name, mode, source-after-prelude, line, col, message) for exit-code-1
@@ -734,6 +752,16 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
         4,
         1,
         "struct S has duplicate field a\n",
+    ),
+    // A checked fixpoint that calls itself on the argument itself (depth 0,
+    // not a strict subterm) is rejected by the termination check.
+    (
+        "err_rec_not_decreasing",
+        "nf",
+        "let rec bad : Nat -> Nat = \\ n . bad n; zero",
+        4,
+        1,
+        "let rec bad: cannot prove termination -- every recursive call must be on a strict subterm (a constructor argument, through an eliminator's method) of one inductive argument, applied in full\n",
     ),
 ];
 

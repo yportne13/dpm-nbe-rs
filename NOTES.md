@@ -73,7 +73,8 @@ Items 1-3, 5-7 and 13 fix defects that make the original diverge, panic, lose
 information or reject valid programs; item 4 restores the complexity that
 laziness gave the original; items 8-12 are interface and robustness choices;
 item 17 keeps constructor declarations inside their universe; item 18 ports
-metavariables and pruning from the elaboration zoo.
+metavariables and pruning from the elaboration zoo; item 19 adds checked
+`let rec` fixpoints with a structural termination check.
 Every item is covered by tests (see the end of this file).
 
 ### 1. Forcing a lambda terminates (`eval::frc_ne`)
@@ -507,6 +508,54 @@ the partial-renaming inversion theorem and the index-discipline invariant —
 is machine-checked in Lean 4; see
 [docs/paper.md](docs/paper.md) §4–5 and [docs/lean/](docs/lean/).
 
+### 19. `let rec`: checked fixpoints with a structural termination check (`fix`, `unify`)
+
+The port grows *general* recursive definitions: `let rec f : T = body`
+admits `f` being called recursively in `body` — beyond what an eliminator's
+induction hypotheses express — after a termination check passes.  On
+admission the definition becomes a **fixpoint** (`Tm::FixRef`, `Ne::Fix`):
+a closed λ-telescope stored in a fixcontext (`fix`, the same shape of
+per-program table the metacontext has), whose self-calls go through the
+table lookup itself.  The fixpoint *reduces* only when its designated
+recursive argument — the first spine entry — forces to a constructor
+(`eval::fix_step`), so computation stays stuck on neutral arguments exactly
+like an eliminator does.
+
+The check is structural, and stated over the *closed elaborated body*
+rather than the surface syntax:
+
+* The candidates are the argument positions of `f`'s type whose domain is a
+  declared datatype; the check tries each and accepts the first where every
+  self-call decreases (`elab::calls_decrease`).
+* The designated argument's binder gets depth 0; an eliminator method's
+  constructor-argument binders get their target's depth plus one (the
+  method's induction hypotheses stay depth-less).  A self-call `f ... a ...`
+  must be a *saturated* application whose argument at the candidate
+  position is a variable of depth ≥ 1 — a strict subterm.  Calls on the
+  argument itself, on constructed terms, on induction hypotheses, or
+  under-applied/bare self-references are rejected.
+* Well-foundedness: unfolding happens only on constructors, and each unfold
+  replaces the recursive argument by a strict subterm of it — the depths the
+  checker tracked — so the subterm ordering terminates every chain of
+  unfolds.  This is the classical structural-recursion soundness argument,
+  at the scope of one fixpoint.
+
+Restrictions that follow from the design:
+
+* The stored body must be **closed** (like stored constructor types):
+  `let rec` under binders is fine only when neither the type nor the body
+  actually mentions them; otherwise `may not depend on an enclosing binder`.
+* Mutual recursion is impossible by construction: the declaration chain is
+  linear, so `f` can only call *earlier* definitions.
+* A hole inside a fixpoint body is conservative: a self-call hiding behind
+  a metavariable is not a saturated application, so it is rejected.
+
+Two definitions of the same shape are distinct fixpoints (like distinct
+datatype declarations); a stuck `f x` prints under `f`'s name.  Tests: the
+`fixpoints_*`/`structural_recursion_*` families in `src/lib.rs`, `fix`'s
+own tests, the golden `nf_rec_*`/`err_rec_*` rows, and
+`blackbox/cases/lang|errors/rec-*.dpm`.
+
 ## Inherited limitations
 
 * There is **no occurs check** (`Elab.hs` marks it as a TODO), so unification
@@ -543,7 +592,7 @@ is machine-checked in Lean 4; see
 
 ## Tests
 
-`cargo test` runs 163 unit tests inside `src/` plus the `tests/golden.rs`
+`cargo test` runs 170 unit tests inside `src/` plus the `tests/golden.rs`
 black-box suite (7 tests, ~120 table checks: success cases including the
 arithmetic prelude, `Bool`/`List` elimination, the README programs and
 generated transitivity proofs, declaration errors, elaboration errors with
@@ -567,5 +616,9 @@ error message, the definitional-equality cases, the output modes, and the
 fixed regressions described above.  The metavariable tests cover the zoo's
 example set (holes in annotations and identity types, lambda inference with
 pruning, solvable and unsolvable non-linear spines, intersection pruning)
-plus the unsolved-meta report and its position.  The LSP suite adds 25
+plus the unsolved-meta report and its position.  The `let rec` tests cover the
+checker (acceptance through deep subterms and non-first argument
+positions, rejection of non-strict, constructed and higher-order calls,
+the closedness restriction), reduction on constructor arguments, and
+conversion of stuck fixpoints.  The LSP suite adds 25
 integration tests, the web IDE 39 + 29 smoke checks.
