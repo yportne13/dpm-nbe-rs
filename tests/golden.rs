@@ -568,6 +568,17 @@ static OK: &[(&str, &str, &str, &str)] = &[
         "let rec double : Nat -> Nat = \\ n . elim Nat (\\ _ . Nat) zero (\\ m r . suc (suc (double m))) n; plus (double (suc zero)) (double (suc (suc zero)))",
         "suc (suc (suc (suc (suc (suc zero)))))\n  :\nNat\n",
     ),
+    // -- typeclasses (NOTES.md deviation 20) -----------------------------------
+    //
+    // A bare method reference carries its own dictionary: the projection's
+    // (q : Show A) domain is filled by instance resolution at the
+    // application site.
+    (
+        "nf_tc_show_resolves",
+        "nf",
+        "class Show (A : U) : U where show : A -> Nat; instance showNat : Show Nat = mkShow Nat (\\ n . suc zero); show Nat (suc (suc (suc zero)))",
+        "suc zero\n  :\nNat\n",
+    ),
     (
         "nf_rec_half_deep",
         "nf",
@@ -755,6 +766,24 @@ static ERR: &[(&str, &str, &str, usize, usize, &str)] = &[
     ),
     // A checked fixpoint that calls itself on the argument itself (depth 0,
     // not a strict subterm) is rejected by the termination check.
+    // No instance for the target class application.
+    (
+        "err_tc_no_instance",
+        "nf",
+        "data Bool : U where true : Bool; false : Bool;\nclass Show (A : U) : U where show : A -> Nat;\ninstance showNat : Show Nat = mkShow Nat (\\ n . suc zero);\nshow Bool true",
+        7,
+        1,
+        "no instance of Show Bool (class Show)\n",
+    ),
+    // An instance whose type does not end in a class application.
+    (
+        "err_tc_not_a_class",
+        "nf",
+        "instance bad : Nat = zero; zero",
+        4,
+        1,
+        "instance bad: the type must end in a class application, but it ends in\n\n  Nat\n",
+    ),
     (
         "err_rec_not_decreasing",
         "nf",

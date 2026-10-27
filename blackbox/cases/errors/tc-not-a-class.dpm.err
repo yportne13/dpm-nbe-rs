@@ -1,0 +1,7 @@
+<stdin>:2:1:
+  |
+2 | instance bad : Nat = zero;
+  | ^
+instance bad: the type must end in a class application, but it ends in
+
+  Nat

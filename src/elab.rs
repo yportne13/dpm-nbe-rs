@@ -243,6 +243,11 @@ fn report<T>(ctx: &Ctx, msg: String) -> M<T> {
     Err(ctx.error(msg))
 }
 
+/// Public `report` for the typeclass machinery (same message contract).
+pub fn report_tc<T>(ctx: &Ctx, msg: String) -> M<T> {
+    report(ctx, msg)
+}
+
 // ---------------------------------------------------------------------------
 // Type checking
 // ---------------------------------------------------------------------------
@@ -440,6 +445,143 @@ fn free_var(t: &Tm) -> Option<usize> {
         }
     }
     go(t, 0)
+}
+
+// ---------------------------------------------------------------------------
+// Classes and instances
+// ---------------------------------------------------------------------------
+
+/// Elaborate `class C params : ty where methods; body`: exactly the struct
+/// sugar (single-constructor declaration plus one projection per method),
+/// with the datatype registered as a class so its projections'
+/// `(q : C ps)` domains drive instance resolution.  The `IndDef` is taken
+/// from the declaration's own binding, which `elab_data` exposes as the
+/// `Tm::Data` value of its leading `Let`.
+fn elab_class(
+    ctx: &Ctx,
+    name: &Name,
+    params: &[(Name, Raw)],
+    ty_raw: &Raw,
+    fields: &[(Name, Raw)],
+    body: &Raw,
+) -> M<(Tm, Val)> {
+    // the struct desugaring, verbatim: mkC-ctor plus per-field projections
+    let s_app = |acc: Option<Raw>| -> Raw {
+        let mut acc = acc.unwrap_or_else(|| Raw::Var(name.clone()));
+        for (p, _) in params {
+            acc = Raw::App(Box::new(acc), Box::new(Raw::Var(p.clone())));
+        }
+        acc
+    };
+    for (i, (f, _)) in fields.iter().enumerate() {
+        if fields[..i].iter().any(|(g, _)| g == f) {
+            return report(ctx, format!("class {} has duplicate method {}", name, f));
+        }
+    }
+    let mut ctor_ty = s_app(None);
+    for (f, t) in fields.iter().rev() {
+        ctor_ty = Raw::Pi(f.clone(), Box::new(t.clone()), Box::new(ctor_ty));
+    }
+    let ctor = (format!("mk{name}"), Box::new(ctor_ty));
+    let mut q = "p".to_string();
+    while ctx.names.iter().any(|n| *n == q)
+        || params.iter().any(|(p, _)| *p == q)
+        || fields.iter().any(|(f, _)| *f == q)
+    {
+        q.push('\'');
+    }
+    let mut body_out = body.clone();
+    for (f, t) in fields.iter() {
+        let mut p_ty = Raw::Pi(q.clone(), Box::new(s_app(None)), Box::new(t.clone()));
+        for (p, a) in params.iter().rev() {
+            p_ty = Raw::Pi(p.clone(), Box::new(a.clone()), Box::new(p_ty));
+        }
+        let mut lams: Vec<Pn> = params.iter().map(|(p, _)| Pn::Var(p.clone())).collect();
+        lams.push(Pn::Var(q.clone()));
+        let value = Raw::Lam(
+            lams,
+            Box::new(Raw::Proj(Box::new(Raw::Var(q.clone())), f.clone())),
+        );
+        body_out = Raw::Let(f.clone(), Box::new(p_ty), Box::new(value), Box::new(body_out));
+    }
+    // Elaborate the declaration directly with the class flag, so the
+    // registration happens before the body (the rest of the program).
+    let (tm, ty) = elab_data(
+        ctx,
+        name,
+        params,
+        ty_raw,
+        &[(ctor.0.clone(), *ctor.1)],
+        &body_out,
+        true,
+    )?;
+    Ok((tm, ty))
+}
+
+/// Elaborate `instance i : T = v`: a let, plus registration of the closed
+/// value and type for resolution.  The closure rule is the one stored
+/// constructor types and `let rec` bodies follow: no enclosing binders.
+fn elab_instance_decl(
+    ctx: &Ctx,
+    name: &Name,
+    a_raw: &Raw,
+    t_raw: &Raw,
+) -> M<(Tm, Val, Tm, Ctx)> {
+    let (a_tm, va, _) = infer_type(ctx, a_raw)?;
+    let t_tm = check(ctx, t_raw, &va)?;
+    let vt = eval(&ctx.env, &t_tm);
+
+    // the type must end in a class application
+    let mut cod = frc(&va);
+    let mut l = ctx.lvl;
+    while let Val::Pi(_, _, b) = &cod {
+        cod = frc(&b.apply(Val::vvar(l)));
+        l = l.inc();
+    }
+    if crate::tc::as_class(&cod).is_none() {
+        return report(
+            ctx,
+            format!(
+                "instance {}: the type must end in a class application, \
+                 but it ends in\n\n  {}",
+                name,
+                show_val(ctx, &cod)
+            ),
+        );
+    }
+
+    // close both, rejecting enclosing binders (as for stored ctor types)
+    let ty_closed = quote_val(ctx.lvl, &va);
+    if let Some(i) = free_var(&ty_closed) {
+        return report(
+            ctx,
+            format!(
+                "instance {}: the type may not depend on an enclosing binder \
+                 (free variable #{i}); move the definition to the top level",
+                name
+            ),
+        );
+    }
+    let term_closed = quote_val(ctx.lvl, &eval(&ctx.env, &t_tm));
+    if let Some(i) = free_var(&term_closed) {
+        return report(
+            ctx,
+            format!(
+                "instance {}: the value may not depend on an enclosing binder \
+                 (free variable #{i}); move the definition to the top level",
+                name
+            ),
+        );
+    }
+
+    crate::tc::add_instance(crate::tc::InstanceDef {
+        name: name.clone(),
+        term: term_closed,
+        ty: ty_closed,
+    });
+
+    let ctx3 = ctx.define(name.clone(), vt, va.clone());
+    Ok((a_tm, va, t_tm, ctx3))
 }
 
 /// The argument positions of a Pi-telescope whose domain is a declared
@@ -861,6 +1003,10 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
                 }
                 tty = pi;
             }
+            // Leading class-application domains are filled by instance
+            // resolution, so a bare method reference carries its own
+            // dictionary (the explicit path is the `d.m` projection).
+            let (t, tty) = crate::tc::insert_instances(ctx, t, tty)?;
             match frc(&tty) {
                 Val::Pi(_, a, b) => {
                     let u = check(ctx, u, &a)?;
@@ -986,6 +1132,41 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
             ))
         }
 
+        // A class is struct sugar plus a registry entry; the elaborated
+        // declaration binds the type, the constructor and one projection
+        // per method, exactly as `struct` does.
+        Raw::Class(..) => {
+            let (x, params, ty, fields, body) = match r {
+                Raw::Class(x, ps, ty, fs, b) => (x, ps, ty, fs, b),
+                _ => unreachable!("guarded by the arm's pattern"),
+            };
+            let (tm, uty) = elab_class(ctx, x, params, ty, fields, body)?;
+            Ok((tm, uty))
+        }
+
+        // An instance is a let whose closed value joins the resolution
+        // table (NOTES.md deviation 20).
+        Raw::Instance(x, a, t, u) => {
+            let (a_tm, _va, t_tm, ctx3) = elab_instance_decl(ctx, x, a, t)?;
+            let (u_tm, uty) = infer(&ctx3, u)?;
+            Ok((
+                Tm::Let(
+                    x.clone(),
+                    Box::new(a_tm),
+                    Box::new(t_tm),
+                    Box::new(u_tm),
+                ),
+                uty,
+            ))
+        }
+
+        // `[T]` -- explicit instance resolution.
+        Raw::Inst(t) => {
+            let (_t_tm, va, _) = infer_type(ctx, t)?;
+            let dict = crate::tc::resolve_or_report(ctx, &va)?;
+            Ok((dict, va))
+        }
+
         Raw::Refl => report(ctx, "Can't infer type for refl".to_string()),
 
         Raw::Id(a, x, y) => {
@@ -1001,7 +1182,7 @@ pub fn infer(ctx: &Ctx, r: &Raw) -> M<(Tm, Val)> {
                 Raw::Data(x, ps, ty, cs, b) => (x, ps, ty, cs, b),
                 _ => unreachable!("guarded by the match arm"),
             };
-            elab_data(ctx, x, params, ty, ctors, body)
+            elab_data(ctx, x, params, ty, ctors, body, false)
         }
 
         Raw::Struct(..) => {
@@ -1308,6 +1489,7 @@ pub fn elab_data(
     ty_raw: &Raw,
     ctors: &[(Name, Raw)],
     body: &Raw,
+    class: bool,
 ) -> M<(Tm, Val)> {
     let k = params.len();
 
@@ -1509,6 +1691,11 @@ pub fn elab_data(
     }
 
     // 5. The body, under the bindings of the datatype and its constructors.
+    // A class registers *before* its body elaborates: the body is the rest
+    // of the program, and its instances must already see the class.
+    if class {
+        crate::tc::add_class(name.clone(), def.clone());
+    }
     let mut ctx2 = ctx.define(name.clone(), Val::data(&def), d_ty_val);
     let mut binds: Vec<(Name, Tm, Tm)> = vec![(name.clone(), d_ty, Tm::Data(def.clone()))];
     for (i, ci) in def.ctors.iter().enumerate() {

@@ -137,6 +137,21 @@ pub fn is_empty() -> bool {
     MCXT.with(|m| m.borrow().is_empty())
 }
 
+/// A snapshot of the metacontext, for speculative solving (instance
+/// resolution tries entries and must roll failed tries back).  Entries are
+/// cheap to clone (values are `Rc`), and `restore` also restores id
+/// allocation, since `fresh` derives ids from the vector's length.
+pub fn snapshot() -> Vec<MetaEntry> {
+    MCXT.with(|m| m.borrow().clone())
+}
+
+/// Roll the metacontext back to a snapshot.
+pub fn restore(snap: Vec<MetaEntry>) {
+    MCXT.with(|m| {
+        *m.borrow_mut() = snap;
+    });
+}
+
 /// The unsolved metavariables, in creation order.
 pub fn unsolved() -> Vec<MetaId> {
     MCXT.with(|mcxt| {

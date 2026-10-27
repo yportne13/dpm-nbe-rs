@@ -74,7 +74,8 @@ information or reject valid programs; item 4 restores the complexity that
 laziness gave the original; items 8-12 are interface and robustness choices;
 item 17 keeps constructor declarations inside their universe; item 18 ports
 metavariables and pruning from the elaboration zoo; item 19 adds checked
-`let rec` fixpoints with a structural termination check.
+`let rec` fixpoints with a structural termination check; item 20 adds
+typeclasses resolved by that very unifier.
 Every item is covered by tests (see the end of this file).
 
 ### 1. Forcing a lambda terminates (`eval::frc_ne`)
@@ -556,6 +557,59 @@ datatype declarations); a stuck `f x` prints under `f`'s name.  Tests: the
 own tests, the golden `nf_rec_*`/`err_rec_*` rows, and
 `blackbox/cases/lang|errors/rec-*.dpm`.
 
+### 20. Typeclasses: struct sugar, an instance table, and resolution by unification (`tc`)
+
+The port grows typeclasses, again as sugar over what is already there.  A
+`class C ps : ty where m1 : T1; ...` declaration **is** a struct (deviation
+16): the single-constructor datatype `C`, the constructor `mkC`, and one
+projection per method.  What it adds is a registry entry, and that one entry
+changes how the projections are *used*: a method reference like `show` has
+type `(A : U)(q : Show A) -> ...`, and its class-typed domain is filled
+**automatically** at the application site -- `show Nat zero` elaborates to
+`show Nat <dictionary> zero`, the dictionary coming from instance
+resolution.  The explicit paths are the field projection `d.show` on a
+dictionary value (which never goes through an application) and the `[T]`
+expression, which resolves by hand and prints the found dictionary.
+
+An `instance i : T = v` declaration is a `let` whose type must end in a
+class application; the checked value and type are closed (the same
+no-enclosing-binders rule as stored constructor types and `let rec` bodies)
+and pushed to a thread-local table, scanned **newest first** -- a later
+declaration shadows an earlier one for the same target.
+
+Resolution is a depth-limited backtracking search, and it is the ported
+pattern unification doing the work: for each table entry, fresh
+metavariables are created for the instance type's whole telescope, the
+codomain is unified with the target (metas on the instance side get solved
+-- this is `unify::unify` from deviation 18), the ordinary domains must come
+out solved and become the instance's arguments, and each *class* domain is
+resolved recursively, its solution written back into that meta.  A failed
+entry rolls the metacontext back -- `meta::snapshot`/`restore` exist for
+exactly this -- so half-solved attempts are never observed.  The search
+depth is bounded (`MAX_DEPTH = 64`), which both terminates the recursion
+and rejects cyclic instance sets (`instance : Eq A -> Eq A` searches to the
+bound and fails).
+
+Restrictions that follow:
+
+* A class's methods are its struct fields, so the deviation-16 field rules
+  apply: no duplicate methods, a method type may not depend on an earlier
+  method.
+* Instances must close (top level, or under binders they do not mention);
+  a local instance that closes is fine and takes precedence while it is in
+  scope, being the newest entry.
+* Coherence is **not** enforced: two matching instances are resolved by
+  table order, not by uniqueness, so overlapping instances can produce
+  different dictionaries at different scopes.
+* No superclasses, no prioritised overlap resolution, no `deriving`.
+
+The class registers **before** its body elaborates (`elab_data`'s `class`
+flag): the body is the rest of the program, and its instances must already
+see the class -- an earlier version registered after the body and every
+instance of the class itself failed resolution.  Tests: the `instances_*`/
+`resolution_*` families in `src/lib.rs`, `tc`'s own tests, the golden
+`nf_tc_*`/`err_tc_*` rows, and `blackbox/cases/lang|errors/tc-*.dpm`.
+
 ## Inherited limitations
 
 * There is **no occurs check** (`Elab.hs` marks it as a TODO), so unification
@@ -592,7 +646,7 @@ own tests, the golden `nf_rec_*`/`err_rec_*` rows, and
 
 ## Tests
 
-`cargo test` runs 170 unit tests inside `src/` plus the `tests/golden.rs`
+`cargo test` runs 177 unit tests inside `src/` plus the `tests/golden.rs`
 black-box suite (7 tests, ~120 table checks: success cases including the
 arithmetic prelude, `Bool`/`List` elimination, the README programs and
 generated transitivity proofs, declaration errors, elaboration errors with

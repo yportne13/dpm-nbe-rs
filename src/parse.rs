@@ -84,7 +84,7 @@ fn is_keyword(s: &str) -> bool {
     matches!(
         s,
         "let" | "rec" | "in" | "λ" | "U" | "refl" | "Id" | "data" | "struct"
-            | "where" | "elim"
+            | "class" | "instance" | "where" | "elim"
     )
 }
 
@@ -367,6 +367,8 @@ impl<'a> Parser<'a> {
             _ if self.peek_word_is("let") => self.let_expr(),
             _ if self.peek_word_is("data") => self.data_decl(),
             _ if self.peek_word_is("struct") => self.struct_decl(),
+            _ if self.peek_word_is("class") => self.class_decl(),
+            _ if self.peek_word_is("instance") => self.instance_decl(),
             Some('(') => match self.alt(Self::pi) {
                 Ok(x) => Ok(x),
                 Err(()) => self.fun_or_spine(),
@@ -388,6 +390,34 @@ impl<'a> Parser<'a> {
         self.skip_ws();
         self.word()?; // "struct"
         self.decl_tail(true)
+    }
+
+    /// `class C groups* ':' Raw where Method* Raw` -- a struct declaration
+    /// whose type is additionally registered for instance resolution.
+    fn class_decl(&mut self) -> PResult<Raw> {
+        self.skip_ws();
+        self.word()?; // "class"
+        self.decl_tail(true).map(|r| match r {
+            Raw::Struct(n, ps, ty, fs, body) => {
+                Raw::Class(n, ps, ty, fs, body)
+            }
+            _ => unreachable!("decl_tail builds Struct for is_struct"),
+        })
+    }
+
+    /// `instance name ':' Raw '=' Raw ';' Raw` -- a let-shaped declaration
+    /// whose type must end in a class application.
+    fn instance_decl(&mut self) -> PResult<Raw> {
+        self.skip_ws();
+        self.word()?; // "instance"
+        let x = self.binder()?;
+        self.expect_char(':')?;
+        let a = self.raw()?;
+        self.expect_char('=')?;
+        let t = self.raw()?;
+        self.expect_char(';')?;
+        let u = self.raw()?;
+        Ok(Raw::Instance(x, Box::new(a), Box::new(t), Box::new(u)))
     }
 
     /// The shared tail of a `data`/`struct` declaration:
@@ -604,6 +634,14 @@ impl<'a> Parser<'a> {
                 let r = self.raw()?;
                 self.expect_char(')')?;
                 r
+            }
+            // `[T]` -- explicit instance resolution.
+            Some('[') => {
+                self.bump();
+                self.skip_ws();
+                let t = self.raw()?;
+                self.expect_char(']')?;
+                Raw::Inst(Box::new(t))
             }
             // `_` in expression position is a hole (a `_` in binder or
             // pattern position is consumed by `binder`/`pn` before an atom
@@ -829,6 +867,39 @@ mod tests {
         assert_eq!(
             strip("let _ : Nat = zero; U"),
             Raw::Let("_".into(), var("Nat"), var("zero"), Box::new(Raw::U(0)))
+        );
+    }
+
+    #[test]
+    fn parses_class_instance_and_bracket_resolution() {
+        // class parses like a struct, carrying the same pieces
+        assert_eq!(
+            strip("class C (A : U) : U where m : A; U"),
+            Raw::Class(
+                "C".into(),
+                vec![("A".into(), Raw::U(0))],
+                Box::new(Raw::U(0)),
+                vec![("m".into(), *var("A"))],
+                Box::new(Raw::U(0)),
+            )
+        );
+        // instance parses like a let
+        assert_eq!(
+            strip("instance i : Nat = zero; i"),
+            Raw::Instance("i".into(), var("Nat"), var("zero"), var("i"))
+        );
+        // `[T]` is explicit resolution
+        assert_eq!(
+            strip("[Nat]"),
+            Raw::Inst(var("Nat"))
+        );
+        // keywords: an identifier may not be spelled class/instance
+        assert!(parse("class").is_err());
+        assert!(parse("instance").is_err());
+        // ... but `classx` still names an ordinary binder
+        assert_eq!(
+            strip("let classx : Nat = zero; classx"),
+            Raw::Let("classx".into(), var("Nat"), var("zero"), var("classx"))
         );
     }
 

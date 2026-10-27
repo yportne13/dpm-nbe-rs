@@ -1,0 +1,5 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+class Show (A : U) : U where show : A -> Nat;
+instance showNat : Show Nat = mkShow Nat (\ n . suc zero);
+instance showNat2 : Show Nat = mkShow Nat (\ n . suc (suc zero));
+show Nat zero

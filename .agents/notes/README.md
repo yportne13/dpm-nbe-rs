@@ -23,3 +23,4 @@ true to revisit it.
 - [2026-10-25 — frc stays whnf-only on rigid neutrals](implemented/2026-10-25-frc-strictness-port.md)
 - [2026-10-26 — metas + pruning: a no-icit port of elaboration-zoo 05-pruning](implemented/2026-10-26-metas-pruning-port.md)
 - [2026-10-28 — `let rec` fixpoints: reduction gated on constructors, termination checked structurally](implemented/2026-10-28-letrec-termination.md)
+- [2026-10-28 — typeclasses: resolution is the ported unifier, sugar is the existing struct](implemented/2026-10-28-typeclass-resolution.md)

@@ -125,6 +125,23 @@ pub enum Raw {
         Vec<(Name, Raw)>,
         Box<Raw>,
     ),
+    /// `class C params : ty where m1 : t1; ... ; body` -- a struct whose
+    /// single-constructor type is additionally registered as a class, so
+    /// the `(q : C ...)` domains of its projections drive instance
+    /// resolution.
+    Class(
+        Name,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+        Vec<(Name, Raw)>,
+        Box<Raw>,
+    ),
+    /// `instance name : ty = val; body` -- a let whose (checked) type ends
+    /// in a class application; the closed value is registered for
+    /// instance resolution.
+    Instance(Name, Box<Raw>, Box<Raw>, Box<Raw>),
+    /// `[T]` -- resolve an instance of the class type `T` by search.
+    Inst(Box<Raw>),
     /// `x.f` -- field projection, sugar for the eliminator of the field's
     /// single-constructor type.
     Proj(Box<Raw>, Name),
@@ -194,6 +211,24 @@ impl Raw {
                     .collect(),
                 Box::new(body.strip_pos()),
             ),
+            Raw::Class(d, ps, ty, fs, body) => Raw::Class(
+                d.clone(),
+                ps.iter()
+                    .map(|(x, a)| (x.clone(), a.strip_pos()))
+                    .collect(),
+                Box::new(ty.strip_pos()),
+                fs.iter()
+                    .map(|(x, t)| (x.clone(), t.strip_pos()))
+                    .collect(),
+                Box::new(body.strip_pos()),
+            ),
+            Raw::Instance(x, a, t, u) => Raw::Instance(
+                x.clone(),
+                Box::new(a.strip_pos()),
+                Box::new(t.strip_pos()),
+                Box::new(u.strip_pos()),
+            ),
+            Raw::Inst(t) => Raw::Inst(Box::new(t.strip_pos())),
             Raw::Proj(x, f) => Raw::Proj(Box::new(x.strip_pos()), f.clone()),
             Raw::Hole => Raw::Hole,
             Raw::Bot => Raw::Bot,

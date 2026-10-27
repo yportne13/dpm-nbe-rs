@@ -24,6 +24,7 @@ pub mod parse;
 pub mod pretty;
 pub mod subst;
 pub mod syntax;
+pub mod tc;
 pub mod unify;
 
 #[cfg(test)]
@@ -65,6 +66,7 @@ pub const STACK_SIZE: usize = 64 * 1024 * 1024;
 pub fn typecheck_named(src: &str, file: &str) -> Result<(Tm, Val), Error> {
     meta::reset();
     fix::reset();
+    tc::reset();
     let raw = parse::parse_named(src, file).map_err(Error::from)?;
     let ctx = Ctx::empty(Pos::initial(file));
     let res = elab::infer(&ctx, &raw);
@@ -1266,6 +1268,122 @@ double"
 let p : Id Nat (double (suc zero)) (suc (suc zero)) = refl; p"
         );
         assert_eq!(normal_form(&src), "refl");
+    }
+
+    // -- typeclasses (NOTES.md deviation 20) ---------------------------------
+
+    /// A Show class over Nat: the bare method reference carries its own
+    /// dictionary, resolved from the instance table.
+    const SHOW_NAT: &str = "\
+class Show (A : U) : U where show : A -> Nat; \
+instance showNat : Show Nat = mkShow Nat (\\ n . suc zero);";
+
+    #[test]
+    fn instances_resolve_and_methods_carry_dictionaries() {
+        // the projection's (q : Show A) domain is filled automatically
+        assert_eq!(
+            normal_form(&format!("{NAT} {SHOW_NAT} show Nat (suc (suc zero))")),
+            "suc zero"
+        );
+        // the explicit bracket form resolves by hand
+        assert_eq!(
+            normal_form(&format!("{NAT} {SHOW_NAT} [Show Nat]")),
+            "mkShow Nat (λ n . suc zero)"
+        );
+        // and the field projection is the explicit-dictionary escape hatch
+        let src = format!(
+            "{NAT} {SHOW_NAT} \
+let d : Show Nat = mkShow Nat (\\ n . suc (suc zero)); (d.show) zero"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+    }
+
+    #[test]
+    fn instance_constraints_resolve_recursively() {
+        // showList's constraint (Show A) is itself resolved -- the zoo's
+        // dictionary-passing shape, built by search
+        let src = format!(
+            "{NAT_PLUS} \
+data List (A : U) : U where nil : List A; cons : (a : A) -> (as : List A) -> List A; \
+class Show (A : U) : U where show : A -> Nat; \
+instance showNat : Show Nat = mkShow Nat (\\ n . suc zero); \
+instance showList : (A : U) -> Show A -> Show (List A) = \
+  λ A d . mkShow (List A) \
+    (λ xs . elim List A (λ _ . Nat) zero (λ a as r . plus (d.show a) r) xs); \
+show (List Nat) (cons Nat zero (cons Nat (suc zero) (nil Nat)))"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+    }
+
+    #[test]
+    fn later_instances_win_and_search_backtracks() {
+        // a later instance shadows an earlier one for the same target
+        let src = format!(
+            "{NAT} {SHOW_NAT} \
+instance showNat2 : Show Nat = mkShow Nat (\\ n . suc (suc zero)); \
+show Nat zero"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+        // an entry whose subgoal cannot be resolved is skipped in favour of
+        // one whose can (showC needs Show Bool, which showBool provides)
+        let src = format!(
+            "{NAT} \
+data Bool : U where true : Bool; false : Bool; \
+class Show (A : U) : U where show : A -> Nat; \
+instance showNat : Show Nat = mkShow Nat (\\ n . suc zero); \
+instance showBool : Show Bool = mkShow Bool (\\ b . zero); \
+instance showC : Show Bool -> Show Nat = \
+  λ d . mkShow Nat (\\ n . suc (suc (suc zero))); \
+show Nat zero"
+        );
+        assert_eq!(normal_form(&src), "suc (suc (suc zero))");
+    }
+
+    #[test]
+    fn resolution_failures_are_reported() {
+        // no instance for the target
+        let src = format!(
+            "{NAT} \
+data Bool : U where true : Bool; false : Bool; \
+class Show (A : U) : U where show : A -> Nat; \
+instance showNat : Show Nat = mkShow Nat (\\ n . suc zero); \
+show Bool true"
+        );
+        assert!(error(&src).starts_with("no instance of Show Bool"), "msg");
+        // an instance whose type is not a class application
+        assert!(error(&format!("{NAT} instance bad : Nat = zero; zero"))
+            .contains("must end in a class application"));
+    }
+
+    #[test]
+    fn instances_may_not_capture_enclosing_binders() {
+        // the *type* mentions the enclosing binder
+        let msg = error(&format!(
+            "{NAT} \
+class Show (A : U) : U where show : A -> Nat; \
+let f : (A : U) -> U = \
+  \\ A . instance i : Show A = mkShow A (\\ n . zero); U; U"
+        ));
+        assert!(msg.contains("type may not depend on an enclosing binder"), "{msg}");
+        // ... but a local instance whose definition is closed is fine, and
+        // usable right away
+        let src = format!(
+            "{NAT} \
+class Show (A : U) : U where show : A -> Nat; \
+let f : (A : U) -> Nat = \
+  \\ A . instance i : Show Nat = mkShow Nat (\\ n . suc (suc zero)); \
+     show Nat zero; \
+f Nat"
+        );
+        assert_eq!(normal_form(&src), "suc (suc zero)");
+    }
+
+    #[test]
+    fn classes_reject_duplicate_methods() {
+        assert!(error(&format!(
+            "{NAT} class Show (A : U) : U where show : A -> Nat; show : A -> Nat; U"
+        ))
+        .contains("class Show has duplicate method show"));
     }
 
     // -- modes -------------------------------------------------------------

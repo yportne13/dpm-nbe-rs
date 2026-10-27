@@ -1,0 +1,3 @@
+data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;
+instance bad : Nat = zero;
+zero

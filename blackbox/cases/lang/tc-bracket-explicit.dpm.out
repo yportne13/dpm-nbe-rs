@@ -1,0 +1,3 @@
+mkShow Nat (λ n . suc zero)
+  :
+Show Nat
