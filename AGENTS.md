@@ -82,6 +82,23 @@ stderr with a `<stdin>:L:C:` position. Exit codes: 0 success, 1 user error,
 - **Error messages are contract.** golden.rs and blackbox pin exact fragments
   and positions; rewording one is a breaking change to those tables and needs
   the owning rows updated in the same change.
+- **Metavariable heads are flexible, not rigid** (`Ne::Meta`): a solved meta
+  unfolds in `frc` by applying its solution to the spine — it must never
+  join the `Ne::Var/Data/Ctor` fast path.  Conversion stays **pure**
+  (`conv`/`conv_le` never solve); solving rides only on
+  `unify::conv_or_unify{,_le}`, which tries conversion first (cumulativity
+  intact) and falls back to `unify::unify` when metas exist — meta-free
+  programs must keep taking the identical path.  Making `conv` itself
+  side-effecting would poison `check_pm`'s index unifier (NOTES.md
+  deviation 18).
+- **`Ctx::locals` is the zoo's `Locals`**: the once-quoted context chain
+  that lets `fresh_meta` close a meta's type without re-quotation
+  (`subst_ctx` marks it `Stale`; `fresh_meta` rebuilds on demand).  Closing
+  eagerly instead re-quotes per binder — measured 12 s → 0.1 s at 160
+  nested variable lambdas.  The index discipline it maintains, and the
+  `Let`-nodes-it-produces handling in `lams`/`prune_ty`, are spelled out in
+  [docs/paper.md](docs/paper.md) §4 and machine-checked in
+  [docs/lean/](docs/lean/).
 - **Pure-performance changes must keep output byte-identical**; the blackbox
   `.out` sidecars are the oracle ([dpm-perf-check](.agents/skills/dpm-perf-check/SKILL.md)).
 - Style: match the local idiom, including the double-match arm pattern in

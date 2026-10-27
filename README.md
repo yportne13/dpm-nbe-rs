@@ -15,6 +15,10 @@ the elaboration zoo's `05-pruning`).
 * 163 unit tests + 7 black-box tests + 25 LSP integration tests.
 * [`NOTES.md`](NOTES.md) documents the algorithm and every deliberate
   difference from the Haskell original.
+* [`docs/paper.md`](docs/paper.md) — a paper-form analysis of the two prune
+  experiments (declaration reachability, metavariable pruning), with a
+  machine-checked Lean 4 formalization of their scoping cores
+  ([`docs/lean/`](docs/lean/)).
 
 On top of the library, the repository also carries a language server and an
 online IDE, so the language can be edited with diagnostics, hover, completion

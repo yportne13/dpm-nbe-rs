@@ -502,7 +502,10 @@ types only (`infer_type` unifies the type-of-type meta with `U`):
 `let x : _ = zero` works for any small type, a hole that should mean `U`
 itself needs an annotation.  Tests: the `tests::holes_*`/`*prun*` families in
 `src/lib.rs`, `unify`'s own tests, the golden `nf_hole_*`/`meta` rows, and
-`blackbox/cases/lang/meta-*.dpm`.
+`blackbox/cases/lang/meta-*.dpm`.  The scoping core of the algorithm —
+the partial-renaming inversion theorem and the index-discipline invariant —
+is machine-checked in Lean 4; see
+[docs/paper.md](docs/paper.md) §4–5 and [docs/lean/](docs/lean/).
 
 ## Inherited limitations
 
