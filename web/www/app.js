@@ -36,6 +36,45 @@ U
     label: 'Absurd pattern (λ A (!))',
     text: 'let C : (A : U) -> Id Nat (suc zero) zero -> A =\n  λ A (!);\nC\n',
   },
+  hurkens: {
+    label: "Hurkens' paradox (U : U is inconsistent)",
+    // type-in-type demo: U : U makes the theory inconsistent; run with the
+    // Type button, which infers `L R : (Y : U) -> Y` without forcing the
+    // term.  nf would loop forever — a paradox has no normal form.
+    mode: 'type',
+    text: `-- Hurkens' paradox: here U : U (type in type), and that alone
+-- makes the theory inconsistent.  A universe that quantifies over
+-- itself retracts its own power set, and the definitions below turn
+-- that into an inhabitant of the empty type.
+let Bot : U = (Y : U) -> Y;
+
+let A : U = (X : U) -> ((((X -> U) -> U) -> X) -> ((X -> U) -> U));
+
+let tau : (((A -> U) -> U) -> A) =
+  λ t X f p . t (λ x . p (f (x X f)));
+
+let sigma : A -> ((A -> U) -> U) =
+  λ s . s A tau;
+
+let D : A -> U =
+  λ y . ((p : (A -> U)) -> (sigma y p -> p (tau (sigma y)))) -> Bot;
+
+let omega : A = tau (λ p . (x : A) -> (sigma x p -> p x));
+
+let R : (p : (A -> U)) -> (((x : A) -> (sigma x p -> p x)) -> p omega) =
+  λ p one . one omega (λ x . one (tau (sigma x)));
+
+let M : (x : A) -> (sigma x D -> D x) =
+  λ x two three . three D two (λ p . three (λ y . p (tau (sigma y))));
+
+let L : ((p : (A -> U)) -> (((x : A) -> (sigma x p -> p x)) -> p omega)) -> Bot =
+  λ q . q D M (λ p . q (λ y . p (tau (sigma y))));
+
+-- Press Type: the panel infers the type below.  Do not press Check --
+-- a paradox has no normal form, and normalization would not terminate.
+L R
+`,
+  },
   broken: {
     label: 'A type error to look at',
     text: 'let bad : Nat = U; U\n',
@@ -47,6 +86,10 @@ U
 };
 
 const STORAGE_KEY = 'dpm-nbe-web:v1';
+
+// A preset may prefer a run mode of its own (the paradox must be inferred,
+// not normalized); the Check/Type buttons still force their mode explicitly.
+const presetMode = (key) => PRESETS[key]?.mode ?? 'nf';
 
 const $ = (id) => document.getElementById(id);
 const deepLink = new URLSearchParams(location.search).get('preset');
@@ -361,7 +404,7 @@ async function start() {
   renderServerStatus();
   client.open(editor.value);
   await refresh(editor.value);
-  await run('nf');
+  await run(presetMode(preset));
 
   // -- editor wiring -------------------------------------------------------
 
@@ -411,7 +454,7 @@ async function start() {
     clearTimeout(changeTimer);
     client.change(editor.value);
     refresh(editor.value);
-    run(lastResultMode);
+    run(presetMode(select.value));
     history.replaceState(null, '', `?preset=${select.value}`);
   });
 
@@ -428,7 +471,7 @@ async function start() {
     }
     client.change(editor.value);
     refresh(editor.value);
-    run(lastResultMode);
+    run(presetMode(select.value));
   });
   $('toggle-log').addEventListener('click', () => {
     logVisible = !logVisible;

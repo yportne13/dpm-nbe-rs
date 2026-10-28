@@ -120,8 +120,11 @@ web/
 ## Using the page
 
 * **Examples** — the dropdown is a set of small programs (the README proofs, an
-  arithmetic normalisation, a dependent type, an absurd pattern, a deliberate
-  type error, and a 150-deep numeral).
+  arithmetic normalisation, a dependent type, an absurd pattern, Hurkens'
+  paradox, a deliberate type error, and a 150-deep numeral).  Each example
+  runs in its preferred mode: the paradox is *inferred* with the `Type`
+  button (`L R : (Y : U) -> Y` — `U : U` inhabits the empty type); asking for
+  its normal form would not terminate, which is the point.
 * **Editing** — edits are stored in `localStorage` and restored on reload;
   `Reset` throws the local copy away and restores the example.
 * **Hover** — move the caret (or click) on a name; the card shows the type the
