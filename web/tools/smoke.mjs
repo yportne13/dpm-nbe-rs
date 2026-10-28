@@ -102,6 +102,7 @@ const info = JSON.parse(mod.info());
 ok('info() names the server', info.name === 'dpm-nbe-lsp' && /^\d+\.\d+/.test(info.version), JSON.stringify(info));
 ok('info() advertises the LSP surface', info.methods.includes('textDocument/hover') && info.methods.includes('dpm-nbe/evaluate'));
 ok('info() declares the .dpm language id', info.language.id === 'dpm-nbe' && info.language.extensions.includes('.dpm'));
+ok('lastPanic() is exported and empty while healthy', typeof mod.lastPanic === 'function' && mod.lastPanic() === '', JSON.stringify(mod.lastPanic?.()));
 
 // --- handshake ------------------------------------------------------------
 

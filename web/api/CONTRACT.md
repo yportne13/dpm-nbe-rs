@@ -13,6 +13,7 @@ binary uses.  The rules below are what the frontend and the smoke test rely on.
 | `LspSession.send(msg)` | `(string) -> string` | One JSON-RPC message in, a JSON **array** of outgoing messages out. |
 | `LspSession.initialized` | getter | Whether `initialize` has been seen. |
 | `check(src, mode)` | `(string, string) -> string` | Convenience "run" call: `mode` is `"nf"` or `"type"`. |
+| `lastPanic()` | `() -> string` | The last Rust panic the module took (`""` if none), as `panicked at <file>:<line>:<col>: <message>`. |
 
 `check` returns `{ ok: true, mode, output }` or `{ ok: false, mode, error }`.
 
@@ -52,11 +53,27 @@ const character = lineText.slice(0, columnInCodePoints16).length; // already UTF
 * Language errors (parse/type) are **data**: a diagnostic with
   `{ severity, code, source: "dpm-nbe", message, data.rendered }`, never a
   thrown exception.  `data.rendered` is the CLI's caret diagram.
-* A trap is **not** recoverable: `wasm32-unknown-unknown` cannot unwind, so a
-  Rust panic aborts the instance.  The frontend must catch the thrown error,
-  mark the session dead, tell the user to reload, and never call into the dead
-  module again.  Everything reachable from the module is bounded instead
-  (parser depth budget, `MAX_CHECK_BYTES`, 64 MiB shadow stack).
+* Traps come in two kinds, and the frontend treats them differently:
+  * A **Rust panic** is not recoverable: `wasm32-unknown-unknown` cannot
+    unwind, so the panic aborts the call and poisons the session object's
+    borrow flag — never call it again.  The module's panic hook still runs
+    before the trap and records the message and location; after catching the
+    trap the frontend reads `lastPanic()` and shows it (the instance itself
+    stays answerable — only the trapped session is dead), then asks the user
+    to reload.
+  * A **stack overflow** (`RuntimeError: call stack exhausted` /
+    `Maximum call stack size exceeded`) is a resource limit, not a bug: the
+    engine gives wasm roughly a megabyte of stack, and a *computed* normal
+    form nested deeper than a few thousand constructors (the parser's own
+    depth budget already bounds what can be *written down*) does not fit.
+    A fresh `LspSession` works again immediately — the per-program tables
+    (metas, fixpoints, instances) are reset at the start of every run — so
+    the frontend restarts the session, replays `initialize` + `didOpen`, and
+    keeps serving; only the one request that trapped fails.
+* Everything else reachable from the module is bounded: the parser depth
+  budget, `MAX_CHECK_BYTES`, and the 64 MiB link-time shadow stack (which
+  protects linear memory; the engine's own wasm stack is the tighter,
+  restarting-on-overflow ceiling above).
 
 ## Verified by
 

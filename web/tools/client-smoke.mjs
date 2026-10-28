@@ -108,10 +108,73 @@ ok('definition points at `n`', README.slice(offsetAt(README, definition.range.st
 
 const doomed = new LspClient(wasm, { uri: 'file:///doomed.dpm' });
 await doomed.start();
-doomed.die(new Error('simulated trap'));
+doomed.die('simulated trap');
 ok('a dead client refuses work instead of throwing', (await doomed.hover('U', { line: 0, character: 0 }).then(() => 'resolved', (e) => e.message)).includes('simulated trap'));
 ok('a dead client marks itself dead', doomed.alive === false);
 ok('the trap is reported to the UI', doomed.alive === false);
+
+// --- a deep computation must not kill the client -----------------------------
+//
+// `plus hundred hundred ...` normalizes to a numeral nested 4000 constructors
+// deep, past the ~1 MB engine stack wasm gets.  On the default Node stack the
+// evaluate call traps; the client must restart the session and keep serving.
+// (On an engine with a bigger stack the call simply succeeds; every assertion
+// below holds either way.)
+
+const trapNotifications = [];
+const deepClient = new LspClient(wasm, {
+  uri: 'file:///deep.dpm',
+  onNotification: (message) => {
+    if (message.method === '$/trap') trapNotifications.push(message);
+  },
+});
+await deepClient.start();
+deepClient.open('U');
+const calls = '(plus hundred '.repeat(40) + 'zero' + ')'.repeat(40);
+const deepText = 'data Nat : U where zero : Nat; suc : (n : Nat) -> Nat;\n'
+  + 'let rec plus : Nat -> Nat -> Nat =\n'
+  + '  λ m n . elim Nat (λ _ . Nat) n (λ _ r . suc r) m;\n'
+  + 'let rec mult : Nat -> Nat -> Nat =\n'
+  + '  λ m n . elim Nat (λ _ . Nat) zero (λ _ r . plus n r) m;\n'
+  + 'let ten : Nat = suc (suc (suc (suc (suc (suc (suc (suc (suc (suc zero)))))))));\n'
+  + 'let hundred : Nat = mult ten ten;\n'
+  + calls;
+await deepClient.evaluate(deepText, 'nf').then(() => {}, () => {});
+ok('the client survives a too-deep evaluation', deepClient.alive === true);
+if (trapNotifications.length > 0) {
+  const last = trapNotifications[trapNotifications.length - 1].params;
+  ok('the stack trap is reported as recovered', last.recovered === true, JSON.stringify(last));
+  ok('the stack trap names the resource limit', /wasm stack/.test(last.reason ?? ''), JSON.stringify(last));
+} else {
+  ok('no spurious trap notifications', trapNotifications.length === 0);
+}
+const after = await deepClient.evaluate('U', 'nf');
+ok('the client answers after the deep computation', after?.ok === true, JSON.stringify(after)?.slice(0, 120));
+ok('a session that never panicked reports none', wasm.lastPanic() === '', JSON.stringify(wasm.lastPanic()));
+
+// --- a Rust panic is fatal and carries its message ---------------------------
+//
+// The real module reports a panic through the trap + `lastPanic()` pair; this
+// stub reproduces exactly that shape (a bare `unreachable` trap plus a
+// recorded panic), so the client's fatal classification is covered without a
+// known-panicking program in the tree.
+
+const panicNotifications = [];
+const stub = {
+  LspSession: class {
+    send() { throw new Error('unreachable'); }
+  },
+  lastPanic: () => 'panicked at src/elab.rs:9:9: probe',
+};
+const panicked = new LspClient(stub, {
+  onNotification: (message) => {
+    if (message.method === '$/trap') panicNotifications.push(message);
+  },
+});
+const startError = await panicked.start().then(() => null, (error) => error);
+ok('a Rust panic surfaces its message', /Rust panic: panicked at src\/elab\.rs:9:9: probe/.test(startError?.message ?? ''), String(startError));
+ok('a Rust panic kills the client', panicked.alive === false);
+ok('the panic text travels to the UI', panicNotifications[0]?.params?.panic === 'panicked at src/elab.rs:9:9: probe', JSON.stringify(panicNotifications[0]));
 
 await client.shutdown();
 ok('shutdown ends the session', (await client.hover('U', { line: 0, character: 0 }).then(() => 'resolved', (e) => e.message)).length > 0);

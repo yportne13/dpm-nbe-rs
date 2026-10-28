@@ -130,9 +130,12 @@ web/
 * **Completion** — `Ctrl`+`Space`, or just keep typing an identifier.  `↑`/`↓`,
   `Enter`/`Tab`, `Esc`; each entry shows its type.
 * **Check** — `Ctrl`+`Enter` or the button; `Type` shows only the type.  A red
-  panel is a parse/type error (`ok:false`, language level); an amber banner is a
-  wasm trap (a Rust panic cannot unwind on `wasm32-unknown-unknown`) and needs a
-  page reload.
+  panel is a parse/type error (`ok:false`, language level).  A blue banner means
+  the request overflowed the browser's wasm stack (a normal form nested a few
+  thousand constructors deep does not fit): the session restarts itself and the
+  editor keeps working.  An amber banner is a Rust panic (it cannot unwind on
+  `wasm32-unknown-unknown`); the panic text is shown and quoted to the console,
+  and the page needs a reload.
 * **Deep links** — `?preset=broken` selects an example directly.
 
 ## Troubleshooting
@@ -141,6 +144,7 @@ web/
 | --- | --- |
 | “wasm not built” banner, 404 in the console | `node web/build.mjs`, then reload. |
 | Blank page | Serve over HTTP (`node web/serve.mjs`); `file://` cannot load the module. |
-| Amber “instance crashed” banner | Reload the page. If it reproduces, the input is reaching a panic path — that is a bug worth reporting with the program text. |
+| Blue “overflowed the browser's wasm stack” banner | Shrink the example: a computed normal form deeper than a few thousand constructors does not fit the engine's wasm stack. The session already restarted itself; nothing else to do. |
+| Amber “instance crashed” banner with a panic block | Reload the page. If it reproduces, the program is reaching a panic path — a bug worth reporting with the program text and the quoted panic. |
 | `wasm-bindgen` version error | The CLI must be exactly the version pinned in `web/api/dpm-nbe-wasm/Cargo.toml`. |
 | Completion popup does not appear | `Ctrl`+`Space` always asks the server; automatic completion only starts after an identifier character. |
