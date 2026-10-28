@@ -323,12 +323,27 @@ async function start() {
       if (message.method === 'textDocument/publishDiagnostics') {
         renderDiagnostics(message.params.diagnostics ?? []);
       } else if (message.method === '$/trap') {
-        banner(
-          'warn',
-          `<strong>The wasm instance crashed (a Rust panic cannot unwind on <code>wasm32-unknown-unknown</code>).</strong>
-           <p>Reload the page to start a fresh instance. ${escapeHtml(message.params.reason ?? '')}</p>`,
-        );
-        $('run').disabled = true;
+        if (message.params.recovered) {
+          banner(
+            'info',
+            `<strong>The last request overflowed the browser's wasm stack.</strong>
+             <p>The session restarted itself; the editor keeps working.
+             ${escapeHtml(message.params.reason ?? '')}</p>`,
+          );
+          setTimeout(() => {
+            if ($('banner').className === 'banner info') $('banner').hidden = true;
+          }, 6000);
+        } else {
+          banner(
+            'warn',
+            `<strong>The wasm instance crashed (a Rust panic cannot unwind on <code>wasm32-unknown-unknown</code>).</strong>
+             <p>Reload the page to start a fresh instance${message.params.panic ? ' and quote the panic below in a report' : ''}.</p>
+             ${message.params.panic
+              ? `<pre>${escapeHtml(message.params.panic)}</pre>`
+              : `<p>${escapeHtml(message.params.reason ?? '')}</p>`}`,
+          );
+          $('run').disabled = true;
+        }
       }
     },
     onLog: (entry) => {

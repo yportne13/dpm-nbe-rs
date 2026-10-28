@@ -29,7 +29,10 @@ opt-level = 3
 lto = true
 
 # Panics cannot be caught on `wasm32-unknown-unknown` (unwinding needs the
-# exception-handling proposal), so a panic is an instance trap.  Everything the
-# module can reach is bounded instead: the parser has its own depth budget, the
-# analysis layer refuses files above `MAX_CHECK_BYTES`, and the shadow stack is
-# sized at link time in `build.rs`.
+# exception-handling proposal), so a panic traps the call.  The panic hook in
+# `lib.rs` still runs before the trap and records the message and location for
+# the page to read back through `lastPanic()`.  Everything the module can reach
+# is bounded instead: the parser has its own depth budget, the analysis layer
+# refuses files above `MAX_CHECK_BYTES`, and the shadow stack is sized at link
+# time in `build.rs` (the *engine's* wasm stack, ~1 MB, is the tighter ceiling
+# and the frontend restarts the session when it overflows; see CONTRACT.md).

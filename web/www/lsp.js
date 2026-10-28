@@ -4,6 +4,17 @@
 // drives this exact class in Node against the real wasm module, so the client
 // half of the conversation is covered by tests too.
 
+// V8/SpiderMonkey/JSC wording for a wasm stack overflow; a resource limit, not
+// a bug in the server.
+const STACK_TRAP = /call stack exhausted|maximum call stack size/i;
+
+// What a stack trap means to a person: the engine gives wasm roughly a
+// megabyte of stack, and a normal form nested a few thousand constructors
+// deep does not fit under it.
+const STACK_REASON = 'the browser ran out of wasm stack while checking this '
+  + 'program (a normal form nested a few thousand constructors deep does not '
+  + 'fit); try a smaller computation';
+
 /** Byte/UTF-16 offset helpers (LSP positions are UTF-16 code units). */
 export function positionAt(text, offset) {
   const clamped = Math.max(0, Math.min(offset, text.length));
@@ -41,23 +52,75 @@ export class LspClient {
     this.serverInfo = null;
     this.capabilities = null;
     this.version = 0;
+    this.text = null;
     this.nextId = 1;
     this.pending = new Map();
     this.diagnostics = [];
     this.diagnosticsUri = null;
     this.alive = false;
     this.deadReason = null;
+    this.panicText = null;
   }
 
-  /** A trap leaves the wasm instance unusable; every later call is refused. */
-  die(error) {
+  /** An unrecoverable trap: every later call is refused. */
+  die(reason, panic = null) {
     this.alive = false;
-    this.deadReason = String(error?.message ?? error);
+    this.deadReason = reason;
+    this.panicText = panic;
     for (const pending of this.pending.values()) {
-      pending.reject(new Error(this.deadReason));
+      pending.reject(new Error(reason));
     }
     this.pending.clear();
-    this.onNotification({ method: '$/trap', params: { reason: this.deadReason } });
+    this.onNotification({ method: '$/trap', params: { reason, panic, recovered: false } });
+  }
+
+  /**
+   * A trap from `session.send`: either a Rust panic (fatal — the module's
+   * panic hook recorded it, readable through `wasm.lastPanic()`) or the
+   * engine's wasm stack overflowing (a resource limit — a fresh session works
+   * again, because the per-program tables are reset at the start of every
+   * run, so the client restarts itself and stays alive).
+   */
+  onTrap(error) {
+    const trap = String(error?.message ?? error);
+    let panic = null;
+    try {
+      panic = this.wasm.lastPanic?.() || null;
+    } catch {
+      /* the instance is fully wedged; report the bare trap */
+    }
+    if (!panic && STACK_TRAP.test(trap) && this.restart()) {
+      this.onNotification({ method: '$/trap', params: { reason: STACK_REASON, panic: null, recovered: true } });
+      return;
+    }
+    this.die(panic ? `Rust panic: ${panic.replaceAll('\n', ' ')} [${trap}]` : trap, panic);
+  }
+
+  /**
+   * Fresh session, handshake, re-open of the current text.  Synchronous on
+   * purpose: `transmit` calls it while rejecting the trapped request, and the
+   * next editor request must find the client alive again.
+   */
+  restart() {
+    try {
+      const fresh = new this.wasm.LspSession();
+      const call = (message) => JSON.parse(fresh.send(JSON.stringify(message)));
+      const init = call({ jsonrpc: '2.0', id: this.nextId++, method: 'initialize', params: { processId: null, capabilities: {} } });
+      if (init[0]?.error) return false;
+      call({ jsonrpc: '2.0', method: 'initialized', params: {} });
+      this.session = fresh;
+      this.alive = true;
+      if (this.text !== null) {
+        this.version += 1;
+        this.dispatch(call({ jsonrpc: '2.0', method: 'textDocument/didOpen', params: {
+          textDocument: { uri: this.uri, languageId: this.languageId, version: this.version, text: this.text },
+        } }));
+      }
+      return true;
+    } catch {
+      this.alive = false;
+      return false;
+    }
   }
 
   /** Hand one message to the module and fan the replies out. */
@@ -70,7 +133,7 @@ export class LspClient {
     try {
       replies = JSON.parse(this.session.send(JSON.stringify(message)));
     } catch (error) {
-      this.die(error);
+      this.onTrap(error);
       throw error;
     }
     this.onLog({ direction: 'server→client', message: replies });
@@ -149,6 +212,7 @@ export class LspClient {
 
   open(text) {
     this.version = 1;
+    this.text = text;
     return this.notify('textDocument/didOpen', {
       textDocument: {
         uri: this.uri,
@@ -161,6 +225,7 @@ export class LspClient {
 
   change(text) {
     this.version += 1;
+    this.text = text;
     return this.notify('textDocument/didChange', {
       textDocument: { uri: this.uri, version: this.version },
       contentChanges: [{ text }],

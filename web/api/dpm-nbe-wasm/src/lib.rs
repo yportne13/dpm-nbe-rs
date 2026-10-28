@@ -11,7 +11,19 @@
 
 use dpm_nbe_lsp::analysis;
 use dpm_nbe_lsp::{with_big_stack, Server};
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(message: &str);
+}
+
+thread_local! {
+    /// Set by the panic hook, read by [`last_panic`] after JS catches the trap.
+    static LAST_PANIC: RefCell<Option<String>> = const { RefCell::new(None) };
+}
 
 /// A live language-server instance.
 ///
@@ -51,6 +63,40 @@ impl Default for LspSession {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Install the panic recorder and say hello on the console.
+///
+/// A panic on `wasm32-unknown-unknown` traps the call, and the JS side only
+/// sees a bare `RuntimeError: unreachable`.  The hook still runs before the
+/// trap, so it records what and where for [`last_panic`] to hand back.
+#[wasm_bindgen(start)]
+pub fn main() {
+    std::panic::set_hook(Box::new(|info| {
+        let payload = info.payload();
+        let message = payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("unknown panic");
+        let text = match info.location() {
+            Some(at) => {
+                format!("panicked at {}:{}:{}: {message}", at.file(), at.line(), at.column())
+            }
+            None => format!("panicked: {message}"),
+        };
+        LAST_PANIC.with(|slot| *slot.borrow_mut() = Some(text.clone()));
+        error(&format!("dpm-nbe-wasm {text}"));
+    }));
+}
+
+/// The last Rust panic the module took ("" if none), as
+/// `panicked at <file>:<line>:<column>: <message>`.  The trapped *call* is
+/// dead, but the instance stays answerable, so the page can call this after
+/// catching the trap and show the user what actually went wrong.
+#[wasm_bindgen(js_name = lastPanic)]
+pub fn last_panic() -> String {
+    LAST_PANIC.with(|slot| slot.borrow().clone().unwrap_or_default())
 }
 
 /// Server identity and the LSP features it implements, as JSON.  The web IDE
