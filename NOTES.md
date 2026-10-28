@@ -555,7 +555,10 @@ Two definitions of the same shape are distinct fixpoints (like distinct
 datatype declarations); a stuck `f x` prints under `f`'s name.  Tests: the
 `fixpoints_*`/`structural_recursion_*` families in `src/lib.rs`, `fix`'s
 own tests, the golden `nf_rec_*`/`err_rec_*` rows, and
-`blackbox/cases/lang|errors/rec-*.dpm`.
+`blackbox/cases/lang|errors/rec-*.dpm`.  The checker walk and the
+structural-recursion argument it certifies (depth assignment, strict
+size decrease, well-foundedness) are machine-checked in Lean 4; see
+[docs/lean/Termination.lean](docs/lean/Termination.lean).
 
 ### 20. Typeclasses: struct sugar, an instance table, and resolution by unification (`tc`)
 
@@ -608,7 +611,10 @@ flag): the body is the rest of the program, and its instances must already
 see the class -- an earlier version registered after the body and every
 instance of the class itself failed resolution.  Tests: the `instances_*`/
 `resolution_*` families in `src/lib.rs`, `tc`'s own tests, the golden
-`nf_tc_*`/`err_tc_*` rows, and `blackbox/cases/lang|errors/tc-*.dpm`.
+`nf_tc_*`/`err_tc_*` rows, and `blackbox/cases/lang|errors/tc-*.dpm`.  The resolution search (first-order matching,
+the entry walk, the newest-first scan with snapshot discard) and its
+monotonicity and shape theorems are machine-checked in Lean 4; see
+[docs/lean/Typeclass.lean](docs/lean/Typeclass.lean).
 
 ## Inherited limitations
 

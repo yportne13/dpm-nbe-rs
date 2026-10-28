@@ -452,16 +452,40 @@ again and is not restated.
 Both files are self-contained Lean 4 (no mathlib), written defensively
 (self-defined list plumbing; canonical `finPrev` restriction; deterministic
 rewrites along `_fresh`/`_old` equation lemmas only — never an unfold of a
-decidable instance).  **Machine-checked**: both compile with zero errors
-and zero warnings under Lean 4.35.0 (`lean Prune.lean && lean
-PatternUnif.lean`; the toolchain was installed from the release zip
-through a range-request mirror after the direct CDN connection proved
-throttled).
+decidable instance).  **Machine-checked**: all four files below compile
+with zero errors and zero warnings under Lean 4.35.0 (the toolchain was
+installed from the release zip through a range-request mirror after the
+direct CDN connection proved throttled).
 The formalization is *scope-level*: terms carry context sizes, substitution
 is structural, and the β-law is definitional — the type-level layer of 𝒯
 (cumulativity, eliminators, `refl` patterns) is not modelled; its
 interaction with metas is exactly Theorem 4.19's proof obligation and
 remains future work.
+
+The two follow-up features were formalized in the same style:
+
+* **`let rec` (deviation 19)** — [`lean/Termination.lean`](lean/Termination.lean)
+  ports the checker (`dec`/`decMethod`/`decBody`, the depth walk of the
+  implementation) and proves the classical structural-recursion argument
+  link by link: `methodEntries_some` (a method's recursive-argument
+  binders sit at depth `d+1`, so an accepted call's argument is a strict
+  subterm position), `ctorArg_smaller` (constructor arguments are
+  strictly smaller, `size` counting constructor nodes), and
+  `ctorArgOf_size`/`ctorArgTrans_size`/`ctorArgTrans_irrefl` (the
+  subterm relation is well-founded).  Sanity theorems mirror the probe
+  matrix: reject on the argument itself, on a constructed term, on the
+  eliminator's target; accept on a method binder.
+* **Typeclasses (deviation 20)** — [`lean/Typeclass.lean`](lean/Typeclass.lean)
+  models the resolution search: `unify` (first-order matching with
+  binding), `tryEntry`/`walkDoms` (the entry walk: ordinary domains
+  solved as arguments, class domains resolved recursively), and
+  `resolve` (newest-first scan with the snapshot discard).  Theorems:
+  `unify_sound` and `resolve_extends` (monotone search — no partial
+  solution is ever observed, the formal counterpart of the
+  snapshot/rollback), and `resolve_shape`/`walkDoms_shape` (a resolved
+  dictionary is some entry's term applied to a list of arguments).
+  The sanity examples mirror the probe matrix (direct resolution,
+  subgoal recursion, failure, shadowing).
 
 ## 6. Related work
 
